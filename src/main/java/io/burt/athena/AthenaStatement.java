@@ -34,12 +34,9 @@ public class AthenaStatement implements Statement {
             currentResultSet.close();
             currentResultSet = null;
         }
-        if (execute(sql)) {
-            currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
-            return currentResultSet;
-        } else {
-            return null;
-        }
+        execute(sql);
+        currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
+        return currentResultSet;
     }
 
     @Override
