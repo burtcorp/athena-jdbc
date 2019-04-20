@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
@@ -139,6 +140,39 @@ public class AthenaConnectionTest {
     }
 
     @Nested
+    class Close {
+        // TODO
+    }
+
+    @Nested
+    class IsClosed {
+        @Test
+        void returnsFalseWhenOpen() throws Exception {
+            assertFalse(connection.isClosed());
+        }
+
+        @Test
+        void returnsTrueWhenClosed() throws Exception {
+            connection.close();
+            assertTrue(connection.isClosed());
+        }
+    }
+
+    @Nested
+    class IsValid {
+        @Test
+        void returnsTrueWhenOpen() throws Exception {
+            assertTrue(connection.isValid(0));
+        }
+
+        @Test
+        void returnsFalseWhenClosed() throws Exception {
+            connection.close();
+            assertFalse(connection.isValid(0));
+        }
+    }
+
+    @Nested
     class IsWrapperFor {
         @Test
         void isWrapperForAthenaConnection() throws Exception {
@@ -153,6 +187,65 @@ public class AthenaConnectionTest {
         @Test
         void isNotWrapperForOtherClasses() throws Exception {
             assertFalse(connection.isWrapperFor(String.class));
+        }
+    }
+
+    @Nested
+    class IsReadOnly {
+        @Test
+        void alwaysReturnsTrue() throws Exception {
+            assertTrue(connection.isReadOnly());
+        }
+    }
+
+    @Nested
+    class SetReadOnly {
+        @Test
+        void ignoresTheCall() throws Exception {
+            connection.setReadOnly(false);
+            assertTrue(connection.isReadOnly());
+        }
+    }
+
+    @Nested
+    class GetAutoCommit {
+        @Test
+        void alwaysReturnsTrue() throws Exception {
+            assertTrue(connection.getAutoCommit());
+        }
+    }
+
+    @Nested
+    class SetAutoCommit {
+        @Test
+        void ignoresTheCall() throws Exception {
+            connection.setAutoCommit(false);
+            assertTrue(connection.getAutoCommit());
+        }
+    }
+
+    @Nested
+    class GetTransactionIsolation {
+        @Test
+        void alwaysReturnsNone() throws Exception {
+            assertEquals(Connection.TRANSACTION_NONE, connection.getTransactionIsolation());
+        }
+    }
+
+    @Nested
+    class SetTransactionIsolation {
+        @Test
+        void ignoresTheCall() throws Exception {
+            connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            assertEquals(Connection.TRANSACTION_NONE, connection.getTransactionIsolation());
+        }
+    }
+
+    @Nested
+    class ClearWarnings {
+        @Test
+        void ignoresTheCall() throws Exception {
+            connection.clearWarnings();
         }
     }
 }

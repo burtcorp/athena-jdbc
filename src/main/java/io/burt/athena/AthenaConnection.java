@@ -51,6 +51,11 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public boolean isValid(int timeout) throws SQLException {
+        return open;
+    }
+
+    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         if (isWrapperFor(iface)) {
             return (T) this;
@@ -85,7 +90,7 @@ public class AthenaConnection implements Connection {
 
     @Override
     public boolean getAutoCommit() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -105,12 +110,11 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean isReadOnly() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
@@ -125,12 +129,11 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getTransactionIsolation() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return Connection.TRANSACTION_NONE;
     }
 
     @Override
@@ -140,7 +143,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void clearWarnings() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
@@ -245,11 +247,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public SQLXML createSQLXML() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public boolean isValid(int timeout) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
