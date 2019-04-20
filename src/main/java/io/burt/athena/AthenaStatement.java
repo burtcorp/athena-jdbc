@@ -51,7 +51,7 @@ public class AthenaStatement implements Statement {
             sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
         });
         queryExecutionId = startResponse.queryExecutionId();
-        for (;;) {
+        for (; ; ) {
             GetQueryExecutionResponse statusResponse = athenaClient.getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId));
             QueryExecutionState state = statusResponse.queryExecution().status().state();
             switch (state) {
@@ -135,166 +135,166 @@ public class AthenaStatement implements Statement {
 
     @Override
     public int getMaxFieldSize() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setMaxFieldSize(int max) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getMaxRows() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setMaxRows(int max) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setEscapeProcessing(boolean enable) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void cancel() throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        return null;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setCursorName(String name) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public ResultSet getResultSet() throws SQLException {
-        return null;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getUpdateCount() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean getMoreResults() throws SQLException {
-        return false;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getResultSetConcurrency() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getResultSetType() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void addBatch(String sql) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void clearBatch() throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return new int[0];
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        return null;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean getMoreResults(int current) throws SQLException {
-        return false;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public ResultSet getGeneratedKeys() throws SQLException {
-        return null;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public int getResultSetHoldability() throws SQLException {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void setPoolable(boolean poolable) throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean isPoolable() throws SQLException {
-        return false;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public void closeOnCompletion() throws SQLException {
-
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean isCloseOnCompletion() throws SQLException {
-        return false;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+        throw new UnsupportedOperationException("Not implemented");
     }
 }
