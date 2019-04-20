@@ -27,8 +27,11 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -1299,6 +1302,52 @@ public class AthenaResultSetTest {
         @Override
         protected BigDecimal get(String n) throws Exception {
             return resultSet.getBigDecimal(n);
+        }
+    }
+
+    @Nested
+    class GetDate {
+        @BeforeEach
+        void setUp() {
+            columnInfos.add(ColumnInfo.builder().label("col1").type("date").build());
+            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("2019-04-20")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("not a date")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+        }
+
+        @Test
+        void returnsDates() throws Exception {
+            resultSet.next();
+            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate(1));
+            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate("col1"));
+        }
+
+        @Test
+        void ignoresTheCalendarArgument() throws Exception {
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+            resultSet.next();
+            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate(1, calendar));
+            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate("col1", calendar));
+        }
+
+        @Test
+        void throwsWhenValueIsNotADate() throws Exception {
+            resultSet.next();
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getDate(1));
+            assertThrows(SQLException.class, () -> resultSet.getDate("col1"));
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getDate(1));
+            assertThrows(SQLException.class, () -> resultSet.getDate("col1"));
+        }
+
+        @Test
+        void returnsNullForNull() throws Exception {
+            resultSet.relative(4);
+            assertNull(resultSet.getDate(1));
+            assertNull(resultSet.getDate("col1"));
         }
     }
 

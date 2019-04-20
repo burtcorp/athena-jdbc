@@ -29,6 +29,10 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -504,24 +508,37 @@ public class AthenaResultSet implements ResultSet {
         return convertToBytes(getString(columnLabel));
     }
 
+    private Date convertToDate(String str) throws SQLException {
+        if (str == null) {
+            return null;
+        } else {
+            try {
+                LocalDate date = DateTimeFormatter.ISO_DATE.parse(str, TemporalQueries.localDate());
+                return Date.valueOf(date);
+            } catch (DateTimeParseException dtpe) {
+                throw new SQLDataException(String.format("Could not convert \"%s\" to Date", str), dtpe);
+            }
+        }
+    }
+
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        throw new NotImplementedException();
+        return convertToDate(getString(columnIndex));
     }
 
     @Override
     public Date getDate(String columnLabel) throws SQLException {
-        throw new NotImplementedException();
+        return convertToDate(getString(columnLabel));
     }
 
     @Override
-    public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        throw new NotImplementedException();
+    public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
+        return convertToDate(getString(columnIndex));
     }
 
     @Override
-    public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        throw new NotImplementedException();
+    public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
+        return convertToDate(getString(columnLabel));
     }
 
     @Override
