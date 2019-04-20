@@ -67,6 +67,10 @@ public class AthenaResultSet implements ResultSet {
         return statement;
     }
 
+    public String queryExecutionId() {
+        return queryExecutionId;
+    }
+
     private void checkClosed() throws SQLException {
         if (!open) {
             throw new SQLException("Result set is closed");

@@ -109,6 +109,14 @@ public class AthenaResultSetTest {
             assertSame(parentStatement, resultSet.getStatement());
         }
     }
+    
+    @Nested
+    class QueryExecutionId {
+        @Test
+        void returnsTheQueryExecutionId() {
+            assertEquals("Q1234", resultSet.queryExecutionId());
+        }
+    }
 
     @Nested
     class GetMetaData {
