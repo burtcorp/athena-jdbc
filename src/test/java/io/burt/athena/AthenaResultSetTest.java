@@ -925,17 +925,26 @@ public class AthenaResultSetTest {
         }
     }
 
-    @Nested
-    class GetByte {
+    abstract class SharedGetNumber<T> {
+        protected abstract T zero();
+
+        protected abstract T negativeValue();
+
+        protected abstract T positiveValue();
+
+        protected abstract T get(int n) throws Exception;
+
+        protected abstract T get(String n) throws Exception;
+
         @BeforeEach
         void setUp() {
             columnInfos.add(ColumnInfo.builder().label("col1").type("tinyint").build());
             rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("123")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2342345442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342345")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(zero().toString())).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(negativeValue().toString())).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(positiveValue().toString())).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("2342345442342345234234234345345234123")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342345123123324245345345123")).build());
             rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
             rows.add(Row.builder().data(db -> db.varCharValue("")).build());
             rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
@@ -944,272 +953,172 @@ public class AthenaResultSetTest {
         @Test
         void returnsTheIntegerValueOfTheSpecifiedColumn() throws Exception {
             resultSet.next();
-            assertEquals(0, resultSet.getByte(1));
+            assertEquals(zero(), get(1));
             resultSet.next();
-            assertEquals(-1, resultSet.getByte("col1"));
+            assertEquals(negativeValue(), get("col1"));
             resultSet.next();
-            assertEquals(123, resultSet.getByte(1));
+            assertEquals(positiveValue(), get(1));
         }
 
         @Test
-        void throwsAnErrorWhenNotAByte() throws Exception {
+        void throwsAnErrorWhenNotSupported() throws Exception {
             resultSet.relative(4);
-            assertThrows(SQLDataException.class, () -> resultSet.getByte(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getByte("col1"));
+            assertThrows(SQLDataException.class, () -> get(1));
+            assertThrows(SQLDataException.class, () -> get("col1"));
             resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getByte(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getByte("col1"));
+            assertThrows(SQLDataException.class, () -> get(1));
+            assertThrows(SQLDataException.class, () -> get("col1"));
+        }
+
+        @Test
+        void throwsAnErrorWhenNotANumber() throws Exception {
+            resultSet.relative(6);
+            assertThrows(SQLDataException.class, () -> get(1));
+            assertThrows(SQLDataException.class, () -> get("col1"));
             resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getByte(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getByte("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getByte(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getByte("col1"));
+            assertThrows(SQLDataException.class, () -> get(1));
+            assertThrows(SQLDataException.class, () -> get("col1"));
         }
 
         @Test
         void returnsNullAsZero() throws Exception {
             resultSet.relative(8);
-            assertEquals(0, resultSet.getByte(1));
-            assertEquals(0, resultSet.getByte("col1"));
+            assertEquals(zero(), get(1));
+            assertEquals(zero(), get("col1"));
         }
 
         @Nested
-        class WhenOutOfPosition extends SharedWhenOutOfPosition<Byte> {
-            protected Byte get(int n) throws Exception {
-                return resultSet.getByte(n);
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<T> {
+            protected T get(int n) throws Exception {
+                return SharedGetNumber.this.get(n);
             }
 
-            protected Byte get(String n) throws Exception {
-                return resultSet.getByte(n);
+            protected T get(String n) throws Exception {
+                return SharedGetNumber.this.get(n);
             }
         }
 
         @Nested
-        class WhenClosed extends SharedWhenClosed<Byte> {
-            protected Byte get(int n) throws Exception {
-                return resultSet.getByte(n);
+        class WhenClosed extends SharedWhenClosed<T> {
+            protected T get(int n) throws Exception {
+                return SharedGetNumber.this.get(n);
             }
 
-            protected Byte get(String n) throws Exception {
-                return resultSet.getByte(n);
+            protected T get(String n) throws Exception {
+                return SharedGetNumber.this.get(n);
             }
         }
     }
 
     @Nested
-    class GetShort {
-        @BeforeEach
-        void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("smallint").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("30123")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2342345442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
+    class GetByte extends SharedGetNumber<Byte> {
+        @Override
+        protected Byte zero() {
+            return (byte) 0;
         }
 
-        @Test
-        void returnsTheIntegerValueOfTheSpecifiedColumn() throws Exception {
-            resultSet.next();
-            assertEquals(0, resultSet.getShort(1));
-            resultSet.next();
-            assertEquals(-1, resultSet.getShort("col1"));
-            resultSet.next();
-            assertEquals(30123, resultSet.getShort(1));
+        @Override
+        protected Byte negativeValue() {
+            return (byte) -1;
         }
 
-        @Test
-        void throwsAnErrorWhenNotAByte() throws Exception {
-            resultSet.relative(4);
-            assertThrows(SQLDataException.class, () -> resultSet.getShort(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getShort("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getShort(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getShort("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getShort(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getShort("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getShort(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getShort("col1"));
+        @Override
+        protected Byte positiveValue() {
+            return (byte) 123;
         }
 
-        @Test
-        void returnsNullAsZero() throws Exception {
-            resultSet.relative(8);
-            assertEquals(0, resultSet.getShort(1));
-            assertEquals(0, resultSet.getShort("col1"));
+        @Override
+        protected Byte get(int n) throws Exception {
+            return resultSet.getByte(n);
         }
 
-        @Nested
-        class WhenOutOfPosition extends SharedWhenOutOfPosition<Short> {
-            protected Short get(int n) throws Exception {
-                return resultSet.getShort(n);
-            }
-
-            protected Short get(String n) throws Exception {
-                return resultSet.getShort(n);
-            }
-        }
-
-        @Nested
-        class WhenClosed extends SharedWhenClosed<Short> {
-            protected Short get(int n) throws Exception {
-                return resultSet.getShort(n);
-            }
-
-            protected Short get(String n) throws Exception {
-                return resultSet.getShort(n);
-            }
+        @Override
+        protected Byte get(String n) throws Exception {
+            return resultSet.getByte(n);
         }
     }
 
     @Nested
-    class GetInt {
-        @BeforeEach
-        void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("integer").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("234234544")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2342345442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
+    class GetShort extends SharedGetNumber<Short> {
+        @Override
+        protected Short zero() {
+            return (short) 0;
         }
 
-        @Test
-        void returnsTheIntegerValueOfTheSpecifiedColumn() throws Exception {
-            resultSet.next();
-            assertEquals(0, resultSet.getInt(1));
-            resultSet.next();
-            assertEquals(-1, resultSet.getInt("col1"));
-            resultSet.next();
-            assertEquals(234234544, resultSet.getInt(1));
+        @Override
+        protected Short negativeValue() {
+            return (short) -1234;
         }
 
-        @Test
-        void throwsAnErrorWhenNotAnInteger() throws Exception {
-            resultSet.relative(4);
-            assertThrows(SQLDataException.class, () -> resultSet.getInt(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getInt("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getInt(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getInt("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getInt(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getInt("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getInt(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getInt("col1"));
+        @Override
+        protected Short positiveValue() {
+            return (short) 31001;
         }
 
-        @Test
-        void returnsNullAsZero() throws Exception {
-            resultSet.relative(8);
-            assertEquals(0, resultSet.getInt(1));
-            assertEquals(0, resultSet.getInt("col1"));
+        @Override
+        protected Short get(int n) throws Exception {
+            return resultSet.getShort(n);
         }
 
-        @Nested
-        class WhenOutOfPosition extends SharedWhenOutOfPosition<Integer> {
-            protected Integer get(int n) throws Exception {
-                return resultSet.getInt(n);
-            }
-
-            protected Integer get(String n) throws Exception {
-                return resultSet.getInt(n);
-            }
-        }
-
-        @Nested
-        class WhenClosed extends SharedWhenClosed<Integer> {
-            protected Integer get(int n) throws Exception {
-                return resultSet.getInt(n);
-            }
-
-            protected Integer get(String n) throws Exception {
-                return resultSet.getInt(n);
-            }
+        @Override
+        protected Short get(String n) throws Exception {
+            return resultSet.getShort(n);
         }
     }
 
     @Nested
-    class GetLong {
-        @BeforeEach
-        void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("bigint").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("234234523423423444")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2342345342342342234234234442342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342342342342342342342345")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
+    class GetInt extends SharedGetNumber<Integer> {
+        @Override
+        protected Integer zero() {
+            return 0;
         }
 
-        @Test
-        void returnsTheIntegerValueOfTheSpecifiedColumn() throws Exception {
-            resultSet.next();
-            assertEquals(0, resultSet.getLong(1));
-            resultSet.next();
-            assertEquals(-1, resultSet.getLong("col1"));
-            resultSet.next();
-            assertEquals(234234523423423444L, resultSet.getLong(1));
+        @Override
+        protected Integer negativeValue() {
+            return -123123;
         }
 
-        @Test
-        void throwsAnErrorWhenNotAnInteger() throws Exception {
-            resultSet.relative(4);
-            assertThrows(SQLDataException.class, () -> resultSet.getLong(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getLong("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getLong(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getLong("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getLong(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getLong("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> resultSet.getLong(1));
-            assertThrows(SQLDataException.class, () -> resultSet.getLong("col1"));
+        @Override
+        protected Integer positiveValue() {
+            return 24456343;
         }
 
-        @Test
-        void returnsNullAsZero() throws Exception {
-            resultSet.relative(8);
-            assertEquals(0, resultSet.getLong(1));
-            assertEquals(0, resultSet.getLong("col1"));
+        @Override
+        protected Integer get(int n) throws Exception {
+            return resultSet.getInt(n);
         }
 
-        @Nested
-        class WhenOutOfPosition extends SharedWhenOutOfPosition<Long> {
-            protected Long get(int n) throws Exception {
-                return resultSet.getLong(n);
-            }
+        @Override
+        protected Integer get(String n) throws Exception {
+            return resultSet.getInt(n);
+        }
+    }
 
-            protected Long get(String n) throws Exception {
-                return resultSet.getLong(n);
-            }
+    @Nested
+    class GetLong extends SharedGetNumber<Long> {
+        @Override
+        protected Long zero() {
+            return 0L;
         }
 
-        @Nested
-        class WhenClosed extends SharedWhenClosed<Long> {
-            protected Long get(int n) throws Exception {
-                return resultSet.getLong(n);
-            }
+        @Override
+        protected Long negativeValue() {
+            return -12312312312L;
+        }
 
-            protected Long get(String n) throws Exception {
-                return resultSet.getLong(n);
-            }
+        @Override
+        protected Long positiveValue() {
+            return 234L;
+        }
+
+        @Override
+        protected Long get(int n) throws Exception {
+            return resultSet.getLong(n);
+        }
+
+        @Override
+        protected Long get(String n) throws Exception {
+            return resultSet.getLong(n);
         }
     }
 
