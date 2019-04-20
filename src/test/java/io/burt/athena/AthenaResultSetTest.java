@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.athena.model.Row;
 import java.io.ByteArrayInputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -812,6 +814,69 @@ public class AthenaResultSetTest {
         @Override
         protected String getString(String n) throws Exception {
             return resultSet.getNString(n);
+        }
+    }
+
+    @Nested
+    class GetBytes {
+        private final Charset UTF_8 = Charset.forName("UTF-8");
+
+        @BeforeEach
+        void setUp() {
+            columnInfos.add(ColumnInfo.builder().label("col1").type("string").build());
+            columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
+            rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("row1"), db -> db.varCharValue("1")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("row2"), db -> db.varCharValue("2")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+        }
+
+        @Test
+        void returnsTheColumnAtTheSpecifiedIndexOfTheCurrentRowAsAString() throws Exception {
+            resultSet.next();
+            assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes(1));
+            assertArrayEquals("1".getBytes(UTF_8), resultSet.getBytes(2));
+            resultSet.next();
+            assertArrayEquals("row2".getBytes(UTF_8), resultSet.getBytes(1));
+            assertArrayEquals("2".getBytes(UTF_8), resultSet.getBytes(2));
+        }
+
+        @Test
+        void returnsTheColumnWithTheSpecifiedNameOfTheCurrentRowAsAString() throws Exception {
+            resultSet.next();
+            assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes("col1"));
+            assertArrayEquals("1".getBytes(UTF_8), resultSet.getBytes("col2"));
+            resultSet.next();
+            assertArrayEquals("row2".getBytes(UTF_8), resultSet.getBytes("col1"));
+            assertArrayEquals("2".getBytes(UTF_8), resultSet.getBytes("col2"));
+        }
+
+        @Test
+        void returnsNullWhenValueIsNull() throws Exception {
+            resultSet.relative(3);
+            assertNull(resultSet.getBytes("col1"));
+        }
+
+        @Nested
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<byte[]> {
+            protected byte[] get(int n) throws Exception {
+                return resultSet.getBytes(n);
+            }
+
+            protected byte[] get(String n) throws Exception {
+                return resultSet.getBytes(n);
+            }
+        }
+
+        @Nested
+        class WhenClosed extends SharedWhenClosed<byte[]> {
+            protected byte[] get(int n) throws Exception {
+                return resultSet.getBytes(n);
+            }
+
+            protected byte[] get(String n) throws Exception {
+                return resultSet.getBytes(n);
+            }
         }
     }
 

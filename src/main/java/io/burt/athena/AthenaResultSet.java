@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -483,14 +484,24 @@ public class AthenaResultSet implements ResultSet {
         return convertToBigDecimal(getString(columnLabel));
     }
 
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+    private byte[] convertToBytes(String str) {
+        if (str == null) {
+            return null;
+        } else {
+            return str.getBytes(UTF_8);
+        }
+    }
+
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBytes(getString(columnIndex));
     }
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBytes(getString(columnLabel));
     }
 
     @Override
