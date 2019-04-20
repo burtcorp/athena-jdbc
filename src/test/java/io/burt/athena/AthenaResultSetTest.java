@@ -936,6 +936,14 @@ public class AthenaResultSetTest {
 
         protected abstract T get(String n) throws Exception;
 
+        protected boolean supportsReallyLargeNumbers() {
+            return false;
+        }
+
+        protected boolean supportsNativeNull() {
+            return false;
+        }
+
         @BeforeEach
         void setUp() {
             columnInfos.add(ColumnInfo.builder().label("col1").type("tinyint").build());
@@ -943,8 +951,8 @@ public class AthenaResultSetTest {
             rows.add(Row.builder().data(db -> db.varCharValue(zero().toString())).build());
             rows.add(Row.builder().data(db -> db.varCharValue(negativeValue().toString())).build());
             rows.add(Row.builder().data(db -> db.varCharValue(positiveValue().toString())).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2342345442342345234234234345345234123")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-2342345442342345123123324245345345123")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("234234544234234523423423434534523412324234234234234")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("-13123102830192830801283085023749123749273498")).build());
             rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
             rows.add(Row.builder().data(db -> db.varCharValue("")).build());
             rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
@@ -962,12 +970,14 @@ public class AthenaResultSetTest {
 
         @Test
         void throwsAnErrorWhenNotSupported() throws Exception {
-            resultSet.relative(4);
-            assertThrows(SQLDataException.class, () -> get(1));
-            assertThrows(SQLDataException.class, () -> get("col1"));
-            resultSet.next();
-            assertThrows(SQLDataException.class, () -> get(1));
-            assertThrows(SQLDataException.class, () -> get("col1"));
+            if (!supportsReallyLargeNumbers()) {
+                resultSet.relative(4);
+                assertThrows(SQLDataException.class, () -> get(1));
+                assertThrows(SQLDataException.class, () -> get("col1"));
+                resultSet.next();
+                assertThrows(SQLDataException.class, () -> get(1));
+                assertThrows(SQLDataException.class, () -> get("col1"));
+            }
         }
 
         @Test
@@ -981,10 +991,16 @@ public class AthenaResultSetTest {
         }
 
         @Test
-        void returnsNullAsZero() throws Exception {
-            resultSet.relative(8);
-            assertEquals(zero(), get(1));
-            assertEquals(zero(), get("col1"));
+        void returnsNullAsZeroOrNull() throws Exception {
+            if (supportsNativeNull()) {
+                resultSet.relative(8);
+                assertNull(get(1));
+                assertNull(get("col1"));
+            } else {
+                resultSet.relative(8);
+                assertEquals(zero(), get(1));
+                assertEquals(zero(), get("col1"));
+            }
         }
 
         @Nested
@@ -1119,6 +1135,105 @@ public class AthenaResultSetTest {
         @Override
         protected Long get(String n) throws Exception {
             return resultSet.getLong(n);
+        }
+    }
+
+    @Nested
+    class GetFloat extends SharedGetNumber<Float> {
+        @Override
+        protected Float zero() {
+            return 0f;
+        }
+
+        @Override
+        protected Float negativeValue() {
+            return -1.234f;
+        }
+
+        @Override
+        protected Float positiveValue() {
+            return 13413.234231f;
+        }
+
+        @Override
+        protected Float get(int n) throws Exception {
+            return resultSet.getFloat(n);
+        }
+
+        @Override
+        protected Float get(String n) throws Exception {
+            return resultSet.getFloat(n);
+        }
+    }
+
+    @Nested
+    class GetDouble extends SharedGetNumber<Double> {
+        @Override
+        protected Double zero() {
+            return 0d;
+        }
+
+        @Override
+        protected Double negativeValue() {
+            return -1.234d;
+        }
+
+        @Override
+        protected Double positiveValue() {
+            return 13413.234231d;
+        }
+
+        @Override
+        protected boolean supportsReallyLargeNumbers() {
+            return true;
+        }
+
+        @Override
+        protected Double get(int n) throws Exception {
+            return resultSet.getDouble(n);
+        }
+
+        @Override
+        protected Double get(String n) throws Exception {
+            return resultSet.getDouble(n);
+        }
+    }
+
+    @Nested
+    class GetBigDecimal extends SharedGetNumber<BigDecimal> {
+        @Override
+        protected BigDecimal zero() {
+            return new BigDecimal("0");
+        }
+
+        @Override
+        protected BigDecimal negativeValue() {
+            return new BigDecimal("-1");
+        }
+
+        @Override
+        protected BigDecimal positiveValue() {
+            return new BigDecimal("34234123");
+        }
+
+        @Override
+        protected boolean supportsReallyLargeNumbers() {
+            return true;
+        }
+
+        @Override
+        protected boolean supportsNativeNull() {
+            return true;
+        }
+
+        @Override
+        protected BigDecimal get(int n) throws Exception {
+            return resultSet.getBigDecimal(n);
+        }
+
+        @Override
+        protected BigDecimal get(String n) throws Exception {
+            return resultSet.getBigDecimal(n);
         }
     }
 

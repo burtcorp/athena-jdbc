@@ -395,46 +395,92 @@ public class AthenaResultSet implements ResultSet {
         return convertToLong(getString(columnLabel));
     }
 
+    private float convertToFloat(String str) throws SQLException {
+        if (str == null) {
+            return 0f;
+        } else {
+            try {
+                Float f = Float.valueOf(str);
+                if (f.isInfinite()) {
+                    throw new SQLDataException(String.format("Cannot convert \"%s\" to float", str));
+                } else {
+                    return f;
+                }
+            } catch (NumberFormatException nfe) {
+                throw new SQLDataException(String.format("Cannot convert \"%s\" to float", str), nfe);
+            }
+        }
+    }
+
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        throw new NotImplementedException();
+        return convertToFloat(getString(columnIndex));
     }
 
     @Override
     public float getFloat(String columnLabel) throws SQLException {
-        throw new NotImplementedException();
+        return convertToFloat(getString(columnLabel));
+    }
+
+    private double convertToDouble(String str) throws SQLException {
+        if (str == null) {
+            return 0d;
+        } else {
+            try {
+                Double d = Double.valueOf(str);
+                if (d.isInfinite()) {
+                    throw new SQLDataException(String.format("Cannot convert \"%s\" to double", str));
+                } else {
+                    return d;
+                }
+            } catch (NumberFormatException nfe) {
+                throw new SQLDataException(String.format("Cannot convert \"%s\" to double", str), nfe);
+            }
+        }
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        throw new NotImplementedException();
+        return convertToDouble(getString(columnIndex));
     }
 
     @Override
     public double getDouble(String columnLabel) throws SQLException {
-        throw new NotImplementedException();
+        return convertToDouble(getString(columnLabel));
+    }
+
+    private BigDecimal convertToBigDecimal(String str) throws SQLException {
+        if (str == null) {
+            return null;
+        } else {
+            try {
+                return new BigDecimal(str);
+            } catch (NumberFormatException nfe) {
+                throw new SQLDataException(String.format("Could not convert \"%s\" to BigDecimal", str), nfe);
+            }
+        }
     }
 
     @Override
     @Deprecated
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBigDecimal(getString(columnIndex));
     }
 
     @Override
     @Deprecated
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBigDecimal(getString(columnLabel));
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBigDecimal(getString(columnIndex));
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        throw new NotImplementedException();
+        return convertToBigDecimal(getString(columnLabel));
     }
 
     @Override
