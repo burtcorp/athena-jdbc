@@ -51,6 +51,20 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        if (isWrapperFor(iface)) {
+            return (T) this;
+        } else {
+            throw new SQLException(String.format("%s is not a wrapper for %s", this.getClass().getName(), iface.getName()));
+        }
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return iface.isAssignableFrom(getClass());
+    }
+
+    @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
         throw new SQLFeatureNotSupportedException("Athena does not support prepared statements");
     }
@@ -291,16 +305,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public int getNetworkTimeout() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

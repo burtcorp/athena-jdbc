@@ -16,13 +16,16 @@ import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
+import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -118,6 +121,38 @@ public class AthenaConnectionTest {
         @Test
         void returnsTheSql() throws Exception {
             assertEquals("SELECT 1", connection.nativeSQL("SELECT 1"));
+        }
+    }
+
+    @Nested
+    class Unwrap {
+        @Test
+        void returnsTypedInstance() throws SQLException {
+            AthenaConnection ac = connection.unwrap(AthenaConnection.class);
+            assertNotNull(ac);
+        }
+
+        @Test
+        void throwsWhenAskedToUnwrapClassItIsNotWrapperFor() {
+            assertThrows(SQLException.class, () -> connection.unwrap(String.class));
+        }
+    }
+
+    @Nested
+    class IsWrapperFor {
+        @Test
+        void isWrapperForAthenaConnection() throws Exception {
+            assertTrue(connection.isWrapperFor(AthenaConnection.class));
+        }
+
+        @Test
+        void isWrapperForObject() throws Exception {
+            assertTrue(connection.isWrapperFor(Object.class));
+        }
+
+        @Test
+        void isNotWrapperForOtherClasses() throws Exception {
+            assertFalse(connection.isWrapperFor(String.class));
         }
     }
 }

@@ -253,4 +253,36 @@ public class AthenaStatementTest {
             assertTrue(rs.isClosed());
         }
     }
+
+    @Nested
+    class Unwrap {
+        @Test
+        void returnsTypedInstance() throws SQLException {
+            AthenaStatement ac = statement.unwrap(AthenaStatement.class);
+            assertNotNull(ac);
+        }
+
+        @Test
+        void throwsWhenAskedToUnwrapClassItIsNotWrapperFor() {
+            assertThrows(SQLException.class, () -> statement.unwrap(String.class));
+        }
+    }
+
+    @Nested
+    class IsWrapperFor {
+        @Test
+        void isWrapperForAthenaStatement() throws Exception {
+            assertTrue(statement.isWrapperFor(AthenaStatement.class));
+        }
+
+        @Test
+        void isWrapperForObject() throws Exception {
+            assertTrue(statement.isWrapperFor(Object.class));
+        }
+
+        @Test
+        void isNotWrapperForOtherClasses() throws Exception {
+            assertFalse(statement.isWrapperFor(String.class));
+        }
+    }
 }
