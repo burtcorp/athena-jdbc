@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
@@ -165,6 +168,16 @@ public class AthenaStatementTest {
             SQLException e = assertThrows(SQLException.class, this::execute);
             assertEquals("Very cancel", e.getMessage());
         }
+
+        @Test
+        void executeAgainClosesPreviousResultSet() throws Exception {
+            execute();
+            ResultSet rs1 = statement.getResultSet();
+            execute();
+            ResultSet rs2 = statement.getResultSet();
+            assertTrue(rs1.isClosed());
+            assertFalse(rs2.isClosed());
+        }
     }
 
     @Nested
@@ -251,6 +264,7 @@ public class AthenaStatementTest {
         }
 
         @Test
+        @Override
         void executeAgainClosesPreviousResultSet() throws Exception {
             ResultSet rs1 = execute();
             ResultSet rs2 = execute();
@@ -297,6 +311,36 @@ public class AthenaStatementTest {
             ResultSet rs = statement.executeQuery("SELECT 1");
             statement.close();
             assertTrue(rs.isClosed());
+        }
+    }
+
+    @Nested
+    class GetResultSet extends SharedExecuteSetup {
+        @BeforeEach
+        void setUpGetQueryResults() {
+            GetQueryResultsResponse response = GetQueryResultsResponse.builder().resultSet(rsb -> {
+                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(new ArrayList<>()));
+                rsb.rows(new ArrayList<>());
+            }).build();
+            when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(response);
+        }
+
+        @Test
+        void returnsNullBeforeExecute() throws Exception {
+            assertNull(statement.getResultSet());
+        }
+
+        @Test
+        void returnsTheSameResultSetAsExecuteQuery() throws Exception {
+            ResultSet rs1 = statement.executeQuery("SELECT 1");
+            ResultSet rs2 = statement.getResultSet();
+            assertSame(rs1, rs2);
+        }
+
+        @Test
+        void returnsAResultSetAfterExecute() throws Exception {
+            statement.execute("SELECT 1");
+            assertNotNull(statement.getResultSet());
         }
     }
 

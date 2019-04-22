@@ -33,17 +33,16 @@ public class AthenaStatement implements Statement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        if (currentResultSet != null) {
-            currentResultSet.close();
-            currentResultSet = null;
-        }
         execute(sql);
-        currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
-        return currentResultSet;
+        return getResultSet();
     }
 
     @Override
     public boolean execute(String sql) throws SQLException {
+        if (currentResultSet != null) {
+            currentResultSet.close();
+            currentResultSet = null;
+        }
         StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
             sqeb.queryString(sql);
             sqeb.workGroup(configuration.workGroupName());
@@ -57,6 +56,7 @@ public class AthenaStatement implements Statement {
             QueryExecutionState state = statusResponse.queryExecution().status().state();
             switch (state) {
                 case SUCCEEDED:
+                    currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
                     return true;
                 case FAILED:
                 case CANCELLED:
@@ -84,6 +84,11 @@ public class AthenaStatement implements Statement {
     @Override
     public boolean isClosed() throws SQLException {
         return !open;
+    }
+
+    @Override
+    public ResultSet getResultSet() throws SQLException {
+        return currentResultSet;
     }
 
     @Override
@@ -207,11 +212,6 @@ public class AthenaStatement implements Statement {
 
     @Override
     public void setCursorName(String name) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public ResultSet getResultSet() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
