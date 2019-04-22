@@ -1,9 +1,7 @@
 package io.burt.athena;
 
 import software.amazon.awssdk.services.athena.AthenaClient;
-import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
-import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.io.InputStream;
@@ -33,7 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 
 public class AthenaResultSet implements ResultSet {
@@ -44,11 +42,10 @@ public class AthenaResultSet implements ResultSet {
     private AthenaStatement statement;
     private boolean open;
     private int fetchSize;
-    private GetQueryResultsResponse response;
-    private ResultSetMetadata resultSetMetadata;
-    private List<Row> currentRows;
+    private AthenaResultSetMetaData resultSetMetaData;
+    private Iterator<Row> currentRows;
+    private Row currentRow;
     private String nextToken;
-    private int currentRowIndex;
     private int absoluteRowNumber;
     private boolean wasNull;
 
@@ -56,9 +53,8 @@ public class AthenaResultSet implements ResultSet {
         this.athenaClient = athenaClient;
         this.statement = statement;
         this.queryExecutionId = queryExecutionId;
-        this.response = null;
+        this.resultSetMetaData = null;
         this.currentRows = null;
-        this.currentRowIndex = -1;
         this.absoluteRowNumber = 0;
         this.nextToken = null;
         this.fetchSize = MAX_FETCH_SIZE;
@@ -100,7 +96,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     private void checkHorizontalPosition(int columnIndex) throws SQLException {
-        int columnCount = resultSetMetadata.columnInfo().size();
+        int columnCount = resultSetMetaData.getColumnCount();
         if (columnIndex < 1) {
             throw new SQLException(String.format("Invalid column index %d", columnIndex));
         } else if (columnIndex > columnCount) {
@@ -109,41 +105,45 @@ public class AthenaResultSet implements ResultSet {
     }
 
     private void ensureResults() {
-        boolean firstPage = response == null;
-        if (firstPage || (nextToken != null && currentRowIndex == currentRows.size())) {
-            response = athenaClient.getQueryResults(builder -> {
+        if (absoluteRowNumber == 0 || (nextToken != null && !currentRows.hasNext())) {
+            GetQueryResultsResponse response = athenaClient.getQueryResults(builder -> {
                 builder.nextToken(nextToken);
                 builder.queryExecutionId(queryExecutionId);
                 builder.maxResults(fetchSize);
             });
             nextToken = response.nextToken();
-            resultSetMetadata = response.resultSet().resultSetMetadata();
-            currentRows = response.resultSet().rows();
-            currentRowIndex = firstPage ? 1 : 0;
+            resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
+            currentRows = response.resultSet().rows().iterator();
+            if (absoluteRowNumber == 0 && currentRows.hasNext()) {
+                currentRows.next();
+            }
         }
     }
 
     @Override
     public boolean next() throws SQLException {
         checkClosed();
-        currentRowIndex++;
-        absoluteRowNumber++;
         ensureResults();
-        return nextToken != null || currentRowIndex < currentRows.size();
+        absoluteRowNumber++;
+        if (currentRows.hasNext()) {
+            currentRow = currentRows.next();
+        } else {
+            currentRow = null;
+        }
+        return currentRow != null;
     }
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
         ensureResults();
-        return new AthenaResultSetMetaData(resultSetMetadata);
+        return resultSetMetaData;
     }
 
     @Override
     public void close() throws SQLException {
         athenaClient = null;
         statement = null;
-        response = null;
         open = false;
     }
 
@@ -155,25 +155,25 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClosed();
-        return currentRowIndex < 0;
+        return absoluteRowNumber == 0;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClosed();
-        return nextToken == null && currentRows != null && currentRowIndex >= currentRows.size();
+        return nextToken == null && currentRows != null && currentRow == null;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClosed();
-        return currentRowIndex == 1;
+        return absoluteRowNumber == 1;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return nextToken == null && currentRows != null && currentRowIndex == currentRows.size() - 1;
+        return nextToken == null && currentRows != null && currentRow != null && !currentRows.hasNext();
     }
 
     @Override
@@ -234,10 +234,9 @@ public class AthenaResultSet implements ResultSet {
     public int findColumn(String columnLabel) throws SQLException {
         checkClosed();
         ensureResults();
-        List<ColumnInfo> columns = resultSetMetadata.columnInfo();
-        for (int i = 0; i < columns.size(); i++) {
-            if (columns.get(i).label().equals(columnLabel)) {
-                return i + 1;
+        for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
+            if (resultSetMetaData.getColumnLabel(i).equals(columnLabel)) {
+                return i;
             }
         }
         throw new SQLDataException(String.format("Result set does not contain any column with label \"%s\"", columnLabel));
@@ -286,7 +285,6 @@ public class AthenaResultSet implements ResultSet {
     public String getString(int columnIndex) throws SQLException {
         checkClosed();
         checkPosition(columnIndex);
-        Row currentRow = currentRows.get(currentRowIndex);
         String value = currentRow.data().get(columnIndex - 1).varCharValue();
         wasNull = value == null;
         return value;
