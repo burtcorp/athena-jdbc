@@ -508,9 +508,43 @@ public class AthenaResultSetTest {
 
     @Nested
     class Absolute {
+        @BeforeEach
+        void setUp() {
+            addRows();
+        }
+
         @Test
-        void isNotSupported() {
-            assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.absolute(3));
+        void movesForwardMultipleRows() throws Exception {
+            resultSet.absolute(3);
+            assertEquals("row3", resultSet.getString(1));
+        }
+
+        @Test
+        void returnsTrueWhenNextWouldHaveReturnedTrue() throws Exception {
+            assertTrue(resultSet.absolute(1));
+            assertTrue(resultSet.absolute(3));
+        }
+
+        @Test
+        void returnsFalseWhenNextWouldHaveReturnedFalse() throws Exception {
+            assertFalse(resultSet.absolute(4));
+            assertFalse(resultSet.absolute(10));
+        }
+
+        @Test
+        void throwsWhenOffsetIsZero() {
+            assertThrows(SQLException.class, () -> resultSet.absolute(0));
+        }
+
+        @Test
+        void throwsWhenOffsetIsNegative() {
+            assertThrows(SQLException.class, () -> resultSet.absolute(-3));
+        }
+
+        @Test
+        void throwsWhenMovingBackwards() throws Exception {
+            resultSet.absolute(3);
+            assertThrows(SQLException.class, () -> resultSet.absolute(2));
         }
     }
 

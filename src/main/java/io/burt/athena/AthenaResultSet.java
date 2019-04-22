@@ -780,8 +780,17 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public boolean absolute(int row) throws SQLException {
-        movementsNotSupported();
-        return false;
+        if (row < 1) {
+            throw new SQLException(String.format("Invalid row number %d", row));
+        } else if (row < absoluteRowNumber) {
+            throw new SQLException(String.format("Only forward movement is supported (cannot go back to %d from %d)", row, absoluteRowNumber));
+        } else {
+            boolean status = false;
+            while (absoluteRowNumber < row) {
+                status = next();
+            }
+            return status;
+        }
     }
 
     @Override
