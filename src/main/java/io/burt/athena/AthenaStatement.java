@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
     private final ConnectionConfiguration configuration;
@@ -18,11 +19,13 @@ public class AthenaStatement implements Statement {
     private AthenaClient athenaClient;
     private String queryExecutionId;
     private ResultSet currentResultSet;
+    private Supplier<PollingStrategy> pollingStrategyFactory;
     private boolean open;
 
-    public AthenaStatement(AthenaClient athenaClient, ConnectionConfiguration configuration) {
+    public AthenaStatement(AthenaClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
+        this.pollingStrategyFactory = pollingStrategyFactory;
         this.queryExecutionId = null;
         this.currentResultSet = null;
         this.open = true;
@@ -48,7 +51,8 @@ public class AthenaStatement implements Statement {
             sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
         });
         queryExecutionId = startResponse.queryExecutionId();
-        for (; ; ) {
+        PollingStrategy pollingStrategy = pollingStrategyFactory.get();
+        while (true) {
             GetQueryExecutionResponse statusResponse = athenaClient.getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId));
             QueryExecutionState state = statusResponse.queryExecution().status().state();
             switch (state) {
@@ -57,6 +61,13 @@ public class AthenaStatement implements Statement {
                 case FAILED:
                 case CANCELLED:
                     throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());
+                default:
+                    try {
+                        pollingStrategy.waitUntilNext();
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
             }
         }
     }

@@ -36,7 +36,7 @@ public class AthenaConnection implements Connection {
 
     @Override
     public Statement createStatement() throws SQLException {
-        return new AthenaStatement(athenaClient, configuration);
+        return new AthenaStatement(athenaClient, configuration, PollingStrategies::simpleInterval);
     }
 
     @Override

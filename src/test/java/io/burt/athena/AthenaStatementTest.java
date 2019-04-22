@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,12 +41,14 @@ import static org.mockito.Mockito.when;
 public class AthenaStatementTest {
     private AthenaClient athenaClient;
     private AthenaStatement statement;
+    private PollingStrategy pollingStrategy;
 
     @BeforeEach
     void setUpStatement() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
         athenaClient = mock(AthenaClient.class);
-        statement = new AthenaStatement(athenaClient, configuration);
+        pollingStrategy = mock(PollingStrategy.class);
+        statement = new AthenaStatement(athenaClient, configuration, () -> pollingStrategy);
     }
 
     class SharedExecuteSetup {
@@ -141,6 +145,12 @@ public class AthenaStatementTest {
         }
 
         @Test
+        void sleepsBetweenPolls() throws Exception {
+            execute();
+            verify(pollingStrategy, times(2)).waitUntilNext();
+        }
+
+        @Test
         void throwsOnFailure() {
             terminalState = QueryExecutionState.FAILED;
             stateChangeReason = "Teh bork";
@@ -167,6 +177,42 @@ public class AthenaStatementTest {
         @Test
         void returnsTrue() throws Exception {
             assertTrue(execute());
+        }
+
+        @Nested
+        class WhenInterruptedWhileSleeping {
+            private Thread runner;
+            private AtomicReference<Boolean> executeResult;
+            private AtomicReference<Boolean> interruptedState;
+
+            @BeforeEach
+            void setUp() throws Exception {
+                executeResult = new AtomicReference<>(null);
+                interruptedState = new AtomicReference<>(null);
+                runner = new Thread(() -> {
+                    try {
+                        executeResult.set(execute());
+                        interruptedState.set(Thread.currentThread().isInterrupted());
+                    } catch (SQLException sqle) {
+                        throw new RuntimeException(sqle);
+                    }
+                });
+                doThrow(InterruptedException.class).when(pollingStrategy).waitUntilNext();
+            }
+
+            @Test
+            void setsTheInterruptFlag() throws Exception {
+                runner.run();
+                runner.join();
+                assertTrue(interruptedState.get());
+            }
+
+            @Test
+            void returnsFalse() throws Exception {
+                runner.run();
+                runner.join();
+                assertFalse(executeResult.get());
+            }
         }
     }
 
