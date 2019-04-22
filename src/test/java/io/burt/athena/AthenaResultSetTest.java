@@ -528,12 +528,13 @@ public class AthenaResultSetTest {
         }
 
         @Test
-        void returnsTrue() throws Exception {
+        void returnsTrueWhenNextWouldHaveReturnedTrue() throws Exception {
             assertTrue(resultSet.relative(3));
         }
 
         @Test
         void returnsFalseWhenNextWouldHaveReturnedFalse() throws Exception {
+            assertFalse(resultSet.relative(4));
             assertFalse(resultSet.relative(10));
         }
 
