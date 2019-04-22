@@ -47,7 +47,9 @@ public class AthenaResultSet implements ResultSet {
     private GetQueryResultsResponse response;
     private ResultSetMetadata resultSetMetadata;
     private List<Row> currentRows;
+    private String nextToken;
     private int currentRowIndex;
+    private int absoluteRowNumber;
     private boolean wasNull;
 
     public AthenaResultSet(AthenaClient athenaClient, AthenaStatement statement, String queryExecutionId) {
@@ -57,6 +59,8 @@ public class AthenaResultSet implements ResultSet {
         this.response = null;
         this.currentRows = null;
         this.currentRowIndex = -1;
+        this.absoluteRowNumber = 0;
+        this.nextToken = null;
         this.fetchSize = MAX_FETCH_SIZE;
         this.wasNull = false;
         this.open = true;
@@ -104,24 +108,28 @@ public class AthenaResultSet implements ResultSet {
         }
     }
 
-    private void ensureResults() throws SQLException {
-        if (response == null) {
+    private void ensureResults() {
+        boolean firstPage = response == null;
+        if (firstPage || (nextToken != null && currentRowIndex == currentRows.size())) {
             response = athenaClient.getQueryResults(builder -> {
+                builder.nextToken(nextToken);
                 builder.queryExecutionId(queryExecutionId);
                 builder.maxResults(fetchSize);
             });
+            nextToken = response.nextToken();
             resultSetMetadata = response.resultSet().resultSetMetadata();
             currentRows = response.resultSet().rows();
-            currentRowIndex = 0;
+            currentRowIndex = firstPage ? 1 : 0;
         }
     }
 
     @Override
     public boolean next() throws SQLException {
         checkClosed();
-        ensureResults();
         currentRowIndex++;
-        return currentRows.size() > currentRowIndex;
+        absoluteRowNumber++;
+        ensureResults();
+        return nextToken != null || currentRowIndex < currentRows.size();
     }
 
     @Override
@@ -153,7 +161,7 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClosed();
-        return currentRows != null && currentRowIndex >= currentRows.size();
+        return nextToken == null && currentRows != null && currentRowIndex >= currentRows.size();
     }
 
     @Override
@@ -165,7 +173,7 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return currentRows != null && currentRowIndex == currentRows.size() - 1;
+        return nextToken == null && currentRows != null && currentRowIndex == currentRows.size() - 1;
     }
 
     @Override
@@ -174,7 +182,7 @@ public class AthenaResultSet implements ResultSet {
         if (isBeforeFirst() || isAfterLast()) {
             return 0;
         } else {
-            return currentRowIndex;
+            return absoluteRowNumber;
         }
     }
 

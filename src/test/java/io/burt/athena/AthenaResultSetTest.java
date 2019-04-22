@@ -29,6 +29,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -47,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class AthenaResultSetTest {
     private AthenaResultSet resultSet;
@@ -54,12 +56,14 @@ public class AthenaResultSetTest {
     private AthenaClient athenaClient;
     private List<Row> rows;
     private List<ColumnInfo> columnInfos;
+    private String nextToken;
 
     @Captor
     private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
 
     @BeforeEach
     void setUpResultSet() {
+        nextToken = null;
         athenaClient = mock(AthenaClient.class);
         parentStatement = mock(AthenaStatement.class);
         resultSet = new AthenaResultSet(athenaClient, parentStatement, "Q1234");
@@ -74,10 +78,31 @@ public class AthenaResultSetTest {
 
     @BeforeEach
     void setUpGetQueryResults() {
-        when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).then(invocation -> GetQueryResultsResponse.builder().resultSet(rsb -> {
-            rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(columnInfos));
-            rsb.rows(rows);
-        }).build());
+        when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).then(invocation -> {
+            Consumer<GetQueryResultsRequest.Builder> requestBuilderConsumer = invocation.getArgument(0);
+            GetQueryResultsRequest.Builder requestBuilder = GetQueryResultsRequest.builder();
+            requestBuilderConsumer.accept(requestBuilder);
+            GetQueryResultsRequest request = requestBuilder.build();
+            GetQueryResultsResponse.Builder builder = GetQueryResultsResponse.builder();
+            if (request.nextToken() == null && rows.size() > 3) {
+                builder.nextToken("page2");
+            } else if (request.nextToken() != null && request.nextToken().equals("page2") && rows.size() > 6) {
+                builder.nextToken("page3");
+            } else {
+                builder.nextToken(null);
+            }
+            builder.resultSet(rsb -> {
+                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(columnInfos));
+                if (request.nextToken() == null) {
+                    rsb.rows(rows.subList(0, Math.min(3, rows.size())));
+                } else if (request.nextToken().equals("page2")) {
+                    rsb.rows(rows.subList(3, Math.min(6, rows.size())));
+                } else if (request.nextToken().equals("page3")) {
+                    rsb.rows(rows.subList(6, rows.size()));
+                }
+            });
+            return builder.build();
+        });
     }
 
     private GetQueryResultsRequest resultsRequest() {
@@ -109,7 +134,7 @@ public class AthenaResultSetTest {
             assertSame(parentStatement, resultSet.getStatement());
         }
     }
-    
+
     @Nested
     class QueryExecutionId {
         @Test
@@ -213,6 +238,36 @@ public class AthenaResultSetTest {
                     assertTrue(resultSet.next());
                     assertFalse(resultSet.next());
                 }
+            }
+        }
+
+        @Nested
+        class WhenTheResultHasManyPages {
+            @BeforeEach
+            void setUp() {
+                addRows();
+                rows.add(Row.builder().data(db -> db.varCharValue("row4"), db -> db.varCharValue("4")).build());
+                rows.add(Row.builder().data(db -> db.varCharValue("row5"), db -> db.varCharValue("5")).build());
+                rows.add(Row.builder().data(db -> db.varCharValue("row6"), db -> db.varCharValue("6")).build());
+                rows.add(Row.builder().data(db -> db.varCharValue("row7"), db -> db.varCharValue("7")).build());
+                rows.add(Row.builder().data(db -> db.varCharValue("row8"), db -> db.varCharValue("8")).build());
+                rows.add(Row.builder().data(db -> db.varCharValue("row9"), db -> db.varCharValue("9")).build());
+            }
+
+            @Test
+            void loadsAllPages() throws Exception {
+                List<String> rows = new ArrayList<>(9);
+                while (resultSet.next()) {
+                    rows.add(resultSet.getString(2));
+                }
+                verify(athenaClient, times(3)).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+                assertEquals(Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9"), rows);
+            }
+
+            @Test
+            void stopsLoadingWhenThereAreNoMorePages() throws Exception {
+                assertTrue(resultSet.relative(9));
+                assertFalse(resultSet.next());
             }
         }
 
