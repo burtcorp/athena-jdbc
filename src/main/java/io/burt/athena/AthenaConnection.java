@@ -41,6 +41,7 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void close() throws SQLException {
+        athenaClient.close();
         athenaClient = null;
         open = false;
     }

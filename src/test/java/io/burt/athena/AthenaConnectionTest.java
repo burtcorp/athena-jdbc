@@ -141,7 +141,11 @@ public class AthenaConnectionTest {
 
     @Nested
     class Close {
-        // TODO
+        @Test
+        void closesTheAthenaClient() throws Exception {
+            connection.close();
+            verify(athenaClient).close();
+        }
     }
 
     @Nested
