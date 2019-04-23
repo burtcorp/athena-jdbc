@@ -95,6 +95,15 @@ public class AthenaConnectionTest {
             StartQueryExecutionRequest request = execute();
             assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
         }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.createStatement());
+            }
+        }
     }
 
     @Nested
@@ -122,6 +131,15 @@ public class AthenaConnectionTest {
         @Test
         void returnsTheSql() throws Exception {
             assertEquals("SELECT 1", connection.nativeSQL("SELECT 1"));
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.nativeSQL("SELECT 1"));
+            }
         }
     }
 
@@ -200,6 +218,15 @@ public class AthenaConnectionTest {
         void alwaysReturnsTrue() throws Exception {
             assertTrue(connection.isReadOnly());
         }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.isReadOnly());
+            }
+        }
     }
 
     @Nested
@@ -209,6 +236,15 @@ public class AthenaConnectionTest {
             connection.setReadOnly(false);
             assertTrue(connection.isReadOnly());
         }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.setReadOnly(true));
+            }
+        }
     }
 
     @Nested
@@ -216,6 +252,15 @@ public class AthenaConnectionTest {
         @Test
         void alwaysReturnsTrue() throws Exception {
             assertTrue(connection.getAutoCommit());
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getAutoCommit());
+            }
         }
     }
 
@@ -226,6 +271,15 @@ public class AthenaConnectionTest {
             connection.setAutoCommit(false);
             assertTrue(connection.getAutoCommit());
         }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.setAutoCommit(false));
+            }
+        }
     }
 
     @Nested
@@ -233,6 +287,15 @@ public class AthenaConnectionTest {
         @Test
         void alwaysReturnsNone() throws Exception {
             assertEquals(Connection.TRANSACTION_NONE, connection.getTransactionIsolation());
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getTransactionIsolation());
+            }
         }
     }
 
@@ -243,6 +306,15 @@ public class AthenaConnectionTest {
             connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             assertEquals(Connection.TRANSACTION_NONE, connection.getTransactionIsolation());
         }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.setTransactionIsolation(Connection.TRANSACTION_NONE));
+            }
+        }
     }
 
     @Nested
@@ -250,6 +322,15 @@ public class AthenaConnectionTest {
         @Test
         void ignoresTheCall() throws Exception {
             connection.clearWarnings();
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.clearWarnings());
+            }
         }
     }
 }

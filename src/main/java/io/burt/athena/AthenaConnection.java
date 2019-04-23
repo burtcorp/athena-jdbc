@@ -34,8 +34,15 @@ public class AthenaConnection implements Connection {
         this.open = true;
     }
 
+    private void checkClosed() throws SQLException {
+        if (!open) {
+            throw new SQLException("Connection is closed");
+        }
+    }
+
     @Override
     public Statement createStatement() throws SQLException {
+        checkClosed();
         return new AthenaStatement(athenaClient, configuration, PollingStrategies::simpleInterval);
     }
 
@@ -82,15 +89,18 @@ public class AthenaConnection implements Connection {
 
     @Override
     public String nativeSQL(String sql) throws SQLException {
+        checkClosed();
         return sql;
     }
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
+        checkClosed();
     }
 
     @Override
     public boolean getAutoCommit() throws SQLException {
+        checkClosed();
         return true;
     }
 
@@ -111,10 +121,12 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
+        checkClosed();
     }
 
     @Override
     public boolean isReadOnly() throws SQLException {
+        checkClosed();
         return true;
     }
 
@@ -130,10 +142,12 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
+        checkClosed();
     }
 
     @Override
     public int getTransactionIsolation() throws SQLException {
+        checkClosed();
         return Connection.TRANSACTION_NONE;
     }
 
@@ -144,6 +158,7 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void clearWarnings() throws SQLException {
+        checkClosed();
     }
 
     @Override
