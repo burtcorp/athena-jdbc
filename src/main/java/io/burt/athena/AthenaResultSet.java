@@ -728,14 +728,25 @@ public class AthenaResultSet implements ResultSet {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    @Override
-    public Array getArray(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+    private Array convertToArray(String str) throws SQLException {
+        if (str == null) {
+            return null;
+        } else if (str.startsWith("[") && str.endsWith("]")) {
+            String[] elements = str.substring(1, str.length() - 1).split(", ");
+            return new AthenaArray(elements);
+        } else {
+            throw new SQLDataException(String.format("Could not convert \"%s\" to an array", str));
+        }
     }
 
     @Override
     public Array getArray(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToArray(getString(columnIndex));
+    }
+
+    @Override
+    public Array getArray(String columnLabel) throws SQLException {
+        return convertToArray(getString(columnLabel));
     }
 
     @Override

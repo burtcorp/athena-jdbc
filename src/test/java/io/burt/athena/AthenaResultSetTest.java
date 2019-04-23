@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -27,10 +28,12 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.function.Consumer;
@@ -1603,6 +1606,120 @@ public class AthenaResultSetTest {
 
             protected Timestamp get(String n) throws Exception {
                 return resultSet.getTimestamp(n);
+            }
+        }
+    }
+
+    @Nested
+    class GetArray {
+        @BeforeEach
+        void setUp() {
+            columnInfos.add(ColumnInfo.builder().label("col1").type("array").build());
+            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("[1, 2, 3]")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("[a, b, c]")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("not an array")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+        }
+
+        @Test
+        void returnsArrays() throws Exception {
+            resultSet.next();
+            assertNotNull(resultSet.getArray(1));
+            assertNotNull(resultSet.getArray("col1"));
+        }
+
+        @Test
+        void arraysAreReportedAsVARCHAR() throws Exception {
+            resultSet.next();
+            assertEquals(Types.VARCHAR, resultSet.getArray(1).getBaseType());
+            assertEquals(Types.VARCHAR, resultSet.getArray("col1").getBaseType());
+        }
+
+        @Test
+        void arraysAreStringArrays() throws Exception {
+            resultSet.next();
+            assertArrayEquals(new String[]{"1", "2", "3"}, (String[]) resultSet.getArray(1).getArray());
+            assertArrayEquals(new String[]{"1", "2", "3"}, (String[]) resultSet.getArray("col1").getArray());
+            resultSet.next();
+            assertArrayEquals(new String[]{"a", "b", "c"}, (String[]) resultSet.getArray(1).getArray());
+            assertArrayEquals(new String[]{"a", "b", "c"}, (String[]) resultSet.getArray("col1").getArray());
+        }
+
+        @Test
+        void throwsWhenValueIsNotAnArray() throws Exception {
+            resultSet.next();
+            resultSet.next();
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getArray(1));
+            assertThrows(SQLException.class, () -> resultSet.getArray("col1"));
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getArray(1));
+            assertThrows(SQLException.class, () -> resultSet.getArray("col1"));
+        }
+
+        @Test
+        void returnsNullForNull() throws Exception {
+            resultSet.relative(5);
+            assertNull(resultSet.getArray(1));
+            assertNull(resultSet.getArray("col1"));
+        }
+
+        @Test
+        void allowsTheArrayToBeSubdivided() throws Exception {
+            resultSet.next();
+            assertArrayEquals(new String[]{"2", "3"}, (String[]) resultSet.getArray(1).getArray(1, 2));
+            assertArrayEquals(new String[]{"2", "3"}, (String[]) resultSet.getArray("col1").getArray(1, 2));
+        }
+
+        @Nested
+        class WhenTheArrayIsAskedForAResultSet {
+            @Test
+            void isNotSupported() throws Exception {
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getResultSet());
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getResultSet());
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getResultSet(1L, 2));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getResultSet(1L, 2));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getResultSet(Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getResultSet(Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getResultSet(1L, 2, Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getResultSet(1L, 2, Collections.emptyMap()));
+            }
+        }
+
+        @Nested
+        class WhenTheArrayIsAskedToConvertTheElements {
+            @Test
+            void isNotSupported() throws Exception {
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getArray(Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getArray(Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray(1).getArray(1L, 2, Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getArray("col1").getArray(1L, 2, Collections.emptyMap()));
+            }
+        }
+
+        @Nested
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<Array> {
+            protected Array get(int n) throws Exception {
+                return resultSet.getArray(n);
+            }
+
+            protected Array get(String n) throws Exception {
+                return resultSet.getArray(n);
+            }
+        }
+
+        @Nested
+        class WhenClosed extends SharedWhenClosed<Array> {
+            protected Array get(int n) throws Exception {
+                return resultSet.getArray(n);
+            }
+
+            protected Array get(String n) throws Exception {
+                return resultSet.getArray(n);
             }
         }
     }
