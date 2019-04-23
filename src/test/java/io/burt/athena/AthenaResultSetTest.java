@@ -1447,6 +1447,28 @@ public class AthenaResultSetTest {
             assertNull(resultSet.getDate(1));
             assertNull(resultSet.getDate("col1"));
         }
+
+        @Nested
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<Date> {
+            protected Date get(int n) throws Exception {
+                return resultSet.getDate(n);
+            }
+
+            protected Date get(String n) throws Exception {
+                return resultSet.getDate(n);
+            }
+        }
+
+        @Nested
+        class WhenClosed extends SharedWhenClosed<Date> {
+            protected Date get(int n) throws Exception {
+                return resultSet.getDate(n);
+            }
+
+            protected Date get(String n) throws Exception {
+                return resultSet.getDate(n);
+            }
+        }
     }
 
     @Nested
