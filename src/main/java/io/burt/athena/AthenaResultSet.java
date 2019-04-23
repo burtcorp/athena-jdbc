@@ -27,6 +27,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalQueries;
@@ -550,44 +551,69 @@ public class AthenaResultSet implements ResultSet {
         return convertToDate(getString(columnLabel));
     }
 
+    private Time convertToTime(String str) throws SQLException {
+        if (str == null) {
+            return null;
+        } else {
+            try {
+                LocalTime time = DateTimeFormatter.ISO_TIME.parse(str, TemporalQueries.localTime());
+                return Time.valueOf(time);
+            } catch (DateTimeParseException dtpe) {
+                throw new SQLDataException(String.format("Could not convert \"%s\" to Time", str), dtpe);
+            }
+        }
+    }
+
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTime(getString(columnIndex));
     }
 
     @Override
     public Time getTime(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTime(getString(columnLabel));
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTime(getString(columnIndex));
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTime(getString(columnLabel));
+    }
+
+    private Timestamp convertToTimestamp(String str) throws SQLException {
+        if (str == null) {
+            return null;
+        } else {
+            try {
+                return Timestamp.valueOf(str);
+            } catch (IllegalArgumentException iae) {
+                throw new SQLDataException(String.format("Could not convert \"%s\" to Timestamp", str), iae);
+            }
+        }
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTimestamp(getString(columnIndex));
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTimestamp(getString(columnLabel));
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTimestamp(getString(columnIndex));
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return convertToTimestamp(getString(columnLabel));
     }
 
     @Override

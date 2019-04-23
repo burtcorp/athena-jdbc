@@ -1472,6 +1472,142 @@ public class AthenaResultSetTest {
     }
 
     @Nested
+    class GetTime {
+        @BeforeEach
+        void setUp() {
+            columnInfos.add(ColumnInfo.builder().label("col1").type("time").build());
+            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("09:36:16.363")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("not a time")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+        }
+
+        @Test
+        void returnsTimes() throws Exception {
+            resultSet.next();
+            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime(1));
+            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime("col1"));
+        }
+
+        @Test
+        void ignoresTheCalendarArgument() throws Exception {
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+            resultSet.next();
+            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime(1, calendar));
+            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime("col1", calendar));
+        }
+
+        @Test
+        void throwsWhenValueIsNotATime() throws Exception {
+            resultSet.next();
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getTime(1));
+            assertThrows(SQLException.class, () -> resultSet.getTime("col1"));
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getTime(1));
+            assertThrows(SQLException.class, () -> resultSet.getTime("col1"));
+        }
+
+        @Test
+        void returnsNullForNull() throws Exception {
+            resultSet.relative(4);
+            assertNull(resultSet.getTime(1));
+            assertNull(resultSet.getTime("col1"));
+        }
+
+        @Nested
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<Time> {
+            protected Time get(int n) throws Exception {
+                return resultSet.getTime(n);
+            }
+
+            protected Time get(String n) throws Exception {
+                return resultSet.getTime(n);
+            }
+        }
+
+        @Nested
+        class WhenClosed extends SharedWhenClosed<Time> {
+            protected Time get(int n) throws Exception {
+                return resultSet.getTime(n);
+            }
+
+            protected Time get(String n) throws Exception {
+                return resultSet.getTime(n);
+            }
+        }
+    }
+
+    @Nested
+    class GetTimestamp {
+        @BeforeEach
+        void setUp() {
+            columnInfos.add(ColumnInfo.builder().label("col1").type("timestamp").build());
+            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("2019-04-23 09:35:23.291")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("not a time")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
+            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+        }
+
+        @Test
+        void returnsTimestamps() throws Exception {
+            resultSet.next();
+            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp(1));
+            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp("col1"));
+        }
+
+        @Test
+        void ignoresTheCalendarArgument() throws Exception {
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+            resultSet.next();
+            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp(1, calendar));
+            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp("col1", calendar));
+        }
+
+        @Test
+        void throwsWhenValueIsNotATimestamp() throws Exception {
+            resultSet.next();
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getTimestamp(1));
+            assertThrows(SQLException.class, () -> resultSet.getTimestamp("col1"));
+            resultSet.next();
+            assertThrows(SQLException.class, () -> resultSet.getTimestamp(1));
+            assertThrows(SQLException.class, () -> resultSet.getTimestamp("col1"));
+        }
+
+        @Test
+        void returnsNullForNull() throws Exception {
+            resultSet.relative(4);
+            assertNull(resultSet.getTimestamp(1));
+            assertNull(resultSet.getTimestamp("col1"));
+        }
+
+        @Nested
+        class WhenOutOfPosition extends SharedWhenOutOfPosition<Timestamp> {
+            protected Timestamp get(int n) throws Exception {
+                return resultSet.getTimestamp(n);
+            }
+
+            protected Timestamp get(String n) throws Exception {
+                return resultSet.getTimestamp(n);
+            }
+        }
+
+        @Nested
+        class WhenClosed extends SharedWhenClosed<Timestamp> {
+            protected Timestamp get(int n) throws Exception {
+                return resultSet.getTimestamp(n);
+            }
+
+            protected Timestamp get(String n) throws Exception {
+                return resultSet.getTimestamp(n);
+            }
+        }
+    }
+
+    @Nested
     class WasNull {
         @BeforeEach
         void setUp() {
