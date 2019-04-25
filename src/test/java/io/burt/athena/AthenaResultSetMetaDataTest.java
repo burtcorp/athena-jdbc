@@ -30,13 +30,23 @@ public class AthenaResultSetMetaDataTest {
     @BeforeEach
     void setUp() {
         metaData = createMetaData(
-                cib -> cib.label("col1_label").name("col1_name").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(0).scale(0).type("varchar"),
-                cib -> cib.label("col2_label").name("col2_name").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(17).scale(3).type("bigint"),
-                cib -> cib.label("col3_label").name("col3_name").tableName("table2").schemaName("schema2").catalogName("catalog2").precision(0).scale(0).type("varchar")
+                createColumn(cb -> cb.label("col1_label").name("col1_name").type("varchar").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(0).scale(0)),
+                createColumn(cb -> cb.label("col2_label").name("col2_name").type("bigint").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(17).scale(3)),
+                createColumn(cb -> cb.label("col3_label").name("col3_name").type("varchar").tableName("table2").schemaName("schema2").catalogName("catalog2").precision(0).scale(0))
         );
     }
 
-    private ResultSetMetaData createMetaData(Consumer<ColumnInfo.Builder>... columnInfos) {
+    private ColumnInfo createColumn(Consumer<ColumnInfo.Builder> factory) {
+        ColumnInfo.Builder builder = ColumnInfo.builder();
+        factory.accept(builder);
+        return builder.build();
+    }
+
+    private ResultSetMetaData createMetaData(Consumer<ColumnInfo.Builder> factory) {
+        return createMetaData(createColumn(factory));
+    }
+
+    private ResultSetMetaData createMetaData(ColumnInfo... columnInfos) {
         return new AthenaResultSetMetaData(ResultSetMetadata.builder().columnInfo(columnInfos).build());
     }
 
@@ -338,9 +348,9 @@ public class AthenaResultSetMetaDataTest {
         @Test
         void returnsTheAthenaName() throws Exception {
             ResultSetMetaData md = createMetaData(
-                    cib -> cib.type("varchar"),
-                    cib -> cib.type("date"),
-                    cib -> cib.type("bigint")
+                    createColumn(cib -> cib.type("varchar")),
+                    createColumn(cib -> cib.type("date")),
+                    createColumn(cib -> cib.type("bigint"))
             );
             assertEquals("varchar", md.getColumnTypeName(1));
             assertEquals("date", md.getColumnTypeName(2));
@@ -445,8 +455,8 @@ public class AthenaResultSetMetaDataTest {
         @Test
         void returnsTheCaseSensitivityOfTheColumn() throws Exception {
             ResultSetMetaData md = createMetaData(
-                    cib -> cib.caseSensitive(false),
-                    cib -> cib.caseSensitive(true)
+                    createColumn(cib -> cib.caseSensitive(false)),
+                    createColumn(cib -> cib.caseSensitive(true))
             );
             assertFalse(md.isCaseSensitive(1));
             assertTrue(md.isCaseSensitive(2));
@@ -587,7 +597,7 @@ public class AthenaResultSetMetaDataTest {
             }
         }
     }
-    
+
     @Nested
     class IsReadonly {
         @Test
