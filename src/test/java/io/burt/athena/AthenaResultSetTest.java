@@ -3,12 +3,15 @@ package io.burt.athena;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
+import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
@@ -48,40 +51,69 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
+@ExtendWith(MockitoExtension.class)
 public class AthenaResultSetTest {
-    private AthenaResultSet resultSet;
-    private AthenaStatement parentStatement;
-    private AthenaClient athenaClient;
-    private List<Row> rows;
-    private List<ColumnInfo> columnInfos;
-    private String nextToken;
+    @Mock private AthenaStatement parentStatement;
+    @Mock private AthenaClient athenaClient;
 
-    @Captor
-    private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
+    @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
+
+    private AthenaResultSet resultSet;
 
     @BeforeEach
     void setUpResultSet() {
-        nextToken = null;
-        athenaClient = mock(AthenaClient.class);
-        parentStatement = mock(AthenaStatement.class);
         resultSet = new AthenaResultSet(athenaClient, parentStatement, "Q1234");
-        columnInfos = new ArrayList<>();
-        rows = new ArrayList<>();
     }
 
-    @BeforeEach
-    void setUpCaptors() {
-        MockitoAnnotations.initMocks(this);
+    private ColumnInfo createColumn(String label, String type) {
+        return ColumnInfo.builder().label(label).type(type).build();
     }
 
-    @BeforeEach
-    void setUpGetQueryResults() {
-        when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).then(invocation -> {
+    private Row createRow(String... values) {
+        List<Datum> data = new ArrayList<>(values.length);
+        for (String value : values) {
+            data.add(Datum.builder().varCharValue(value).build());
+        }
+        return Row.builder().data(data).build();
+    }
+
+    private Row createRowWithNull() {
+        return createRow(new String[]{null});
+    }
+
+    private void noRows() {
+        stubResponse(Arrays.asList(
+                createColumn("col1", "string"),
+                createColumn("col2", "integer")
+        ), Collections.emptyList());
+    }
+
+    private void defaultRows() {
+        stubResponse(Arrays.asList(
+                createColumn("col1", "string"),
+                createColumn("col2", "integer")
+        ), Arrays.asList(
+                createRow("row1", "1"),
+                createRow("row2", "2"),
+                createRow("row3", "3")
+        ));
+    }
+
+    void stubResponse(List<ColumnInfo> columns, List<Row> dataRows) {
+        List<Datum> firstRow = new ArrayList<>(columns.size());
+        List<Row> rows = new ArrayList<>(dataRows.size() + 1);
+        for (ColumnInfo column : columns) {
+            firstRow.add(Datum.builder().varCharValue(column.label()).build());
+        }
+        rows.add(Row.builder().data(firstRow).build());
+        rows.addAll(dataRows);
+        reset(athenaClient);
+        lenient().when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).then(invocation -> {
             Consumer<GetQueryResultsRequest.Builder> requestBuilderConsumer = invocation.getArgument(0);
             GetQueryResultsRequest.Builder requestBuilder = GetQueryResultsRequest.builder();
             requestBuilderConsumer.accept(requestBuilder);
@@ -95,7 +127,7 @@ public class AthenaResultSetTest {
                 builder.nextToken(null);
             }
             builder.resultSet(rsb -> {
-                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(columnInfos));
+                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(columns));
                 if (request.nextToken() == null) {
                     rsb.rows(rows.subList(0, Math.min(3, rows.size())));
                 } else if (request.nextToken().equals("page2")) {
@@ -113,21 +145,6 @@ public class AthenaResultSetTest {
         GetQueryResultsRequest.Builder builder = GetQueryResultsRequest.builder();
         getQueryResultsCaptor.getValue().accept(builder);
         return builder.build();
-    }
-
-    private void noRows() {
-        columnInfos.add(ColumnInfo.builder().label("col1").type("string").build());
-        columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
-        rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
-    }
-
-    private void addRows() {
-        columnInfos.add(ColumnInfo.builder().label("col1").type("string").build());
-        columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
-        rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
-        rows.add(Row.builder().data(db -> db.varCharValue("row1"), db -> db.varCharValue("1")).build());
-        rows.add(Row.builder().data(db -> db.varCharValue("row2"), db -> db.varCharValue("2")).build());
-        rows.add(Row.builder().data(db -> db.varCharValue("row3"), db -> db.varCharValue("3")).build());
     }
 
     @Nested
@@ -150,7 +167,7 @@ public class AthenaResultSetTest {
     class GetMetaData {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -177,6 +194,11 @@ public class AthenaResultSetTest {
 
     @Nested
     class Next {
+        @BeforeEach
+        void setUp() {
+            noRows();
+        }
+
         @Test
         void callsGetQueryResults() throws Exception {
             resultSet.next();
@@ -193,11 +215,6 @@ public class AthenaResultSetTest {
 
         @Nested
         class WhenTheResultIsEmpty {
-            @BeforeEach
-            void setUp() {
-                noRows();
-            }
-
             @Test
             void returnsFalse() throws Exception {
                 assertFalse(resultSet.next());
@@ -208,7 +225,7 @@ public class AthenaResultSetTest {
         class WhenTheResultHasRows {
             @BeforeEach
             void setUp() {
-                addRows();
+                defaultRows();
             }
 
             @Test
@@ -248,13 +265,20 @@ public class AthenaResultSetTest {
         class WhenTheResultHasManyPages {
             @BeforeEach
             void setUp() {
-                addRows();
-                rows.add(Row.builder().data(db -> db.varCharValue("row4"), db -> db.varCharValue("4")).build());
-                rows.add(Row.builder().data(db -> db.varCharValue("row5"), db -> db.varCharValue("5")).build());
-                rows.add(Row.builder().data(db -> db.varCharValue("row6"), db -> db.varCharValue("6")).build());
-                rows.add(Row.builder().data(db -> db.varCharValue("row7"), db -> db.varCharValue("7")).build());
-                rows.add(Row.builder().data(db -> db.varCharValue("row8"), db -> db.varCharValue("8")).build());
-                rows.add(Row.builder().data(db -> db.varCharValue("row9"), db -> db.varCharValue("9")).build());
+                stubResponse(Arrays.asList(
+                        createColumn("col1", "string"),
+                        createColumn("col2", "integer")
+                ), Arrays.asList(
+                        createRow("row1", "1"),
+                        createRow("row2", "2"),
+                        createRow("row3", "3"),
+                        createRow("row4", "4"),
+                        createRow("row5", "5"),
+                        createRow("row6", "6"),
+                        createRow("row7", "7"),
+                        createRow("row8", "8"),
+                        createRow("row9", "9")
+                ));
             }
 
             @Test
@@ -288,7 +312,7 @@ public class AthenaResultSetTest {
     class IsBeforeFirst {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -316,7 +340,7 @@ public class AthenaResultSetTest {
     class IsFirst {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -351,7 +375,7 @@ public class AthenaResultSetTest {
     class IsLast {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -393,7 +417,7 @@ public class AthenaResultSetTest {
     class IsAfterLast {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -437,7 +461,7 @@ public class AthenaResultSetTest {
     class GetRow {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -513,7 +537,7 @@ public class AthenaResultSetTest {
     class Absolute {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -555,7 +579,7 @@ public class AthenaResultSetTest {
     class Relative {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -669,6 +693,11 @@ public class AthenaResultSetTest {
 
     @Nested
     class SetFetchSize {
+        @BeforeEach
+        void setUp() {
+            noRows();
+        }
+
         @Test
         void setsTheFetchSize() throws Exception {
             resultSet.setFetchSize(77);
@@ -729,7 +758,7 @@ public class AthenaResultSetTest {
     class FindColumn {
         @BeforeEach
         void setUp() {
-            addRows();
+            defaultRows();
         }
 
         @Test
@@ -851,12 +880,14 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("string").build());
-            columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("row1"), db -> db.varCharValue("1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("row2"), db -> db.varCharValue("2")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Arrays.asList(
+                    createColumn("col1", "string"),
+                    createColumn("col2", "integer")
+            ), Arrays.asList(
+                    createRow("row1", "1"),
+                    createRow("row2", "2"),
+                    createRow(null, null)
+            ));
         }
 
         @Test
@@ -927,12 +958,14 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("string").build());
-            columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("row1"), db -> db.varCharValue("1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("row2"), db -> db.varCharValue("2")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Arrays.asList(
+                    createColumn("col1", "string"),
+                    createColumn("col2", "integer")
+            ), Arrays.asList(
+                    createRow("row1", "1"),
+                    createRow("row2", "2"),
+                    createRow(null, null)
+            ));
         }
 
         @Test
@@ -988,19 +1021,21 @@ public class AthenaResultSetTest {
     class GetBoolean {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("boolean").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("3")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("false")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("true")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("FALSE")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("TRUE")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("FaLsE")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("TruE")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "boolean")
+            ), Arrays.asList(
+                    createRow("0"),
+                    createRow("1"),
+                    createRow("3"),
+                    createRow("-1"),
+                    createRow("false"),
+                    createRow("true"),
+                    createRow("FALSE"),
+                    createRow("TRUE"),
+                    createRow("FaLsE"),
+                    createRow("TruE"),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1115,16 +1150,18 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("tinyint").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(zero().toString())).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(negativeValue().toString())).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(positiveValue().toString())).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("234234544234234523423423434534523412324234234234234")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("-13123102830192830801283085023749123749273498")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("fnord")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "tinyint")
+            ), Arrays.asList(
+                    createRow(zero().toString()),
+                    createRow(negativeValue().toString()),
+                    createRow(positiveValue().toString()),
+                    createRow("234234544234234523423423434534523412324234234234234"),
+                    createRow("-13123102830192830801283085023749123749273498"),
+                    createRow("fnord"),
+                    createRow(""),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1410,12 +1447,14 @@ public class AthenaResultSetTest {
     class GetDate {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("date").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2019-04-20")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("not a date")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "date")
+            ), Arrays.asList(
+                    createRow("2019-04-20"),
+                    createRow("not a date"),
+                    createRow("0"),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1478,12 +1517,14 @@ public class AthenaResultSetTest {
     class GetTime {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("time").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("09:36:16.363")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("not a time")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "time")
+            ), Arrays.asList(
+                    createRow("09:36:16.363"),
+                    createRow("not a time"),
+                    createRow("0"),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1546,12 +1587,14 @@ public class AthenaResultSetTest {
     class GetTimestamp {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("timestamp").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("2019-04-23 09:35:23.291")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("not a time")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "timestamp")
+            ), Arrays.asList(
+                    createRow("2019-04-23 09:35:23.291"),
+                    createRow("not a time"),
+                    createRow("0"),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1614,13 +1657,15 @@ public class AthenaResultSetTest {
     class GetArray {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("array").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("[1, 2, 3]")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("[a, b, c]")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("not an array")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("0")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue(null)).build());
+            stubResponse(Collections.singletonList(
+                    createColumn("col1", "array")
+            ), Arrays.asList(
+                    createRow("[1, 2, 3]"),
+                    createRow("[a, b, c]"),
+                    createRow("not an array"),
+                    createRow("0"),
+                    createRowWithNull()
+            ));
         }
 
         @Test
@@ -1728,11 +1773,13 @@ public class AthenaResultSetTest {
     class WasNull {
         @BeforeEach
         void setUp() {
-            columnInfos.add(ColumnInfo.builder().label("col1").type("boolean").build());
-            columnInfos.add(ColumnInfo.builder().label("col2").type("integer").build());
-            rows.add(Row.builder().data(db -> db.varCharValue("col1"), db -> db.varCharValue("col2")).build());
-            rows.add(Row.builder().data(db -> db.varCharValue("true"), db -> db.varCharValue(null)).build());
-            rows.add(Row.builder().data(db -> db.varCharValue(null), db -> db.varCharValue("1")).build());
+            stubResponse(Arrays.asList(
+                    createColumn("col1", "boolean"),
+                    createColumn("col2", "integer")
+            ), Arrays.asList(
+                    createRow("true", null),
+                    createRow(null, "1")
+            ));
         }
 
         @Test
