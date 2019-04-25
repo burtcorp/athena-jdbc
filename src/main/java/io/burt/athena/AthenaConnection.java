@@ -1,6 +1,6 @@
 package io.burt.athena;
 
-import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -25,10 +25,10 @@ import java.util.concurrent.Executor;
 public class AthenaConnection implements Connection {
     private final ConnectionConfiguration configuration;
 
-    private AthenaClient athenaClient;
+    private AthenaAsyncClient athenaClient;
     private boolean open;
 
-    public AthenaConnection(AthenaClient athenaClient, ConnectionConfiguration configuration) {
+    public AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
         this.open = true;

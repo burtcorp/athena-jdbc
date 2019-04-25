@@ -9,7 +9,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -44,7 +45,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaStatementTest {
-    @Mock private AthenaClient athenaClient;
+    @Mock private AthenaAsyncClient athenaClient;
     @Mock private PollingStrategy pollingStrategy;
 
     private AthenaStatement statement;
@@ -65,7 +66,7 @@ public class AthenaStatementTest {
         @BeforeEach
         void setUpStartQueryExecution() {
             StartQueryExecutionResponse response = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-            lenient().when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(response);
+            lenient().when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(response));
         }
 
         @BeforeEach
@@ -87,7 +88,7 @@ public class AthenaStatementTest {
                 }
                 QueryExecutionStatus status = QueryExecutionStatus.builder().state(state).stateChangeReason(stateChangeReason).build();
                 QueryExecution queryExecution = QueryExecution.builder().status(status).build();
-                return GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
+                return CompletableFuture.completedFuture(GetQueryExecutionResponse.builder().queryExecution(queryExecution).build());
             });
         }
     }
@@ -254,7 +255,7 @@ public class AthenaStatementTest {
                     rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(new ArrayList<>()));
                     rsb.rows(new ArrayList<>());
                 }).build();
-                when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(response);
+                when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(response));
             }
 
             @Test

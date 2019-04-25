@@ -9,7 +9,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
@@ -39,6 +39,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -59,7 +60,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 @ExtendWith(MockitoExtension.class)
 public class AthenaResultSetTest {
     @Mock private AthenaStatement parentStatement;
-    @Mock private AthenaClient athenaClient;
+    @Mock private AthenaAsyncClient athenaClient;
 
     @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
 
@@ -136,7 +137,7 @@ public class AthenaResultSetTest {
                     rsb.rows(rows.subList(6, rows.size()));
                 }
             });
-            return builder.build();
+            return CompletableFuture.completedFuture(builder.build());
         });
     }
 

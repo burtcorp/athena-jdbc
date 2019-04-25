@@ -1,6 +1,6 @@
 package io.burt.athena;
 
-import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
@@ -9,20 +9,24 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
     private final ConnectionConfiguration configuration;
 
-    private AthenaClient athenaClient;
+    private AthenaAsyncClient athenaClient;
     private String queryExecutionId;
     private ResultSet currentResultSet;
     private Supplier<PollingStrategy> pollingStrategyFactory;
     private boolean open;
 
-    public AthenaStatement(AthenaClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
+    public AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
         this.pollingStrategyFactory = pollingStrategyFactory;
@@ -43,32 +47,36 @@ public class AthenaStatement implements Statement {
             currentResultSet.close();
             currentResultSet = null;
         }
-        StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
-            sqeb.queryString(sql);
-            sqeb.workGroup(configuration.workGroupName());
-            sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
-            sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
-        });
-        queryExecutionId = startResponse.queryExecutionId();
-        PollingStrategy pollingStrategy = pollingStrategyFactory.get();
-        while (true) {
-            GetQueryExecutionResponse statusResponse = athenaClient.getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId));
-            QueryExecutionState state = statusResponse.queryExecution().status().state();
-            switch (state) {
-                case SUCCEEDED:
-                    currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
-                    return true;
-                case FAILED:
-                case CANCELLED:
-                    throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());
-                default:
-                    try {
+        try {
+            StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
+                sqeb.queryString(sql);
+                sqeb.workGroup(configuration.workGroupName());
+                sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
+                sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
+            }).get(1, TimeUnit.MINUTES);
+            queryExecutionId = startResponse.queryExecutionId();
+            PollingStrategy pollingStrategy = pollingStrategyFactory.get();
+            while (true) {
+                GetQueryExecutionResponse statusResponse = athenaClient.getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId)).get(1, TimeUnit.MINUTES);
+                QueryExecutionState state = statusResponse.queryExecution().status().state();
+                switch (state) {
+                    case SUCCEEDED:
+                        currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
+                        return true;
+                    case FAILED:
+                    case CANCELLED:
+                        throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());
+                    default:
                         pollingStrategy.waitUntilNext();
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        return false;
-                    }
+                }
             }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (TimeoutException ie) {
+            throw new SQLTimeoutException(ie);
+        } catch (ExecutionException ee) {
+            throw new SQLException(ee);
         }
     }
 

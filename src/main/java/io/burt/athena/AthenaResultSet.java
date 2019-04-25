@@ -1,6 +1,6 @@
 package io.burt.athena;
 
-import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -21,6 +21,7 @@ import java.sql.RowId;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -34,12 +35,15 @@ import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class AthenaResultSet implements ResultSet {
     private static final int MAX_FETCH_SIZE = 1000;
 
     private final String queryExecutionId;
-    private AthenaClient athenaClient;
+    private AthenaAsyncClient athenaClient;
     private AthenaStatement statement;
     private boolean open;
     private int fetchSize;
@@ -50,7 +54,7 @@ public class AthenaResultSet implements ResultSet {
     private int absoluteRowNumber;
     private boolean wasNull;
 
-    public AthenaResultSet(AthenaClient athenaClient, AthenaStatement statement, String queryExecutionId) {
+    public AthenaResultSet(AthenaAsyncClient athenaClient, AthenaStatement statement, String queryExecutionId) {
         this.athenaClient = athenaClient;
         this.statement = statement;
         this.queryExecutionId = queryExecutionId;
@@ -105,18 +109,26 @@ public class AthenaResultSet implements ResultSet {
         }
     }
 
-    private void ensureResults() {
+    private void ensureResults() throws SQLException {
         if ((absoluteRowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
-            GetQueryResultsResponse response = athenaClient.getQueryResults(builder -> {
-                builder.nextToken(nextToken);
-                builder.queryExecutionId(queryExecutionId);
-                builder.maxResults(fetchSize);
-            });
-            nextToken = response.nextToken();
-            resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
-            currentRows = response.resultSet().rows().iterator();
-            if (absoluteRowNumber == 0 && currentRows.hasNext()) {
-                currentRows.next();
+            try {
+                GetQueryResultsResponse response = athenaClient.getQueryResults(builder -> {
+                    builder.nextToken(nextToken);
+                    builder.queryExecutionId(queryExecutionId);
+                    builder.maxResults(fetchSize);
+                }).get(1, TimeUnit.MINUTES);
+                nextToken = response.nextToken();
+                resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
+                currentRows = response.resultSet().rows().iterator();
+                if (absoluteRowNumber == 0 && currentRows.hasNext()) {
+                    currentRows.next();
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            } catch (TimeoutException ie) {
+                throw new SQLTimeoutException(ie);
+            } catch (ExecutionException ee) {
+                throw new SQLException(ee);
             }
         }
     }
