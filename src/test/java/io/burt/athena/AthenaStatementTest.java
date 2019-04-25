@@ -3,10 +3,12 @@ package io.burt.athena;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
@@ -19,7 +21,6 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
@@ -36,48 +37,41 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class AthenaStatementTest {
-    private AthenaClient athenaClient;
+    @Mock private AthenaClient athenaClient;
+    @Mock private PollingStrategy pollingStrategy;
+
     private AthenaStatement statement;
-    private PollingStrategy pollingStrategy;
 
     @BeforeEach
     void setUpStatement() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
-        athenaClient = mock(AthenaClient.class);
-        pollingStrategy = mock(PollingStrategy.class);
         statement = new AthenaStatement(athenaClient, configuration, () -> pollingStrategy);
     }
 
     class SharedExecuteSetup {
-        @Captor
-        protected ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
-        @Captor
-        protected ArgumentCaptor<Consumer<GetQueryExecutionRequest.Builder>> getQueryExecutionCaptor;
+        @Captor protected ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
+        @Captor protected ArgumentCaptor<Consumer<GetQueryExecutionRequest.Builder>> getQueryExecutionCaptor;
 
         QueryExecutionState terminalState = QueryExecutionState.SUCCEEDED;
         String stateChangeReason = null;
 
         @BeforeEach
-        void setUpCaptors() {
-            MockitoAnnotations.initMocks(this);
-        }
-
-        @BeforeEach
         void setUpStartQueryExecution() {
             StartQueryExecutionResponse response = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-            when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(response);
+            lenient().when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(response);
         }
 
         @BeforeEach
         void setUpGetQueryExecution() {
             final AtomicInteger callCounter = new AtomicInteger(0);
-            when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).then(invocation -> {
+            lenient().when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).then(invocation -> {
                 int count = callCounter.incrementAndGet();
                 Consumer<GetQueryExecutionRequest.Builder> requestBuilderConsumer = invocation.getArgument(0);
                 GetQueryExecutionRequest.Builder requestBuilder = GetQueryExecutionRequest.builder();
@@ -231,18 +225,6 @@ public class AthenaStatementTest {
 
     @Nested
     class ExecuteQuery extends SharedExecuteTests<ResultSet> {
-        @Captor
-        private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
-
-        @BeforeEach
-        void setUpGetQueryResults() {
-            GetQueryResultsResponse response = GetQueryResultsResponse.builder().resultSet(rsb -> {
-                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(new ArrayList<>()));
-                rsb.rows(new ArrayList<>());
-            }).build();
-            when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(response);
-        }
-
         @Override
         protected ResultSet execute() throws SQLException {
             return statement.executeQuery("SELECT 1");
@@ -254,22 +236,36 @@ public class AthenaStatementTest {
         }
 
         @Test
-        void queriesForResultMetadata() throws Exception {
-            ResultSet rs = execute();
-            rs.next();
-            verify(athenaClient).getQueryResults(getQueryResultsCaptor.capture());
-            GetQueryResultsRequest.Builder builder = GetQueryResultsRequest.builder();
-            getQueryResultsCaptor.getValue().accept(builder);
-            assertEquals("Q1234", builder.build().queryExecutionId());
-        }
-
-        @Test
         @Override
         void executeAgainClosesPreviousResultSet() throws Exception {
             ResultSet rs1 = execute();
             ResultSet rs2 = execute();
             assertTrue(rs1.isClosed());
             assertFalse(rs2.isClosed());
+        }
+
+        @Nested
+        class WhenTheResultSetIsUsed {
+            @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
+
+            @BeforeEach
+            void setUpGetQueryResults() {
+                GetQueryResultsResponse response = GetQueryResultsResponse.builder().resultSet(rsb -> {
+                    rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(new ArrayList<>()));
+                    rsb.rows(new ArrayList<>());
+                }).build();
+                when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(response);
+            }
+
+            @Test
+            void queriesForResultMetadata() throws Exception {
+                ResultSet rs = execute();
+                rs.next();
+                verify(athenaClient).getQueryResults(getQueryResultsCaptor.capture());
+                GetQueryResultsRequest.Builder builder = GetQueryResultsRequest.builder();
+                getQueryResultsCaptor.getValue().accept(builder);
+                assertEquals("Q1234", builder.build().queryExecutionId());
+            }
         }
     }
 
@@ -316,31 +312,25 @@ public class AthenaStatementTest {
 
     @Nested
     class GetResultSet extends SharedExecuteSetup {
-        @BeforeEach
-        void setUpGetQueryResults() {
-            GetQueryResultsResponse response = GetQueryResultsResponse.builder().resultSet(rsb -> {
-                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(new ArrayList<>()));
-                rsb.rows(new ArrayList<>());
-            }).build();
-            when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).thenReturn(response);
-        }
-
         @Test
         void returnsNullBeforeExecute() throws Exception {
             assertNull(statement.getResultSet());
         }
 
-        @Test
-        void returnsTheSameResultSetAsExecuteQuery() throws Exception {
-            ResultSet rs1 = statement.executeQuery("SELECT 1");
-            ResultSet rs2 = statement.getResultSet();
-            assertSame(rs1, rs2);
-        }
+        @Nested
+        class AfterExecuteIsCalled {
+            @Test
+            void returnsTheSameResultSetAsExecuteQuery() throws Exception {
+                ResultSet rs1 = statement.executeQuery("SELECT 1");
+                ResultSet rs2 = statement.getResultSet();
+                assertSame(rs1, rs2);
+            }
 
-        @Test
-        void returnsAResultSetAfterExecute() throws Exception {
-            statement.execute("SELECT 1");
-            assertNotNull(statement.getResultSet());
+            @Test
+            void returnsAResultSet() throws Exception {
+                statement.execute("SELECT 1");
+                assertNotNull(statement.getResultSet());
+            }
         }
     }
 
