@@ -1,8 +1,9 @@
 package io.burt.athena;
 
+import io.burt.athena.result.StandardResult;
+import io.burt.athena.result.PreloadingStandardResult;
+import io.burt.athena.result.Result;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
-import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
-import software.amazon.awssdk.services.athena.model.Row;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -21,7 +22,6 @@ import java.sql.RowId;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -33,38 +33,21 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class AthenaResultSet implements ResultSet {
-    private static final int MAX_FETCH_SIZE = 1000;
-
     private final String queryExecutionId;
-    private AthenaAsyncClient athenaClient;
     private AthenaStatement statement;
     private boolean open;
-    private int fetchSize;
-    private AthenaResultSetMetaData resultSetMetaData;
-    private Iterator<Row> currentRows;
-    private Row currentRow;
-    private String nextToken;
-    private int absoluteRowNumber;
-    private boolean wasNull;
+    private Result result;
+    private boolean lastWasNull;
 
     public AthenaResultSet(AthenaAsyncClient athenaClient, AthenaStatement statement, String queryExecutionId) {
-        this.athenaClient = athenaClient;
         this.statement = statement;
         this.queryExecutionId = queryExecutionId;
-        this.resultSetMetaData = null;
-        this.currentRows = null;
-        this.absoluteRowNumber = 0;
-        this.nextToken = null;
-        this.fetchSize = MAX_FETCH_SIZE;
-        this.wasNull = false;
         this.open = true;
+        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE);
+        this.lastWasNull = false;
     }
 
     @Override
@@ -101,7 +84,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     private void checkHorizontalPosition(int columnIndex) throws SQLException {
-        int columnCount = resultSetMetaData.getColumnCount();
+        int columnCount = getMetaData().getColumnCount();
         if (columnIndex < 1) {
             throw new SQLException(String.format("Invalid column index %d", columnIndex));
         } else if (columnIndex > columnCount) {
@@ -109,53 +92,20 @@ public class AthenaResultSet implements ResultSet {
         }
     }
 
-    private void ensureResults() throws SQLException {
-        if ((absoluteRowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
-            try {
-                GetQueryResultsResponse response = athenaClient.getQueryResults(builder -> {
-                    builder.nextToken(nextToken);
-                    builder.queryExecutionId(queryExecutionId);
-                    builder.maxResults(fetchSize);
-                }).get(1, TimeUnit.MINUTES);
-                nextToken = response.nextToken();
-                resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
-                currentRows = response.resultSet().rows().iterator();
-                if (absoluteRowNumber == 0 && currentRows.hasNext()) {
-                    currentRows.next();
-                }
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-            } catch (TimeoutException ie) {
-                throw new SQLTimeoutException(ie);
-            } catch (ExecutionException ee) {
-                throw new SQLException(ee);
-            }
-        }
-    }
-
     @Override
     public boolean next() throws SQLException {
         checkClosed();
-        ensureResults();
-        absoluteRowNumber++;
-        if (currentRows.hasNext()) {
-            currentRow = currentRows.next();
-        } else {
-            currentRow = null;
-        }
-        return currentRow != null;
+        return result.next();
     }
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
-        ensureResults();
-        return resultSetMetaData;
+        return result.metaData();
     }
 
     @Override
     public void close() throws SQLException {
-        athenaClient = null;
         statement = null;
         open = false;
     }
@@ -168,25 +118,25 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClosed();
-        return absoluteRowNumber == 0;
+        return result.rowNumber() == 0;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClosed();
-        return nextToken == null && currentRows != null && currentRow == null;
+        return result.isAfterLast();
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClosed();
-        return absoluteRowNumber == 1;
+        return result.rowNumber() == 1;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return nextToken == null && currentRows != null && currentRow != null && !currentRows.hasNext();
+        return result.isLast();
     }
 
     @Override
@@ -195,7 +145,7 @@ public class AthenaResultSet implements ResultSet {
         if (isBeforeFirst() || isAfterLast()) {
             return 0;
         } else {
-            return absoluteRowNumber;
+            return result.rowNumber();
         }
     }
 
@@ -212,17 +162,15 @@ public class AthenaResultSet implements ResultSet {
         checkClosed();
         if (rows < 0) {
             throw new SQLException(String.format("Fetch size cannot be negative (got %d)", rows));
-        } else if (rows > MAX_FETCH_SIZE) {
-            throw new SQLException(String.format("Fetch size too large (got %d, max is %d)", rows, MAX_FETCH_SIZE));
         } else {
-            fetchSize = rows;
+            result.updateFetchSize(rows);
         }
     }
 
     @Override
     public int getFetchSize() throws SQLException {
         checkClosed();
-        return fetchSize;
+        return result.fetchSize();
     }
 
     @Override
@@ -246,9 +194,9 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public int findColumn(String columnLabel) throws SQLException {
         checkClosed();
-        ensureResults();
-        for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
-            if (resultSetMetaData.getColumnLabel(i).equals(columnLabel)) {
+        ResultSetMetaData metaData = getMetaData();
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            if (metaData.getColumnLabel(i).equals(columnLabel)) {
                 return i;
             }
         }
@@ -291,15 +239,15 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public boolean wasNull() throws SQLException {
-        return wasNull;
+        return lastWasNull;
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException {
         checkClosed();
         checkPosition(columnIndex);
-        String value = currentRow.data().get(columnIndex - 1).varCharValue();
-        wasNull = value == null;
+        String value = result.stringValue(columnIndex);
+        lastWasNull = value == null;
         return value;
     }
 
@@ -831,11 +779,11 @@ public class AthenaResultSet implements ResultSet {
     public boolean absolute(int row) throws SQLException {
         if (row < 1) {
             throw new SQLException(String.format("Invalid row number %d", row));
-        } else if (row < absoluteRowNumber) {
-            throw new SQLException(String.format("Only forward movement is supported (cannot go back to %d from %d)", row, absoluteRowNumber));
+        } else if (row < result.rowNumber()) {
+            throw new SQLException(String.format("Only forward movement is supported (cannot go back to %d from %d)", row, result.rowNumber()));
         } else {
             boolean status = false;
-            while (absoluteRowNumber < row) {
+            while (result.rowNumber() < row) {
                 status = next();
             }
             return status;

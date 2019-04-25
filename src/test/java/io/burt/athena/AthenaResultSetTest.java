@@ -37,10 +37,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -52,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -65,10 +68,12 @@ public class AthenaResultSetTest {
     @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
 
     private AthenaResultSet resultSet;
+    private List<GetQueryResultsRequest> resultRequests;
 
     @BeforeEach
     void setUpResultSet() {
         resultSet = new AthenaResultSet(athenaClient, parentStatement, "Q1234");
+        resultRequests = new LinkedList<>();
     }
 
     private ColumnInfo createColumn(String label, String type) {
@@ -119,6 +124,7 @@ public class AthenaResultSetTest {
             GetQueryResultsRequest.Builder requestBuilder = GetQueryResultsRequest.builder();
             requestBuilderConsumer.accept(requestBuilder);
             GetQueryResultsRequest request = requestBuilder.build();
+            resultRequests.add(request);
             GetQueryResultsResponse.Builder builder = GetQueryResultsResponse.builder();
             if (request.nextToken() == null && rows.size() > 3) {
                 builder.nextToken("page2");
@@ -139,13 +145,6 @@ public class AthenaResultSetTest {
             });
             return CompletableFuture.completedFuture(builder.build());
         });
-    }
-
-    private GetQueryResultsRequest resultsRequest() {
-        verify(athenaClient).getQueryResults(getQueryResultsCaptor.capture());
-        GetQueryResultsRequest.Builder builder = GetQueryResultsRequest.builder();
-        getQueryResultsCaptor.getValue().accept(builder);
-        return builder.build();
     }
 
     @Nested
@@ -180,14 +179,14 @@ public class AthenaResultSetTest {
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
             assertNotNull(resultSet.getMetaData());
-            verify(athenaClient).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
         }
 
         @Test
         void doesNotLoadTwice() throws Exception {
             resultSet.getMetaData();
             resultSet.next();
-            verify(athenaClient, times(1)).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
         }
 
         @Nested
@@ -210,14 +209,14 @@ public class AthenaResultSetTest {
         @Test
         void callsGetQueryResults() throws Exception {
             resultSet.next();
-            GetQueryResultsRequest request = resultsRequest();
+            GetQueryResultsRequest request = resultRequests.get(0);
             assertEquals("Q1234", request.queryExecutionId());
         }
 
         @Test
         void loadsTheMaxNumberOfRowsAllowed() throws Exception {
             resultSet.next();
-            GetQueryResultsRequest request = resultsRequest();
+            GetQueryResultsRequest request = resultRequests.get(0);
             assertEquals(1000, request.maxResults());
         }
 
@@ -271,6 +270,10 @@ public class AthenaResultSetTest {
 
         @Nested
         class WhenTheResultHasManyPages {
+            private List<String> requestedNextTokens() {
+                return resultRequests.stream().map(GetQueryResultsRequest::nextToken).collect(Collectors.toList());
+            }
+
             @BeforeEach
             void setUp() {
                 stubResponse(Arrays.asList(
@@ -297,6 +300,7 @@ public class AthenaResultSetTest {
                 }
                 verify(athenaClient, times(3)).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
                 assertEquals(Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9"), rows);
+                assertEquals(Arrays.asList(null, "page2", "page3"), requestedNextTokens());
             }
 
             @Test
@@ -701,16 +705,42 @@ public class AthenaResultSetTest {
 
     @Nested
     class SetFetchSize {
+        private List<Integer> requestedPageSizes() {
+            return resultRequests.stream().map(GetQueryResultsRequest::maxResults).collect(Collectors.toList());
+        }
+
         @BeforeEach
         void setUp() {
-            noRows();
+            stubResponse(Arrays.asList(
+                    createColumn("col1", "string"),
+                    createColumn("col2", "integer")
+            ), Arrays.asList(
+                    createRow("row1", "1"),
+                    createRow("row2", "2"),
+                    createRow("row3", "3"),
+                    createRow("row4", "4"),
+                    createRow("row5", "5"),
+                    createRow("row6", "6"),
+                    createRow("row7", "7")
+            ));
         }
 
         @Test
         void setsTheFetchSize() throws Exception {
             resultSet.setFetchSize(77);
             resultSet.next();
-            assertEquals(77, resultsRequest().maxResults());
+            assertEquals(77, requestedPageSizes().get(0));
+        }
+
+        @Test
+        void setsTheFetchSizeOfAFutureRequest() throws Exception {
+            resultSet.next();
+            resultSet.setFetchSize(99);
+            while (resultSet.next()) {
+            }
+            List<Integer> pageSizes = requestedPageSizes();
+            assertNotEquals(99, pageSizes.get(0));
+            assertEquals(99, pageSizes.get(pageSizes.size() - 1));
         }
 
         @Nested
@@ -778,7 +808,7 @@ public class AthenaResultSetTest {
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
             resultSet.findColumn("col1");
-            verify(athenaClient).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
         }
 
         @Test
