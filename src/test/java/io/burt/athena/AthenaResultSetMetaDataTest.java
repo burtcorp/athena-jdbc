@@ -3,6 +3,8 @@ package io.burt.athena;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.ColumnNullable;
 import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
@@ -21,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(MockitoExtension.class)
 public class AthenaResultSetMetaDataTest {
     private ResultSetMetaData metaData;
 
