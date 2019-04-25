@@ -106,7 +106,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     private void ensureResults() {
-        if (absoluteRowNumber == 0 || (nextToken != null && !currentRows.hasNext())) {
+        if ((absoluteRowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
             GetQueryResultsResponse response = athenaClient.getQueryResults(builder -> {
                 builder.nextToken(nextToken);
                 builder.queryExecutionId(queryExecutionId);

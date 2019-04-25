@@ -182,6 +182,13 @@ public class AthenaResultSetTest {
             verify(athenaClient).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
         }
 
+        @Test
+        void doesNotLoadTwice() throws Exception {
+            resultSet.getMetaData();
+            resultSet.next();
+            verify(athenaClient, times(1)).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+        }
+
         @Nested
         class WhenClosed {
             @Test
