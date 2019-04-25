@@ -3,10 +3,14 @@ package io.burt.athena;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
@@ -27,14 +31,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class AthenaDriverTest {
-    private AthenaDriver driver;
-    private AthenaClient athenaClient;
-    private AwsClientFactory clientFactory;
+    @Mock private AwsClientFactory clientFactory;
+    @Mock private AthenaClient athenaClient;
+
+    @InjectMocks private AthenaDriver driver;
+
     private Properties defaultProperties;
 
     private final String jdbcUrl = "jdbc:awsathena://test_db";
@@ -47,22 +53,13 @@ public class AthenaDriverTest {
         defaultProperties.setProperty("OUTPUT_LOCATION", "s3://test/location");
     }
 
-    @BeforeEach
-    void setUpDriver() {
-        clientFactory = mock(AwsClientFactory.class);
-        athenaClient = mock(AthenaClient.class);
-        when(clientFactory.createAthenaClient(Region.AP_SOUTHEAST_1)).thenReturn(athenaClient);
-        driver = new AthenaDriver(clientFactory);
-    }
-
     @Nested
     class Connect {
-        @Captor
-        ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
+        @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
 
         @BeforeEach
-        void setUp() {
-            MockitoAnnotations.initMocks(this);
+        void setUpDriver() {
+            when(clientFactory.createAthenaClient(Region.AP_SOUTHEAST_1)).thenReturn(athenaClient);
         }
 
         StartQueryExecutionRequest executeRequest() throws Exception {
