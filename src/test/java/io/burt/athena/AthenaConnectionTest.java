@@ -3,10 +3,12 @@ package io.burt.athena;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
@@ -27,36 +29,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class AthenaConnectionTest {
-    private AthenaClient athenaClient;
+    @Mock private AthenaClient athenaClient;
+
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
-        athenaClient = mock(AthenaClient.class);
         connection = new AthenaConnection(athenaClient, configuration);
-        StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-        when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(startQueryResponse);
-        QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
-        QueryExecution queryExecution = QueryExecution.builder().status(status).build();
-        GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
-        when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(getQueryResponse);
     }
 
     @Nested
     class CreateStatement {
-        @Captor
-        ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
-
-        @BeforeEach
-        void setUp() {
-            MockitoAnnotations.initMocks(this);
-        }
+        @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
 
         private StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
@@ -72,28 +62,41 @@ public class AthenaConnectionTest {
             assertNotNull(connection.createStatement());
         }
 
-        @Test
-        void statementStartsQuery() throws Exception {
-            StartQueryExecutionRequest request = execute();
-            assertEquals("SELECT 1", request.queryString());
-        }
+        @Nested
+        class WhenTheStatementIsExecuted {
+            @BeforeEach
+            void setUp() {
+                StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
+                when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(startQueryResponse);
+                QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
+                QueryExecution queryExecution = QueryExecution.builder().status(status).build();
+                GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
+                when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(getQueryResponse);
+            }
 
-        @Test
-        void queryExecutesInTheConfiguredDatabase() throws Exception {
-            StartQueryExecutionRequest request = execute();
-            assertEquals("test_db", request.queryExecutionContext().database());
-        }
+            @Test
+            void statementStartsQuery() throws Exception {
+                StartQueryExecutionRequest request = execute();
+                assertEquals("SELECT 1", request.queryString());
+            }
 
-        @Test
-        void queryExecutesInTheConfiguredWorkgroup() throws Exception {
-            StartQueryExecutionRequest request = execute();
-            assertEquals("test_wg", request.workGroup());
-        }
+            @Test
+            void queryExecutesInTheConfiguredDatabase() throws Exception {
+                StartQueryExecutionRequest request = execute();
+                assertEquals("test_db", request.queryExecutionContext().database());
+            }
 
-        @Test
-        void queryExecutesWithTheConfiguredOutputLocation() throws Exception {
-            StartQueryExecutionRequest request = execute();
-            assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
+            @Test
+            void queryExecutesInTheConfiguredWorkgroup() throws Exception {
+                StartQueryExecutionRequest request = execute();
+                assertEquals("test_wg", request.workGroup());
+            }
+
+            @Test
+            void queryExecutesWithTheConfiguredOutputLocation() throws Exception {
+                StartQueryExecutionRequest request = execute();
+                assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
+            }
         }
 
         @Nested
