@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
-import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -41,6 +40,9 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 
+import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
+import static io.burt.athena.support.GetQueryResultsHelper.createRow;
+import static io.burt.athena.support.GetQueryResultsHelper.createRowWithNull;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,22 +67,6 @@ public class AthenaResultSetTest {
     void setUpResultSet() {
         queryResultsHelper = new GetQueryResultsHelper();
         resultSet = new AthenaResultSet(queryResultsHelper, parentStatement, "Q1234");
-    }
-
-    private ColumnInfo createColumn(String label, String type) {
-        return ColumnInfo.builder().label(label).type(type).build();
-    }
-
-    private Row createRow(String... values) {
-        List<Datum> data = new ArrayList<>(values.length);
-        for (String value : values) {
-            data.add(Datum.builder().varCharValue(value).build());
-        }
-        return Row.builder().data(data).build();
-    }
-
-    private Row createRowWithNull() {
-        return createRow(new String[]{null});
     }
 
     private void noRows() {

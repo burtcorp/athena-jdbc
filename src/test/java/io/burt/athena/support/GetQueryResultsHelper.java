@@ -8,6 +8,8 @@ import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +26,22 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
         this.resultRequests = new LinkedList<>();
         this.columns = null;
         this.remainingRows = null;
+    }
+
+    public static ColumnInfo createColumn(String label, String type) {
+        return ColumnInfo.builder().label(label).type(type).build();
+    }
+
+    public static Row createRow(String... values) {
+        List<Datum> data = new ArrayList<>(values.length);
+        for (String value : values) {
+            data.add(Datum.builder().varCharValue(value).build());
+        }
+        return Row.builder().data(data).build();
+    }
+
+    public static Row createRowWithNull() {
+        return createRow(new String[]{null});
     }
 
     public int requestCount() {
