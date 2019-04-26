@@ -23,13 +23,14 @@ public class PreloadingStandardResult extends StandardResult {
     protected void ensureResults() throws SQLException, InterruptedException {
         if ((rowNumber == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext())) {
             try {
-                GetQueryResultsResponse response;
+                CompletableFuture<GetQueryResultsResponse> future;
                 if (pendingResult == null) {
-                    response = loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                    future = loadPage();
                 } else {
-                    response = pendingResult.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                    future = pendingResult;
                     pendingResult = null;
                 }
+                GetQueryResultsResponse response = future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 if (response.nextToken() != null) {
                     pendingResult = loadPage(response.nextToken());
                 }
@@ -41,7 +42,7 @@ public class PreloadingStandardResult extends StandardResult {
             } catch (TimeoutException ie) {
                 throw new SQLTimeoutException(ie);
             } catch (ExecutionException ee) {
-                throw new SQLException(ee);
+                throw new SQLException(ee.getCause());
             }
         }
     }

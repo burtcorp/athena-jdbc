@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.Row;
@@ -37,10 +38,14 @@ class StandardResultTest {
     private GetQueryResultsHelper queryResultsHelper;
     private StandardResult result;
 
+    protected StandardResult createResult(AthenaAsyncClient athenaClient) {
+        return new StandardResult(queryResultsHelper, "Q1234", 123, Duration.ofMillis(10));
+    }
+
     @BeforeEach
     void setUp() {
         queryResultsHelper = new GetQueryResultsHelper();
-        result = new StandardResult(queryResultsHelper, "Q1234", 123, Duration.ofMinutes(1));
+        result = createResult(queryResultsHelper);
     }
 
     @Nested
