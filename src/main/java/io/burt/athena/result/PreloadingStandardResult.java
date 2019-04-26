@@ -20,7 +20,7 @@ public class PreloadingStandardResult extends StandardResult {
         this.pendingResult = null;
     }
 
-    protected void ensureResults() throws SQLException {
+    protected void ensureResults() throws SQLException, InterruptedException {
         if ((rowNumber == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext())) {
             try {
                 GetQueryResultsResponse response;
@@ -38,8 +38,6 @@ public class PreloadingStandardResult extends StandardResult {
                 if (rowNumber == 0 && currentRows.hasNext()) {
                     currentRows.next();
                 }
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
             } catch (TimeoutException ie) {
                 throw new SQLTimeoutException(ie);
             } catch (ExecutionException ee) {

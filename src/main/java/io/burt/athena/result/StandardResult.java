@@ -41,7 +41,7 @@ public class StandardResult implements Result {
         this.resultSetMetaData = null;
     }
 
-    protected void ensureResults() throws SQLException {
+    protected void ensureResults() throws SQLException, InterruptedException {
         if ((rowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
             try {
                 GetQueryResultsResponse response = loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -51,12 +51,10 @@ public class StandardResult implements Result {
                 if (rowNumber == 0 && currentRows.hasNext()) {
                     currentRows.next();
                 }
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
             } catch (TimeoutException ie) {
                 throw new SQLTimeoutException(ie);
             } catch (ExecutionException ee) {
-                throw new SQLException(ee);
+                throw new SQLException(ee.getCause());
             }
         }
     }
@@ -89,7 +87,14 @@ public class StandardResult implements Result {
 
     @Override
     public AthenaResultSetMetaData metaData() throws SQLException {
-        ensureResults();
+        if (resultSetMetaData == null) {
+            try {
+                ensureResults();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }
         return resultSetMetaData;
     }
 
@@ -100,14 +105,19 @@ public class StandardResult implements Result {
 
     @Override
     public boolean next() throws SQLException {
-        ensureResults();
-        rowNumber++;
-        if (currentRows.hasNext()) {
-            currentRow = currentRows.next();
-        } else {
-            currentRow = null;
+        try {
+            ensureResults();
+            rowNumber++;
+            if (currentRows.hasNext()) {
+                currentRow = currentRows.next();
+            } else {
+                currentRow = null;
+            }
+            return currentRow != null;
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
         }
-        return currentRow != null;
     }
 
     @Override
