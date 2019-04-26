@@ -2,3 +2,7 @@
 /*.iml
 /target
 /tmp
+/example
+/.classpath
+/.project
+/.settings
