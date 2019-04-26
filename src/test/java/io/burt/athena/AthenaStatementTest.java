@@ -210,14 +210,14 @@ public class AthenaStatementTest {
 
             @Test
             void setsTheInterruptFlag() throws Exception {
-                runner.run();
+                runner.start();
                 runner.join();
                 assertTrue(interruptedState.get());
             }
 
             @Test
             void returnsFalse() throws Exception {
-                runner.run();
+                runner.start();
                 runner.join();
                 assertFalse(executeResult.get());
             }
