@@ -135,12 +135,17 @@ public class StandardResult implements Result {
     }
 
     @Override
-    public boolean isLast() throws SQLException {
-        return nextToken == null && currentRows != null && currentRow != null && !currentRows.hasNext();
-    }
-
-    @Override
-    public boolean isAfterLast() throws SQLException {
-        return nextToken == null && currentRows != null && currentRow == null;
+    public ResultPosition position() throws SQLException {
+        if (rowNumber() == 0) {
+            return ResultPosition.BEFORE_FIRST;
+        } else if (rowNumber() == 1) {
+            return ResultPosition.FIRST;
+        } else if (nextToken == null && currentRows != null && currentRow != null && !currentRows.hasNext()) {
+            return ResultPosition.LAST;
+        } else if (nextToken == null && currentRows != null && currentRow == null) {
+            return ResultPosition.AFTER_LAST;
+        } else {
+            return ResultPosition.MIDDLE;
+        }
     }
 }

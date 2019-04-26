@@ -423,7 +423,7 @@ class StandardResultTest {
     }
 
     @Nested
-    class IsLast {
+    class Position {
         @BeforeEach
         void setUp() {
             queryResultsHelper.update(Arrays.asList(
@@ -437,78 +437,39 @@ class StandardResultTest {
         }
 
         @Test
-        void returnsFalseBeforeNextIsCalled() throws Exception {
-            assertFalse(result.isLast());
+        void returnsBeforeFirstBeforeNextIsCalled() throws Exception {
+            assertEquals(ResultPosition.BEFORE_FIRST, result.position());
         }
 
         @Test
-        void returnsFalseWhenNotLast() throws Exception {
+        void returnsFirstWhenOnFirstRow() throws Exception {
             result.next();
-            assertFalse(result.isLast());
-            result.next();
-            assertFalse(result.isLast());
+            assertEquals(ResultPosition.FIRST, result.position());
         }
 
         @Test
-        void returnsTrueWhenOnLastRow() throws Exception {
+        void returnsMiddleAfterFirst() throws Exception {
+            result.next();
+            result.next();
+            assertEquals(ResultPosition.MIDDLE, result.position());
+        }
+
+        @Test
+        void returnsLastWhenOnLastRow() throws Exception {
             for (int i = 0; i < 3; i++) {
                 result.next();
             }
-            assertTrue(result.isLast());
+            assertEquals(ResultPosition.LAST, result.position());
         }
 
         @Test
-        void returnsFalseWhenAfterLastRow() throws Exception {
+        void returnsAfterLastWhenAfterLastRow() throws Exception {
             for (int i = 0; i < 4; i++) {
                 result.next();
             }
-            assertFalse(result.isLast());
-        }
-    }
-
-    @Nested
-    class IsAfterLast {
-        @BeforeEach
-        void setUp() {
-            queryResultsHelper.update(Arrays.asList(
-                    createColumn("col1", "string"),
-                    createColumn("col2", "integer")
-            ), Arrays.asList(
-                    createRow("row1", "1"),
-                    createRow("row2", "2"),
-                    createRow("row3", "3")
-            ));
-        }
-
-        @Test
-        void returnsFalseBeforeNextIsCalled() throws Exception {
-            assertFalse(result.isAfterLast());
-        }
-
-        @Test
-        void returnsFalseWhenNotAfterLast() throws Exception {
+            assertEquals(ResultPosition.AFTER_LAST, result.position());
             result.next();
-            assertFalse(result.isAfterLast());
-            result.next();
-            assertFalse(result.isAfterLast());
-        }
-
-        @Test
-        void returnsFalseWhenOnLastRow() throws Exception {
-            for (int i = 0; i < 3; i++) {
-                result.next();
-            }
-            assertFalse(result.isAfterLast());
-        }
-
-        @Test
-        void returnsTrueWhenAfterLastRow() throws Exception {
-            for (int i = 0; i < 4; i++) {
-                result.next();
-            }
-            assertTrue(result.isAfterLast());
-            result.next();
-            assertTrue(result.isAfterLast());
+            assertEquals(ResultPosition.AFTER_LAST, result.position());
         }
     }
 }

@@ -1,8 +1,9 @@
 package io.burt.athena;
 
-import io.burt.athena.result.StandardResult;
 import io.burt.athena.result.PreloadingStandardResult;
 import io.burt.athena.result.Result;
+import io.burt.athena.result.ResultPosition;
+import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 
 import java.io.InputStream;
@@ -119,25 +120,25 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClosed();
-        return result.rowNumber() == 0;
+        return result.position() == ResultPosition.BEFORE_FIRST;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClosed();
-        return result.isAfterLast();
+        return result.position() == ResultPosition.AFTER_LAST;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClosed();
-        return result.rowNumber() == 1;
+        return result.position() == ResultPosition.FIRST;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return result.isLast();
+        return result.position() == ResultPosition.LAST;
     }
 
     @Override

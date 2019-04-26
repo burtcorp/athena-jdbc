@@ -1,11 +1,9 @@
 package io.burt.athena.result;
 
-import io.burt.athena.AthenaResultSetMetaData;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 
 import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -42,12 +40,13 @@ public class PreloadingStandardResult extends StandardResult {
     }
 
     @Override
-    public boolean isLast() throws SQLException {
-        return pendingResult == null && currentRows != null && currentRow != null && !currentRows.hasNext();
-    }
-
-    @Override
-    public boolean isAfterLast() throws SQLException {
-        return pendingResult == null && currentRows != null && currentRow == null;
+    public ResultPosition position() throws SQLException {
+        if (pendingResult == null && currentRows != null && currentRow != null && !currentRows.hasNext()) {
+            return ResultPosition.LAST;
+        } else if (pendingResult == null && currentRows != null && currentRow == null) {
+            return ResultPosition.AFTER_LAST;
+        } else {
+            return super.position();
+        }
     }
 }

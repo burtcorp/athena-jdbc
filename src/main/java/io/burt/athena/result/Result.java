@@ -17,7 +17,5 @@ public interface Result {
 
     String stringValue(int columnIndex) throws SQLException;
 
-    boolean isLast() throws SQLException;
-
-    boolean isAfterLast() throws SQLException;
+    ResultPosition position() throws SQLException;
 }
