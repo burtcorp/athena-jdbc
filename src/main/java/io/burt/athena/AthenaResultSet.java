@@ -505,12 +505,12 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
-        return convertToDate(getString(columnIndex));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
-        return convertToDate(getString(columnLabel));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     private Time convertToTime(String str) throws SQLException {
@@ -538,12 +538,12 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        return convertToTime(getString(columnIndex));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        return convertToTime(getString(columnLabel));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     private Timestamp convertToTimestamp(String str) throws SQLException {
@@ -570,12 +570,12 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        return convertToTimestamp(getString(columnIndex));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        return convertToTimestamp(getString(columnLabel));
+        throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
     @Override

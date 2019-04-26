@@ -1435,14 +1435,6 @@ public class AthenaResultSetTest {
         }
 
         @Test
-        void ignoresTheCalendarArgument() throws Exception {
-            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
-            resultSet.next();
-            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate(1, calendar));
-            assertEquals(Date.valueOf(LocalDate.of(2019, 4, 20)), resultSet.getDate("col1", calendar));
-        }
-
-        @Test
         void throwsWhenValueIsNotADate() throws Exception {
             resultSet.next();
             resultSet.next();
@@ -1458,6 +1450,17 @@ public class AthenaResultSetTest {
             resultSet.relative(4);
             assertNull(resultSet.getDate(1));
             assertNull(resultSet.getDate("col1"));
+        }
+
+        @Nested
+        class WhenGivenACalendar {
+            @Test
+            void isNotSupported() throws Exception {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getDate(1, calendar));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getDate("col1", calendar));
+            }
         }
 
         @Nested
@@ -1505,14 +1508,6 @@ public class AthenaResultSetTest {
         }
 
         @Test
-        void ignoresTheCalendarArgument() throws Exception {
-            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
-            resultSet.next();
-            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime(1, calendar));
-            assertEquals(Time.valueOf("09:36:16"), resultSet.getTime("col1", calendar));
-        }
-
-        @Test
         void throwsWhenValueIsNotATime() throws Exception {
             resultSet.next();
             resultSet.next();
@@ -1528,6 +1523,17 @@ public class AthenaResultSetTest {
             resultSet.relative(4);
             assertNull(resultSet.getTime(1));
             assertNull(resultSet.getTime("col1"));
+        }
+
+        @Nested
+        class WhenGivenACalendar {
+            @Test
+            void isNotSupported() throws Exception {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getTime(1, calendar));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getTime("col1", calendar));
+            }
         }
 
         @Nested
@@ -1575,14 +1581,6 @@ public class AthenaResultSetTest {
         }
 
         @Test
-        void ignoresTheCalendarArgument() throws Exception {
-            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
-            resultSet.next();
-            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp(1, calendar));
-            assertEquals(Timestamp.valueOf("2019-04-23 09:35:23.291"), resultSet.getTimestamp("col1", calendar));
-        }
-
-        @Test
         void throwsWhenValueIsNotATimestamp() throws Exception {
             resultSet.next();
             resultSet.next();
@@ -1598,6 +1596,17 @@ public class AthenaResultSetTest {
             resultSet.relative(4);
             assertNull(resultSet.getTimestamp(1));
             assertNull(resultSet.getTimestamp("col1"));
+        }
+
+        @Nested
+        class WhenGivenACalendar {
+            @Test
+            void isNotSupported() throws Exception {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC-12"));
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getTimestamp(1, calendar));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getTimestamp("col1", calendar));
+            }
         }
 
         @Nested
