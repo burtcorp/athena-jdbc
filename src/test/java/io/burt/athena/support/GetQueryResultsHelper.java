@@ -135,7 +135,6 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
                 future = mock(CompletableFuture.class);
                 when(future.get(anyLong(), any())).thenThrow(InterruptedException.class);
             } catch (Exception e) {
-                System.err.println("!!!");
             }
         }
         return future;

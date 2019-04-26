@@ -20,31 +20,25 @@ public class PreloadingStandardResult extends StandardResult {
         this.pendingResult = null;
     }
 
-    protected void ensureResults() throws SQLException, InterruptedException {
-        if ((rowNumber == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext())) {
-            try {
-                CompletableFuture<GetQueryResultsResponse> future;
-                if (pendingResult == null) {
-                    future = loadPage();
-                } else {
-                    future = pendingResult;
-                    pendingResult = null;
-                }
-                GetQueryResultsResponse response = future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-                if (response.nextToken() != null) {
-                    pendingResult = loadPage(response.nextToken());
-                }
-                resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
-                currentRows = response.resultSet().rows().iterator();
-                if (rowNumber == 0 && currentRows.hasNext()) {
-                    currentRows.next();
-                }
-            } catch (TimeoutException ie) {
-                throw new SQLTimeoutException(ie);
-            } catch (ExecutionException ee) {
-                throw new SQLException(ee.getCause());
-            }
+    @Override
+    protected boolean shouldLoadNextPage() throws SQLException {
+        return (rowNumber() == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext());
+    }
+
+    @Override
+    protected GetQueryResultsResponse loadNextPage() throws InterruptedException, TimeoutException, ExecutionException {
+        CompletableFuture<GetQueryResultsResponse> loadingPage;
+        if (pendingResult == null) {
+            loadingPage = loadPage();
+        } else {
+            loadingPage = pendingResult;
+            pendingResult = null;
         }
+        GetQueryResultsResponse response = loadingPage.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (response.nextToken() != null) {
+            pendingResult = loadPage(response.nextToken());
+        }
+        return response;
     }
 
     @Override

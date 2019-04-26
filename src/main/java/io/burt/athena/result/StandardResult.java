@@ -23,11 +23,12 @@ public class StandardResult implements Result {
     protected final AthenaAsyncClient athenaClient;
     protected final Duration timeout;
 
-    protected AthenaResultSetMetaData resultSetMetaData;
-    protected String nextToken;
-    protected int rowNumber;
     protected Iterator<Row> currentRows;
     protected Row currentRow;
+
+    private AthenaResultSetMetaData resultSetMetaData;
+    private String nextToken;
+    private int rowNumber;
 
     public StandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize, Duration timeout) {
         this.athenaClient = athenaClient;
@@ -41,10 +42,10 @@ public class StandardResult implements Result {
         this.resultSetMetaData = null;
     }
 
-    protected void ensureResults() throws SQLException, InterruptedException {
-        if ((rowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
+    private void ensureResults() throws SQLException, InterruptedException {
+        if (shouldLoadNextPage()) {
             try {
-                GetQueryResultsResponse response = loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                GetQueryResultsResponse response = loadNextPage();
                 nextToken = response.nextToken();
                 resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
                 currentRows = response.resultSet().rows().iterator();
@@ -57,6 +58,14 @@ public class StandardResult implements Result {
                 throw new SQLException(ee.getCause());
             }
         }
+    }
+
+    protected boolean shouldLoadNextPage() throws SQLException {
+        return (rowNumber() == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext());
+    }
+
+    protected GetQueryResultsResponse loadNextPage() throws InterruptedException, TimeoutException, ExecutionException {
+        return loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     protected CompletableFuture<GetQueryResultsResponse> loadPage() {
