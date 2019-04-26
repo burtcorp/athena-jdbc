@@ -1,11 +1,11 @@
 package io.burt.athena;
 
+import io.burt.athena.support.GetQueryResultsHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,7 +13,6 @@ import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
-import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.io.ByteArrayInputStream;
@@ -37,12 +36,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -54,26 +51,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaResultSetTest {
     @Mock private AthenaStatement parentStatement;
-    @Mock private AthenaAsyncClient athenaClient;
 
     @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
 
     private AthenaResultSet resultSet;
-    private List<GetQueryResultsRequest> resultRequests;
+    private GetQueryResultsHelper queryResultsHelper;
 
     @BeforeEach
     void setUpResultSet() {
-        resultSet = new AthenaResultSet(athenaClient, parentStatement, "Q1234");
-        resultRequests = new LinkedList<>();
+        queryResultsHelper = new GetQueryResultsHelper();
+        resultSet = new AthenaResultSet(queryResultsHelper, parentStatement, "Q1234");
     }
 
     private ColumnInfo createColumn(String label, String type) {
@@ -93,14 +84,14 @@ public class AthenaResultSetTest {
     }
 
     private void noRows() {
-        stubResponse(Arrays.asList(
+        queryResultsHelper.update(Arrays.asList(
                 createColumn("col1", "string"),
                 createColumn("col2", "integer")
         ), Collections.emptyList());
     }
 
     private void defaultRows() {
-        stubResponse(Arrays.asList(
+        queryResultsHelper.update(Arrays.asList(
                 createColumn("col1", "string"),
                 createColumn("col2", "integer")
         ), Arrays.asList(
@@ -108,43 +99,6 @@ public class AthenaResultSetTest {
                 createRow("row2", "2"),
                 createRow("row3", "3")
         ));
-    }
-
-    void stubResponse(List<ColumnInfo> columns, List<Row> dataRows) {
-        List<Datum> firstRow = new ArrayList<>(columns.size());
-        List<Row> rows = new ArrayList<>(dataRows.size() + 1);
-        for (ColumnInfo column : columns) {
-            firstRow.add(Datum.builder().varCharValue(column.label()).build());
-        }
-        rows.add(Row.builder().data(firstRow).build());
-        rows.addAll(dataRows);
-        reset(athenaClient);
-        lenient().when(athenaClient.getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any())).then(invocation -> {
-            Consumer<GetQueryResultsRequest.Builder> requestBuilderConsumer = invocation.getArgument(0);
-            GetQueryResultsRequest.Builder requestBuilder = GetQueryResultsRequest.builder();
-            requestBuilderConsumer.accept(requestBuilder);
-            GetQueryResultsRequest request = requestBuilder.build();
-            resultRequests.add(request);
-            GetQueryResultsResponse.Builder builder = GetQueryResultsResponse.builder();
-            if (request.nextToken() == null && rows.size() > 3) {
-                builder.nextToken("page2");
-            } else if (request.nextToken() != null && request.nextToken().equals("page2") && rows.size() > 6) {
-                builder.nextToken("page3");
-            } else {
-                builder.nextToken(null);
-            }
-            builder.resultSet(rsb -> {
-                rsb.resultSetMetadata(rsmb -> rsmb.columnInfo(columns));
-                if (request.nextToken() == null) {
-                    rsb.rows(rows.subList(0, Math.min(3, rows.size())));
-                } else if (request.nextToken().equals("page2")) {
-                    rsb.rows(rows.subList(3, Math.min(6, rows.size())));
-                } else if (request.nextToken().equals("page3")) {
-                    rsb.rows(rows.subList(6, rows.size()));
-                }
-            });
-            return CompletableFuture.completedFuture(builder.build());
-        });
     }
 
     @Nested
@@ -179,14 +133,15 @@ public class AthenaResultSetTest {
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
             assertNotNull(resultSet.getMetaData());
-            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            assertTrue(queryResultsHelper.requestCount() > 0);
         }
 
         @Test
-        void doesNotLoadTwice() throws Exception {
+        void doesNotLoadTheSamePageTwice() throws Exception {
             resultSet.getMetaData();
             resultSet.next();
-            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            List<String> nextTokens = queryResultsHelper.nextTokens();
+            assertEquals(new HashSet<>(nextTokens).size(), nextTokens.size());
         }
 
         @Nested
@@ -209,14 +164,14 @@ public class AthenaResultSetTest {
         @Test
         void callsGetQueryResults() throws Exception {
             resultSet.next();
-            GetQueryResultsRequest request = resultRequests.get(0);
+            GetQueryResultsRequest request = queryResultsHelper.resultsRequests().get(0);
             assertEquals("Q1234", request.queryExecutionId());
         }
 
         @Test
         void loadsTheMaxNumberOfRowsAllowed() throws Exception {
             resultSet.next();
-            GetQueryResultsRequest request = resultRequests.get(0);
+            GetQueryResultsRequest request = queryResultsHelper.resultsRequests().get(0);
             assertEquals(1000, request.maxResults());
         }
 
@@ -270,13 +225,9 @@ public class AthenaResultSetTest {
 
         @Nested
         class WhenTheResultHasManyPages {
-            private List<String> requestedNextTokens() {
-                return resultRequests.stream().map(GetQueryResultsRequest::nextToken).collect(Collectors.toList());
-            }
-
             @BeforeEach
             void setUp() {
-                stubResponse(Arrays.asList(
+                queryResultsHelper.update(Arrays.asList(
                         createColumn("col1", "string"),
                         createColumn("col2", "integer")
                 ), Arrays.asList(
@@ -294,17 +245,19 @@ public class AthenaResultSetTest {
 
             @Test
             void loadsAllPages() throws Exception {
+                resultSet.setFetchSize(3);
                 List<String> rows = new ArrayList<>(9);
                 while (resultSet.next()) {
                     rows.add(resultSet.getString(2));
                 }
-                verify(athenaClient, times(3)).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+                assertEquals(4, queryResultsHelper.requestCount());
                 assertEquals(Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9"), rows);
-                assertEquals(Arrays.asList(null, "page2", "page3"), requestedNextTokens());
+                assertEquals(Arrays.asList(null, "2", "3", "4"), queryResultsHelper.nextTokens());
             }
 
             @Test
             void stopsLoadingWhenThereAreNoMorePages() throws Exception {
+                resultSet.setFetchSize(3);
                 assertTrue(resultSet.relative(9));
                 assertFalse(resultSet.next());
             }
@@ -705,31 +658,24 @@ public class AthenaResultSetTest {
 
     @Nested
     class SetFetchSize {
-        private List<Integer> requestedPageSizes() {
-            return resultRequests.stream().map(GetQueryResultsRequest::maxResults).collect(Collectors.toList());
-        }
-
         @BeforeEach
         void setUp() {
-            stubResponse(Arrays.asList(
+            List<ColumnInfo> columns = Arrays.asList(
                     createColumn("col1", "string"),
                     createColumn("col2", "integer")
-            ), Arrays.asList(
-                    createRow("row1", "1"),
-                    createRow("row2", "2"),
-                    createRow("row3", "3"),
-                    createRow("row4", "4"),
-                    createRow("row5", "5"),
-                    createRow("row6", "6"),
-                    createRow("row7", "7")
-            ));
+            );
+            List<Row> rows = new ArrayList<>(3000);
+            for (int i = 0; i < 3000; i++) {
+                rows.add(createRow("row" + i, String.valueOf(i)));
+            }
+            queryResultsHelper.update(columns, rows);
         }
 
         @Test
         void setsTheFetchSize() throws Exception {
             resultSet.setFetchSize(77);
             resultSet.next();
-            assertEquals(77, requestedPageSizes().get(0));
+            assertEquals(77, queryResultsHelper.pageSizes().get(0));
         }
 
         @Test
@@ -738,7 +684,7 @@ public class AthenaResultSetTest {
             resultSet.setFetchSize(99);
             while (resultSet.next()) {
             }
-            List<Integer> pageSizes = requestedPageSizes();
+            List<Integer> pageSizes = queryResultsHelper.pageSizes();
             assertNotEquals(99, pageSizes.get(0));
             assertEquals(99, pageSizes.get(pageSizes.size() - 1));
         }
@@ -808,7 +754,7 @@ public class AthenaResultSetTest {
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
             resultSet.findColumn("col1");
-            verify(athenaClient, atLeastOnce()).getQueryResults(ArgumentMatchers.<Consumer<GetQueryResultsRequest.Builder>>any());
+            assertTrue(queryResultsHelper.requestCount() > 0);
         }
 
         @Test
@@ -918,7 +864,7 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            stubResponse(Arrays.asList(
+            queryResultsHelper.update(Arrays.asList(
                     createColumn("col1", "string"),
                     createColumn("col2", "integer")
             ), Arrays.asList(
@@ -996,7 +942,7 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            stubResponse(Arrays.asList(
+            queryResultsHelper.update(Arrays.asList(
                     createColumn("col1", "string"),
                     createColumn("col2", "integer")
             ), Arrays.asList(
@@ -1059,7 +1005,7 @@ public class AthenaResultSetTest {
     class GetBoolean {
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "boolean")
             ), Arrays.asList(
                     createRow("0"),
@@ -1188,7 +1134,7 @@ public class AthenaResultSetTest {
 
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "tinyint")
             ), Arrays.asList(
                     createRow(zero().toString()),
@@ -1485,7 +1431,7 @@ public class AthenaResultSetTest {
     class GetDate {
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "date")
             ), Arrays.asList(
                     createRow("2019-04-20"),
@@ -1555,7 +1501,7 @@ public class AthenaResultSetTest {
     class GetTime {
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "time")
             ), Arrays.asList(
                     createRow("09:36:16.363"),
@@ -1625,7 +1571,7 @@ public class AthenaResultSetTest {
     class GetTimestamp {
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "timestamp")
             ), Arrays.asList(
                     createRow("2019-04-23 09:35:23.291"),
@@ -1695,7 +1641,7 @@ public class AthenaResultSetTest {
     class GetArray {
         @BeforeEach
         void setUp() {
-            stubResponse(Collections.singletonList(
+            queryResultsHelper.update(Collections.singletonList(
                     createColumn("col1", "array")
             ), Arrays.asList(
                     createRow("[1, 2, 3]"),
@@ -1811,7 +1757,7 @@ public class AthenaResultSetTest {
     class WasNull {
         @BeforeEach
         void setUp() {
-            stubResponse(Arrays.asList(
+            queryResultsHelper.update(Arrays.asList(
                     createColumn("col1", "boolean"),
                     createColumn("col2", "integer")
             ), Arrays.asList(
