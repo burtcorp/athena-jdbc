@@ -27,6 +27,7 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -46,7 +47,7 @@ public class AthenaResultSet implements ResultSet {
         this.statement = statement;
         this.queryExecutionId = queryExecutionId;
         this.open = true;
-        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE);
+        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, Duration.ofMinutes(1));
         this.lastWasNull = false;
     }
 

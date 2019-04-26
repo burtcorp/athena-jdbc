@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -14,8 +15,8 @@ import java.util.concurrent.TimeoutException;
 public class PreloadingStandardResult extends StandardResult {
     private CompletableFuture<GetQueryResultsResponse> pendingResult;
 
-    public PreloadingStandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize) {
-        super(athenaClient, queryExecutionId, fetchSize);
+    public PreloadingStandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize, Duration timeout) {
+        super(athenaClient, queryExecutionId, fetchSize, timeout);
         this.pendingResult = null;
     }
 
@@ -24,9 +25,9 @@ public class PreloadingStandardResult extends StandardResult {
             try {
                 GetQueryResultsResponse response;
                 if (pendingResult == null) {
-                    response = loadPage().get(1, TimeUnit.MINUTES);
+                    response = loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 } else {
-                    response = pendingResult.get(1, TimeUnit.MINUTES);
+                    response = pendingResult.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                     pendingResult = null;
                 }
                 if (response.nextToken() != null) {

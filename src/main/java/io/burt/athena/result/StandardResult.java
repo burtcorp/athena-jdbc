@@ -7,6 +7,7 @@ import software.amazon.awssdk.services.athena.model.Row;
 
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -20,6 +21,7 @@ public class StandardResult implements Result {
 
     protected final String queryExecutionId;
     protected final AthenaAsyncClient athenaClient;
+    protected final Duration timeout;
 
     protected AthenaResultSetMetaData resultSetMetaData;
     protected String nextToken;
@@ -27,10 +29,11 @@ public class StandardResult implements Result {
     protected Iterator<Row> currentRows;
     protected Row currentRow;
 
-    public StandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize) {
+    public StandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize, Duration timeout) {
         this.athenaClient = athenaClient;
         this.queryExecutionId = queryExecutionId;
         this.fetchSize = fetchSize;
+        this.timeout = timeout;
         this.rowNumber = 0;
         this.nextToken = null;
         this.currentRows = null;
@@ -41,7 +44,7 @@ public class StandardResult implements Result {
     protected void ensureResults() throws SQLException {
         if ((rowNumber == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext())) {
             try {
-                GetQueryResultsResponse response = loadPage().get(1, TimeUnit.MINUTES);
+                GetQueryResultsResponse response = loadPage().get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 nextToken = response.nextToken();
                 resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
                 currentRows = response.resultSet().rows().iterator();
