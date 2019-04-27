@@ -91,6 +91,21 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         getQueryExecutionResponseQueue.clear();
     }
 
+    private <T> CompletableFuture<T> maybeDelayResponse(CompletableFuture<T> future, Duration delay) {
+        if (delay.isZero()) {
+            return future;
+        } else {
+            return future.thenApplyAsync(r -> {
+                try {
+                    Thread.sleep(startQueryExecutionDelay.toMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return r;
+            });
+        }
+    }
+
     @Override
     public CompletableFuture<StartQueryExecutionResponse> startQueryExecution(Consumer<StartQueryExecutionRequest.Builder> requestBuilderConsumer) {
         StartQueryExecutionRequest.Builder builder = StartQueryExecutionRequest.builder();
@@ -98,20 +113,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         StartQueryExecutionRequest request = builder.build();
         startQueryRequests.add(request);
         StartQueryExecutionResponse response = startQueryExecutionResponseQueue.remove();
-        CompletableFuture<StartQueryExecutionResponse> future;
-        if (startQueryExecutionDelay.isZero()) {
-            future = CompletableFuture.completedFuture(response);
-        } else {
-            future = CompletableFuture.supplyAsync(() -> {
-                try {
-                    Thread.sleep(startQueryExecutionDelay.toMillis());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                return response;
-            });
-        }
-        return future;
+        CompletableFuture<StartQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
+        return maybeDelayResponse(future, startQueryExecutionDelay);
     }
 
     @Override
@@ -122,20 +125,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         getQueryExecutionRequests.add(request);
         GetQueryExecutionResponse responsePrototype = getQueryExecutionResponseQueue.remove();
         GetQueryExecutionResponse response = responsePrototype.toBuilder().queryExecution(responsePrototype.queryExecution().toBuilder().queryExecutionId(request.queryExecutionId()).build()).build();
-        CompletableFuture<GetQueryExecutionResponse> future;
-        if (getQueryExecutionDelay.isZero()) {
-            future = CompletableFuture.completedFuture(response);
-        } else {
-            future = CompletableFuture.supplyAsync(() -> {
-                try {
-                    Thread.sleep(getQueryExecutionDelay.toMillis());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                return response;
-            });
-        }
-        return future;
+        CompletableFuture<GetQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
+        return maybeDelayResponse(future, getQueryExecutionDelay);
     }
 
     @Override
