@@ -10,34 +10,42 @@ import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.Row;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
+import software.amazon.awssdk.services.athena.model.StopQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.StopQueryExecutionResponse;
 
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class QueryExecutionHelper implements AthenaAsyncClient {
     private final List<StartQueryExecutionRequest> startQueryRequests;
     private final List<GetQueryExecutionRequest> getQueryExecutionRequests;
     private final List<GetQueryResultsRequest> getQueryResultsRequests;
+    private final List<StopQueryExecutionRequest> stopQueryExecutionRequests;
     private final Queue<StartQueryExecutionResponse> startQueryExecutionResponseQueue;
     private final Queue<GetQueryExecutionResponse> getQueryExecutionResponseQueue;
     private Duration startQueryExecutionDelay;
     private Duration getQueryExecutionDelay;
     private Duration getQueryResultsDelay;
+    private Lock getQueryExecutionBlocker;
     private boolean open;
 
     public QueryExecutionHelper() {
         this.startQueryRequests = new LinkedList<>();
         this.getQueryExecutionRequests = new LinkedList<>();
         this.getQueryResultsRequests = new LinkedList<>();
+        this.stopQueryExecutionRequests = new LinkedList<>();
         this.startQueryExecutionResponseQueue = new LinkedList<>();
         this.getQueryExecutionResponseQueue = new LinkedList<>();
         this.startQueryExecutionDelay = Duration.ZERO;
         this.getQueryExecutionDelay = Duration.ZERO;
         this.getQueryResultsDelay = Duration.ZERO;
+        this.getQueryExecutionBlocker = new ReentrantLock();
         this.open = true;
     }
 
@@ -69,6 +77,10 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         return getQueryResultsRequests;
     }
 
+    public List<StopQueryExecutionRequest> stopQueryExecutionRequests() {
+        return stopQueryExecutionRequests;
+    }
+
     public void queueStartQueryResponse(String queryExecutionId) {
         queueStartQueryResponse(b -> b.queryExecutionId(queryExecutionId));
     }
@@ -95,6 +107,14 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
 
     public void clearGetQueryExecutionResponseQueue() {
         getQueryExecutionResponseQueue.clear();
+    }
+
+    public void blockGetQueryExecutionResponse() {
+        getQueryExecutionBlocker.lock();
+    }
+
+    public void unblockGetQueryExecutionResponse() {
+        getQueryExecutionBlocker.unlock();
     }
 
     private <T> CompletableFuture<T> maybeDelayResponse(CompletableFuture<T> future, Duration delay) {
@@ -131,8 +151,13 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         getQueryExecutionRequests.add(request);
         GetQueryExecutionResponse responsePrototype = getQueryExecutionResponseQueue.remove();
         GetQueryExecutionResponse response = responsePrototype.toBuilder().queryExecution(responsePrototype.queryExecution().toBuilder().queryExecutionId(request.queryExecutionId()).build()).build();
-        CompletableFuture<GetQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
-        return maybeDelayResponse(future, getQueryExecutionDelay);
+        try {
+            getQueryExecutionBlocker.lock();
+            CompletableFuture<GetQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
+            return maybeDelayResponse(future, getQueryExecutionDelay);
+        } finally {
+            getQueryExecutionBlocker.unlock();
+        }
     }
 
     @Override
@@ -149,6 +174,16 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         }).build();
         CompletableFuture<GetQueryResultsResponse> future = CompletableFuture.completedFuture(response);
         return maybeDelayResponse(future, getQueryResultsDelay);
+    }
+
+    @Override
+    public CompletableFuture<StopQueryExecutionResponse> stopQueryExecution(Consumer<StopQueryExecutionRequest.Builder> requestBuilderConsumer) {
+        StopQueryExecutionRequest.Builder builder = StopQueryExecutionRequest.builder();
+        requestBuilderConsumer.accept(builder);
+        StopQueryExecutionRequest request = builder.build();
+        stopQueryExecutionRequests.add(request);
+        StopQueryExecutionResponse response = StopQueryExecutionResponse.builder().build();
+        return CompletableFuture.completedFuture(response);
     }
 
     @Override

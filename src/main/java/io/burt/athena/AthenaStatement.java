@@ -82,6 +82,12 @@ public class AthenaStatement implements Statement {
         }
     }
 
+    private void checkClosed() throws SQLException {
+        if (!open) {
+            throw new SQLException("Statement is closed");
+        }
+    }
+
     @Override
     public void close() throws SQLException {
         if (currentResultSet != null) {
@@ -94,6 +100,18 @@ public class AthenaStatement implements Statement {
     @Override
     public boolean isClosed() throws SQLException {
         return !open;
+    }
+
+    @Override
+    public void cancel() throws SQLException {
+        checkClosed();
+        if (queryExecutionId == null) {
+            throw new SQLException("Cannot cancel a statement before it has started");
+        } else if (getResultSet() != null) {
+            throw new SQLException("Cannot cancel an completed statement");
+        } else {
+            athenaClient.stopQueryExecution(b -> b.queryExecutionId(queryExecutionId));
+        }
     }
 
     @Override
@@ -203,11 +221,6 @@ public class AthenaStatement implements Statement {
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
         configuration = configuration.withTimeout(Duration.ofSeconds(seconds));
-    }
-
-    @Override
-    public void cancel() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override

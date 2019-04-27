@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.StopQueryExecutionRequest;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -375,6 +376,66 @@ public class AthenaStatementTest {
             statement.setQueryTimeout(0);
             ResultSet rs = statement.executeQuery("SELECT 1");
             assertThrows(SQLTimeoutException.class, rs::next);
+        }
+    }
+
+    @Nested
+    class Cancel {
+        @Nested
+        class WhenCalledBeforeExecute {
+            @Test
+            void throwsAnException() {
+                assertThrows(SQLException.class, () -> statement.cancel());
+            }
+        }
+
+        @Nested
+        class WhenCalledAfterExecute {
+            @Test
+            void sendsACancelRequest() throws Exception {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                ResultSet rs = statement.executeQuery("SELECT 1");
+                queryExecutionHelper.blockGetQueryExecutionResponse();
+                queryExecutionHelper.queueStartQueryResponse("Q2345");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.RUNNING);
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                Thread runner = new Thread(() -> {
+                    try {
+                        statement.execute("SELECT 1");
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                runner.start();
+                while (!rs.isClosed()) {
+                }
+                statement.cancel();
+                queryExecutionHelper.unblockGetQueryExecutionResponse();
+                runner.join();
+                StopQueryExecutionRequest request = queryExecutionHelper.stopQueryExecutionRequests().get(0);
+                assertEquals("Q2345", request.queryExecutionId());
+            }
+        }
+
+        @Nested
+        class WhenCalledAfterQueryCompletion {
+            @Test
+            void throwsAnException() throws Exception {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                statement.execute("SELECT 1");
+                assertThrows(SQLException.class, () -> statement.cancel());
+            }
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnException() throws Exception {
+                statement.close();
+                assertThrows(SQLException.class, () -> statement.cancel());
+            }
         }
     }
 }
