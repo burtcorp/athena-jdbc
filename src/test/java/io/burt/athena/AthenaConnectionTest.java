@@ -120,6 +120,14 @@ public class AthenaConnectionTest {
         }
 
         @Nested
+        class WhenGivenAHoldability {
+            @Test
+            void throwsAnError() {
+                assertThrows(SQLFeatureNotSupportedException.class, () -> connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT));
+            }
+        }
+
+        @Nested
         class WhenClosed {
             @Test
             void throwsAnError() throws Exception {
@@ -383,6 +391,19 @@ public class AthenaConnectionTest {
         }
     }
 
+    @Nested
+    class GetHoldability {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.getHoldability());
+        }
+    }
+
+    @Nested
+    class SetHoldability {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT));
         }
     }
 }

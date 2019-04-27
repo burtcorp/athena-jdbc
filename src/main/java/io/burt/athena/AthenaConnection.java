@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -55,6 +56,11 @@ public class AthenaConnection implements Connection {
         } else {
             throw new SQLFeatureNotSupportedException("Only forward result sets are supported");
         }
+    }
+
+    @Override
+    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+        throw new SQLFeatureNotSupportedException("Holdability is not defined for Athena");
     }
 
     @Override
@@ -199,12 +205,12 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setHoldability(int holdability) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Holdability is not defined for Athena");
     }
 
     @Override
     public int getHoldability() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Holdability is not defined for Athena");
     }
 
     @Override
@@ -219,11 +225,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
