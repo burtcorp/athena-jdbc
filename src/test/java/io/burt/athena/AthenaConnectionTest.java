@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -524,6 +525,31 @@ public class AthenaConnectionTest {
                 connection.close();
                 assertThrows(SQLException.class, () -> connection.getClientInfo());
             }
+        }
+    }
+
+    @Nested
+    class GetTypeMap {
+        @Test
+        void returnsAnEmptyMap() throws Exception {
+            assertTrue(connection.getTypeMap().isEmpty());
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getTypeMap());
+            }
+        }
+    }
+
+    @Nested
+    class SetTypeMap {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setTypeMap(Collections.emptyMap()));
         }
     }
 }

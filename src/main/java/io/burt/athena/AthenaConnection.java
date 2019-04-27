@@ -231,12 +231,13 @@ public class AthenaConnection implements Connection {
 
     @Override
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        checkClosed();
+        return Collections.emptyMap();
     }
 
     @Override
     public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Type maps are not supported");
     }
 
     @Override
