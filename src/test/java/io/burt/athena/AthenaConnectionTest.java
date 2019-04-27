@@ -413,6 +413,23 @@ public class AthenaConnectionTest {
     }
 
     @Nested
+    class GetWarnings {
+        @Test
+        void returnsNull() throws Exception {
+            assertNull(connection.getWarnings());
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getWarnings());
+            }
+        }
+    }
+
+    @Nested
     class Commit {
         @Test
         void ignoresTheCalls() throws Exception {

@@ -220,7 +220,8 @@ public class AthenaConnection implements Connection {
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        checkClosed();
+        return null;
     }
 
     @Override
