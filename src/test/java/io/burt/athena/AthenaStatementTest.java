@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,7 +53,7 @@ public class AthenaStatementTest {
 
     @BeforeEach
     void setUpStatement() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
+        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         statement = new AthenaStatement(athenaClient, configuration, () -> pollingStrategy);
     }
 

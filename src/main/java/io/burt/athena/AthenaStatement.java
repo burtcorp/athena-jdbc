@@ -53,11 +53,13 @@ public class AthenaStatement implements Statement {
                 sqeb.workGroup(configuration.workGroupName());
                 sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
                 sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
-            }).get(1, TimeUnit.MINUTES);
+            }).get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
             PollingStrategy pollingStrategy = pollingStrategyFactory.get();
             while (true) {
-                GetQueryExecutionResponse statusResponse = athenaClient.getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId)).get(1, TimeUnit.MINUTES);
+                GetQueryExecutionResponse statusResponse = athenaClient
+                        .getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId))
+                        .get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:

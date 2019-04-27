@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -37,7 +38,7 @@ public class AthenaConnectionTest {
 
     @BeforeEach
     void setUpConnection() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
+        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
         connection = new AthenaConnection(queryExecutionHelper, configuration);
     }

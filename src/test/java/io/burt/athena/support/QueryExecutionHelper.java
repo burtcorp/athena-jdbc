@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -17,6 +18,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
     private final List<GetQueryExecutionRequest> getQueryExecutionRequests;
     private final Queue<StartQueryExecutionResponse> startQueryExecutionResponseQueue;
     private final Queue<GetQueryExecutionResponse> getQueryExecutionResponseQueue;
+    private Duration startQueryExecutionDelay;
+    private Duration getQueryExecutionDelay;
     private boolean open;
 
     public QueryExecutionHelper() {
@@ -24,11 +27,21 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         this.getQueryExecutionRequests = new LinkedList<>();
         this.startQueryExecutionResponseQueue = new LinkedList<>();
         this.getQueryExecutionResponseQueue = new LinkedList<>();
+        this.startQueryExecutionDelay = Duration.ZERO;
+        this.getQueryExecutionDelay = Duration.ZERO;
         this.open = true;
     }
 
     public boolean isClosed() {
         return !open;
+    }
+
+    public void delayStartQueryExecutionResponses(Duration delay) {
+        startQueryExecutionDelay = delay;
+    }
+
+    public void delayGetQueryExecutionResponses(Duration delay) {
+        getQueryExecutionDelay = delay;
     }
 
     public List<StartQueryExecutionRequest> startQueryRequests() {
@@ -57,7 +70,21 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         requestBuilderConsumer.accept(builder);
         StartQueryExecutionRequest request = builder.build();
         startQueryRequests.add(request);
-        return CompletableFuture.completedFuture(startQueryExecutionResponseQueue.remove());
+        StartQueryExecutionResponse response = startQueryExecutionResponseQueue.remove();
+        CompletableFuture<StartQueryExecutionResponse> future;
+        if (startQueryExecutionDelay.isZero()) {
+            future = CompletableFuture.completedFuture(response);
+        } else {
+            future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    Thread.sleep(startQueryExecutionDelay.toMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return response;
+            });
+        }
+        return future;
     }
 
     @Override
@@ -66,7 +93,21 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         requestBuilderConsumer.accept(builder);
         GetQueryExecutionRequest request = builder.build();
         getQueryExecutionRequests.add(request);
-        return CompletableFuture.completedFuture(getQueryExecutionResponseQueue.remove());
+        GetQueryExecutionResponse response = getQueryExecutionResponseQueue.remove();
+        CompletableFuture<GetQueryExecutionResponse> future;
+        if (getQueryExecutionDelay.isZero()) {
+            future = CompletableFuture.completedFuture(response);
+        } else {
+            future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    Thread.sleep(getQueryExecutionDelay.toMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return response;
+            });
+        }
+        return future;
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.Duration;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -33,7 +34,7 @@ public class AthenaDriver implements Driver {
             Region region = Region.of(info.getProperty("AWS_REGION"));
             String workGroup = info.getProperty("WORK_GROUP");
             String outputLocation = info.getProperty("OUTPUT_LOCATION");
-            ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation);
+            ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
             return new AthenaConnection(clientFactory.createAthenaClient(region), configuration);
         } else {
             return null;
