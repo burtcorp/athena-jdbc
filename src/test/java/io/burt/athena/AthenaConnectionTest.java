@@ -50,11 +50,10 @@ public class AthenaConnectionTest {
         connection = new AthenaConnection(athenaClient, configuration);
     }
 
-    @Nested
-    class CreateStatement {
+    class SharedQuerySetup {
         @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
 
-        private StartQueryExecutionRequest execute() throws Exception {
+        protected StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
             verify(athenaClient).startQueryExecution(startQueryExecutionCaptor.capture());
@@ -63,23 +62,26 @@ public class AthenaConnectionTest {
             return builder.build();
         }
 
+        @BeforeEach
+        void setUp() {
+            StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
+            when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(startQueryResponse));
+            QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
+            QueryExecution queryExecution = QueryExecution.builder().status(status).build();
+            GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
+            when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(getQueryResponse));
+        }
+    }
+
+    @Nested
+    class CreateStatement {
         @Test
         void returnsStatement() throws Exception {
             assertNotNull(connection.createStatement());
         }
 
         @Nested
-        class WhenTheStatementIsExecuted {
-            @BeforeEach
-            void setUp() {
-                StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-                when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(startQueryResponse));
-                QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
-                QueryExecution queryExecution = QueryExecution.builder().status(status).build();
-                GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
-                when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(getQueryResponse));
-            }
-
+        class WhenTheStatementIsExecuted extends SharedQuerySetup {
             @Test
             void statementStartsQuery() throws Exception {
                 StartQueryExecutionRequest request = execute();
@@ -280,6 +282,30 @@ public class AthenaConnectionTest {
                 connection.close();
                 assertThrows(SQLException.class, () -> connection.setReadOnly(true));
             }
+        }
+    }
+
+    @Nested
+    class SetSchema extends SharedQuerySetup {
+        @Test
+        void setsTheDefaultDatabaseForQueries() throws Exception {
+            connection.setSchema("some_database");
+            StartQueryExecutionRequest request = execute();
+            assertEquals("some_database", request.queryExecutionContext().database());
+        }
+    }
+
+    @Nested
+    class GetSchema {
+        @Test
+        void returnsConfiguredDatabaseByDefault() throws SQLException {
+            assertEquals("test_db", connection.getSchema());
+        }
+
+        @Test
+        void returnsTheValuePassedInSetSchema() throws Exception {
+            connection.setSchema("some_database");
+            assertEquals("some_database", connection.getSchema());
         }
     }
 

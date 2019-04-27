@@ -22,4 +22,8 @@ public class ConnectionConfiguration {
     public String outputLocation() {
         return outputLocation;
     }
+
+    public ConnectionConfiguration withDatabaseName(String databaseName) {
+        return new ConnectionConfiguration(databaseName, workGroupName, outputLocation);
+    }
 }

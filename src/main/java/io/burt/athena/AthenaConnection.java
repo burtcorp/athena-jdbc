@@ -25,8 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 public class AthenaConnection implements Connection {
-    private final ConnectionConfiguration configuration;
-
+    private ConnectionConfiguration configuration;
     private AthenaAsyncClient athenaClient;
     private boolean open;
 
@@ -189,6 +188,16 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public void setSchema(String schema) throws SQLException {
+        configuration = configuration.withDatabaseName(schema);
+    }
+
+    @Override
+    public String getSchema() throws SQLException {
+        return configuration.databaseName();
+    }
+
+    @Override
     public void setCatalog(String catalog) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -311,16 +320,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public void setSchema(String schema) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public String getSchema() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
