@@ -12,14 +12,14 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
-    private final ConnectionConfiguration configuration;
-
+    private ConnectionConfiguration configuration;
     private AthenaAsyncClient athenaClient;
     private String queryExecutionId;
     private ResultSet currentResultSet;
@@ -197,12 +197,12 @@ public class AthenaStatement implements Statement {
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return (int) configuration.timeout().toMillis() / 1000;
     }
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        configuration = configuration.withTimeout(Duration.ofSeconds(seconds));
     }
 
     @Override

@@ -41,7 +41,7 @@ public class AthenaStatementTest {
 
     @BeforeEach
     void setUpStatement() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ZERO);
+        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
         statement = new AthenaStatement(queryExecutionHelper, configuration, () -> pollingStrategy);
     }
@@ -228,6 +228,7 @@ public class AthenaStatementTest {
 
             @Test
             void usesTheConfiguredTimeout() throws Exception {
+                statement.setQueryTimeout(0);
                 queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
                 ResultSet rs = execute();
                 assertThrows(SQLTimeoutException.class, rs::next);
@@ -329,6 +330,51 @@ public class AthenaStatementTest {
         @Test
         void isNotWrapperForOtherClasses() throws Exception {
             assertFalse(statement.isWrapperFor(String.class));
+        }
+    }
+
+    @Nested
+    class GetQueryTimeout {
+        @Test
+        void returnsTheConfiguredTimeoutInSeconds() throws Exception {
+            assertEquals(60, statement.getQueryTimeout());
+        }
+
+        @Test
+        void returnsTheValueSetWithSetQueryTimeout() throws Exception {
+            statement.setQueryTimeout(99);
+            assertEquals(99, statement.getQueryTimeout());
+        }
+    }
+
+    @Nested
+    class SetQueryTimeout {
+        @BeforeEach
+        void setUp() {
+            queryExecutionHelper.queueStartQueryResponse("Q1234");
+            queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+        }
+
+        @Test
+        void setsTheTimeoutUsedForApiCalls1() throws Exception {
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+        }
+
+        @Test
+        void setsTheTimeoutUsedForApiCalls2() throws Exception {
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+        }
+
+        @Test
+        void setsTheTimeoutUsedForApiCalls3() throws Exception {
+            queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            ResultSet rs = statement.executeQuery("SELECT 1");
+            assertThrows(SQLTimeoutException.class, rs::next);
         }
     }
 }
