@@ -409,4 +409,21 @@ public class AthenaConnectionTest {
             assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT));
         }
     }
+
+    @Nested
+    class SetSavepoint {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setSavepoint());
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setSavepoint("foo"));
+        }
+    }
+
+    @Nested
+    class ReleaseSavepoint {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.releaseSavepoint(mock(Savepoint.class)));
+        }
+    }
 }

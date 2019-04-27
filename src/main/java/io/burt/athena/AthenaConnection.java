@@ -240,17 +240,17 @@ public class AthenaConnection implements Connection {
 
     @Override
     public Savepoint setSavepoint() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Athena does not support savepoints");
     }
 
     @Override
     public Savepoint setSavepoint(String name) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Athena does not support savepoints");
     }
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Athena does not support savepoints");
     }
 
     @Override
