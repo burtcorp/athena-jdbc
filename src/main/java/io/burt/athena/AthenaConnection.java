@@ -106,12 +106,17 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void commit() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        checkClosed();
     }
 
     @Override
     public void rollback() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Athena does not support transactions");
+    }
+
+    @Override
+    public void rollback(Savepoint savepoint) throws SQLException {
+        throw new SQLFeatureNotSupportedException("Athena does not support transactions");
     }
 
     @Override
@@ -203,11 +208,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public Savepoint setSavepoint(String name) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public void rollback(Savepoint savepoint) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 

@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -335,6 +337,35 @@ public class AthenaConnectionTest {
                 connection.close();
                 assertThrows(SQLException.class, () -> connection.clearWarnings());
             }
+        }
+    }
+
+    @Nested
+    class Commit {
+        @Test
+        void ignoresTheCalls() throws Exception {
+            connection.commit();
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.commit());
+            }
+        }
+    }
+
+    @Nested
+    class Rollback {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.rollback());
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.rollback(mock(Savepoint.class)));
+        }
+    }
+
         }
     }
 }
