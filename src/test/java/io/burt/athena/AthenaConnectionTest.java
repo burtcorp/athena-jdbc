@@ -58,7 +58,7 @@ public class AthenaConnectionTest {
 
         @BeforeEach
         void setUp() {
-            queryExecutionHelper.queueStartQueryResponse(b -> b.queryExecutionId("Q1234"));
+            queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
         }
     }
