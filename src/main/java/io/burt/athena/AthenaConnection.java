@@ -199,12 +199,12 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void setCatalog(String catalog) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new SQLFeatureNotSupportedException("Athena does not support changing catalogs");
     }
 
     @Override
     public String getCatalog() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return "AwsDataCatalog";
     }
 
     @Override

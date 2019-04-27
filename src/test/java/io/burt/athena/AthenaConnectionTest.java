@@ -310,6 +310,22 @@ public class AthenaConnectionTest {
     }
 
     @Nested
+    class SetCatalog {
+        @Test
+        void isNotSupported() {
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setCatalog("foo"));
+        }
+    }
+
+    @Nested
+    class GetCatalog {
+        @Test
+        void returnsAStaticValue() throws Exception {
+            assertEquals("AwsDataCatalog", connection.getCatalog());
+        }
+    }
+
+    @Nested
     class GetAutoCommit {
         @Test
         void alwaysReturnsTrue() throws Exception {
