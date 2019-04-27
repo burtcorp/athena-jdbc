@@ -15,14 +15,17 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -536,6 +539,60 @@ public class AthenaConnectionTest {
         @Test
         void isNotSupported() {
             assertThrows(SQLFeatureNotSupportedException.class, () -> connection.setTypeMap(Collections.emptyMap()));
+        }
+    }
+
+    @Nested
+    class SetNetworkTimeout extends SharedQuerySetup {
+        @Test
+        void setsTheTimeoutUsedForApiCalls1() throws Exception {
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            connection.setNetworkTimeout(ForkJoinPool.commonPool(), 0);
+            assertThrows(SQLTimeoutException.class, this::execute);
+        }
+
+        @Test
+        void setsTheTimeoutUsedForApiCalls2() throws Exception {
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            connection.setNetworkTimeout(ForkJoinPool.commonPool(), 0);
+            assertThrows(SQLTimeoutException.class, this::execute);
+        }
+
+        @Test
+        void ignoresTheExecutorArgument() throws Exception {
+            assertDoesNotThrow(() -> connection.setNetworkTimeout(null, 10));
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.setNetworkTimeout(null, 10));
+            }
+        }
+    }
+
+    @Nested
+    class GetNetworkTimeout {
+        @Test
+        void returnsTheConfiguredTimeout() throws Exception {
+            assertTrue(connection.getNetworkTimeout() > -1);
+        }
+
+        @Test
+        void returnsTheValueSetWithSetNetworkTimeout() throws Exception {
+            connection.setNetworkTimeout(ForkJoinPool.commonPool(), 999);
+            assertEquals(999, connection.getNetworkTimeout());
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getNetworkTimeout());
+            }
         }
     }
 }

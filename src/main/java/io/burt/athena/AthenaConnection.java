@@ -19,6 +19,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -296,6 +297,18 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+        checkClosed();
+        configuration = configuration.withTimeout(Duration.ofMillis(milliseconds));
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException {
+        checkClosed();
+        return (int) configuration.timeout().toMillis();
+    }
+
+    @Override
     public Clob createClob() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -327,16 +340,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public void abort(Executor executor) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public int getNetworkTimeout() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 }
