@@ -192,7 +192,7 @@ public class AthenaResultSetMetaData implements ResultSetMetaData {
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         if (isWrapperFor(iface)) {
-            return (T) this;
+            return iface.cast(this);
         } else {
             throw new SQLException(String.format("%s is not a wrapper for %s", this.getClass().getName(), iface.getName()));
         }
