@@ -9,7 +9,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.Row;
@@ -30,6 +29,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,8 +65,9 @@ public class AthenaResultSetTest {
 
     @BeforeEach
     void setUpResultSet() {
+        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryResultsHelper = new GetQueryResultsHelper();
-        resultSet = new AthenaResultSet(queryResultsHelper, parentStatement, "Q1234");
+        resultSet = new AthenaResultSet(queryResultsHelper, configuration, parentStatement, "Q1234");
     }
 
     private void noRows() {

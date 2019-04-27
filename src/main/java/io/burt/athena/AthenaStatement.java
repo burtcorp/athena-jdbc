@@ -63,7 +63,7 @@ public class AthenaStatement implements Statement {
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
-                        currentResultSet = new AthenaResultSet(athenaClient, this, queryExecutionId);
+                        currentResultSet = new AthenaResultSet(athenaClient, configuration, this, queryExecutionId);
                         return true;
                     case FAILED:
                     case CANCELLED:

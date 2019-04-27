@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
@@ -40,7 +41,7 @@ public class AthenaStatementTest {
 
     @BeforeEach
     void setUpStatement() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
+        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ZERO);
         queryExecutionHelper = new QueryExecutionHelper();
         statement = new AthenaStatement(queryExecutionHelper, configuration, () -> pollingStrategy);
     }
@@ -223,6 +224,13 @@ public class AthenaStatementTest {
                 rs.next();
                 List<GetQueryResultsRequest> requests = queryExecutionHelper.getQueryResultsRequests();
                 assertEquals("Q1234", requests.get(0).queryExecutionId());
+            }
+
+            @Test
+            void usesTheConfiguredTimeout() throws Exception {
+                queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
+                ResultSet rs = execute();
+                assertThrows(SQLTimeoutException.class, rs::next);
             }
         }
     }

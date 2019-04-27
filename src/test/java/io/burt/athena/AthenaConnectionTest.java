@@ -559,6 +559,14 @@ public class AthenaConnectionTest {
         }
 
         @Test
+        void setsTheTimeoutUsedForApiCalls3() throws Exception {
+            queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
+            connection.setNetworkTimeout(ForkJoinPool.commonPool(), 0);
+            ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
+            assertThrows(SQLTimeoutException.class, rs::next);
+        }
+
+        @Test
         void ignoresTheExecutorArgument() throws Exception {
             assertDoesNotThrow(() -> connection.setNetworkTimeout(null, 10));
         }

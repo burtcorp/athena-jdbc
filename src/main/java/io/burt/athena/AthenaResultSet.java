@@ -28,7 +28,6 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -39,16 +38,18 @@ import java.util.Map;
 
 public class AthenaResultSet implements ResultSet {
     private final String queryExecutionId;
+    private final ConnectionConfiguration connectionConfiguration;
     private AthenaStatement statement;
     private boolean open;
     private Result result;
     private boolean lastWasNull;
 
-    public AthenaResultSet(AthenaAsyncClient athenaClient, AthenaStatement statement, String queryExecutionId) {
+    public AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, String queryExecutionId) {
         this.statement = statement;
+        this.connectionConfiguration = configuration;
         this.queryExecutionId = queryExecutionId;
         this.open = true;
-        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, Duration.ofMinutes(1));
+        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, configuration.timeout());
         this.lastWasNull = false;
     }
 

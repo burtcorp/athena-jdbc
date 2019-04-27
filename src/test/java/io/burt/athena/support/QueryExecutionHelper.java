@@ -26,6 +26,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
     private final Queue<GetQueryExecutionResponse> getQueryExecutionResponseQueue;
     private Duration startQueryExecutionDelay;
     private Duration getQueryExecutionDelay;
+    private Duration getQueryResultsDelay;
     private boolean open;
 
     public QueryExecutionHelper() {
@@ -36,6 +37,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         this.getQueryExecutionResponseQueue = new LinkedList<>();
         this.startQueryExecutionDelay = Duration.ZERO;
         this.getQueryExecutionDelay = Duration.ZERO;
+        this.getQueryResultsDelay = Duration.ZERO;
         this.open = true;
     }
 
@@ -49,6 +51,10 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
 
     public void delayGetQueryExecutionResponses(Duration delay) {
         getQueryExecutionDelay = delay;
+    }
+
+    public void delayGetQueryResultsResponses(Duration delay) {
+        getQueryResultsDelay = delay;
     }
 
     public List<StartQueryExecutionRequest> startQueryRequests() {
@@ -141,7 +147,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
                 bb.columnInfo(new ColumnInfo[0]);
             });
         }).build();
-        return CompletableFuture.completedFuture(response);
+        CompletableFuture<GetQueryResultsResponse> future = CompletableFuture.completedFuture(response);
+        return maybeDelayResponse(future, getQueryResultsDelay);
     }
 
     @Override
