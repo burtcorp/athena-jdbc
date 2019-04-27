@@ -24,12 +24,14 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -424,6 +426,45 @@ public class AthenaConnectionTest {
         @Test
         void isNotSupported() {
             assertThrows(SQLFeatureNotSupportedException.class, () -> connection.releaseSavepoint(mock(Savepoint.class)));
+        }
+    }
+
+    @Nested
+    class SetClientInfo {
+        @Test
+        void ignoresTheCalls() throws Exception {
+            connection.setClientInfo(new Properties());
+            connection.setClientInfo("name", "value");
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.setClientInfo(new Properties()));
+            }
+        }
+    }
+
+    @Nested
+    class GetClientInfo {
+        @Test
+        void alwaysReturnsAnEmptyPropertiesObject() throws Exception {
+            assertEquals(new Properties(), connection.getClientInfo());
+            assertNull(connection.getClientInfo("name"));
+            connection.setClientInfo("name", "value");
+            assertEquals(new Properties(), connection.getClientInfo());
+            assertNull(connection.getClientInfo("name"));
+        }
+
+        @Nested
+        class WhenClosed {
+            @Test
+            void throwsAnError() throws Exception {
+                connection.close();
+                assertThrows(SQLException.class, () -> connection.getClientInfo());
+            }
         }
     }
 }

@@ -19,6 +19,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -254,6 +255,36 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public void setClientInfo(String name, String value) throws SQLClientInfoException {
+        try {
+            checkClosed();
+        } catch (SQLException e) {
+            throw new SQLClientInfoException(e.getMessage(), Collections.emptyMap(), e);
+        }
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        try {
+            checkClosed();
+        } catch (SQLException e) {
+            throw new SQLClientInfoException(e.getMessage(), Collections.emptyMap(), e);
+        }
+    }
+
+    @Override
+    public String getClientInfo(String name) throws SQLException {
+        checkClosed();
+        return null;
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException {
+        checkClosed();
+        return new Properties();
+    }
+
+    @Override
     public Clob createClob() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -270,26 +301,6 @@ public class AthenaConnection implements Connection {
 
     @Override
     public SQLXML createSQLXML() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public void setClientInfo(String name, String value) throws SQLClientInfoException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public String getClientInfo(String name) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    public Properties getClientInfo() throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
