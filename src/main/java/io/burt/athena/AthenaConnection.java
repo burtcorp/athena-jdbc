@@ -47,6 +47,17 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
+    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+        if (resultSetType == ResultSet.TYPE_FORWARD_ONLY && resultSetConcurrency == ResultSet.CONCUR_READ_ONLY) {
+            return createStatement();
+        } else if (resultSetConcurrency == ResultSet.CONCUR_READ_ONLY) {
+            throw new SQLFeatureNotSupportedException("Only read only result sets are supported");
+        } else {
+            throw new SQLFeatureNotSupportedException("Only forward result sets are supported");
+        }
+    }
+
+    @Override
     public void close() throws SQLException {
         athenaClient.close();
         athenaClient = null;
@@ -164,11 +175,6 @@ public class AthenaConnection implements Connection {
     @Override
     public void clearWarnings() throws SQLException {
         checkClosed();
-    }
-
-    @Override
-    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override

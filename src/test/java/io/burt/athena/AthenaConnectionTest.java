@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
@@ -99,6 +100,22 @@ public class AthenaConnectionTest {
             void queryExecutesWithTheConfiguredOutputLocation() throws Exception {
                 StartQueryExecutionRequest request = execute();
                 assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
+            }
+        }
+
+        @Nested
+        class WhenGivenAnUnsupportedResultSetType {
+            @Test
+            void throwsAnError() {
+                assertThrows(SQLFeatureNotSupportedException.class, () -> connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
+            }
+        }
+
+        @Nested
+        class WhenGivenAnUnsupportedResultSetConcurrency {
+            @Test
+            void throwsAnError() {
+                assertThrows(SQLFeatureNotSupportedException.class, () -> connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE));
             }
         }
 
