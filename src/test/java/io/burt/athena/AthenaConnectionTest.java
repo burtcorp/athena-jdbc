@@ -141,9 +141,12 @@ public class AthenaConnectionTest {
     class PrepareStatement {
         @Test
         void isNotSupported() {
-            assertThrows(SQLFeatureNotSupportedException.class, () -> {
-                connection.prepareStatement("SELECT ?");
-            });
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?"));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?", new int[0]));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?", new String[0]));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareStatement("SELECT ?", Statement.NO_GENERATED_KEYS));
         }
     }
 
@@ -151,9 +154,9 @@ public class AthenaConnectionTest {
     class PrepareCall {
         @Test
         void isNotSupported() {
-            assertThrows(SQLFeatureNotSupportedException.class, () -> {
-                connection.prepareCall("CALL something");
-            });
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareCall("CALL something"));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareCall("CALL something", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> connection.prepareCall("CALL something", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT));
         }
     }
 
