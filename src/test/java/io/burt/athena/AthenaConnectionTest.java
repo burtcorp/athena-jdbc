@@ -1,22 +1,15 @@
 package io.burt.athena;
 
+import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.AthenaAsyncClient;
-import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
-import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
-import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -25,8 +18,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,19 +29,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaConnectionTest {
-    @Mock private AthenaAsyncClient athenaClient;
-
+    private QueryExecutionHelper queryExecutionHelper;
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location");
-        connection = new AthenaConnection(athenaClient, configuration);
+        queryExecutionHelper = new QueryExecutionHelper();
+        connection = new AthenaConnection(queryExecutionHelper, configuration);
     }
 
     class SharedQuerySetup {
@@ -57,20 +48,14 @@ public class AthenaConnectionTest {
         protected StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
-            verify(athenaClient).startQueryExecution(startQueryExecutionCaptor.capture());
-            StartQueryExecutionRequest.Builder builder = StartQueryExecutionRequest.builder();
-            startQueryExecutionCaptor.getValue().accept(builder);
-            return builder.build();
+            List<StartQueryExecutionRequest> requests = queryExecutionHelper.startQueryRequests();
+            return requests.get(requests.size() - 1);
         }
 
         @BeforeEach
         void setUp() {
-            StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-            when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(startQueryResponse));
-            QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
-            QueryExecution queryExecution = QueryExecution.builder().status(status).build();
-            GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
-            when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(getQueryResponse));
+            queryExecutionHelper.queueStartQueryResponse(b -> b.queryExecutionId("Q1234"));
+            queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
         }
     }
 
@@ -201,7 +186,7 @@ public class AthenaConnectionTest {
         @Test
         void closesTheAthenaClient() throws Exception {
             connection.close();
-            verify(athenaClient).close();
+            assertTrue(queryExecutionHelper.isClosed());
         }
     }
 
