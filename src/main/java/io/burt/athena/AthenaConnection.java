@@ -46,7 +46,7 @@ public class AthenaConnection implements Connection {
     @Override
     public Statement createStatement() throws SQLException {
         checkClosed();
-        return new AthenaStatement(athenaClient, configuration, PollingStrategies::defaultFixedDelay);
+        return new AthenaStatement(athenaClient, configuration, () -> PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5)));
     }
 
     @Override
