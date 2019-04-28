@@ -6,11 +6,6 @@ public class PollingStrategies {
     }
 
     public static PollingStrategy simpleInterval(final long delay) {
-        return new PollingStrategy() {
-            @Override
-            public void waitUntilNext() throws InterruptedException {
-                Thread.sleep(delay);
-            }
-        };
+        return () -> Thread.sleep(delay);
     }
 }
