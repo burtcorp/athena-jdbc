@@ -1,4 +1,4 @@
-package io.burt.athena;
+package io.burt.athena.polling;
 
 public class PollingStrategies {
     public static PollingStrategy simpleInterval() {

@@ -1,5 +1,6 @@
 package io.burt.athena;
 
+import io.burt.athena.polling.PollingStrategy;
 import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
