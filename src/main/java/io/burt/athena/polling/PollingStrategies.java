@@ -1,24 +1,13 @@
 package io.burt.athena.polling;
 
-import java.sql.ResultSet;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 public class PollingStrategies {
-    public static PollingStrategy simpleInterval() {
-        return simpleInterval(100L);
+    public static PollingStrategy defaultFixedDelay() {
+        return fixedDelay(Duration.ofMillis(100));
     }
 
-    public static PollingStrategy simpleInterval(final long delay) {
-        return callback -> {
-            while (true) {
-                Optional<ResultSet> resultSet = callback.poll();
-                if (resultSet.isPresent()) {
-                    return resultSet.get();
-                } else {
-                    TimeUnit.MILLISECONDS.sleep(delay);
-                }
-            }
-        };
+    public static PollingStrategy fixedDelay(Duration delay) {
+        return new FixedDelayPollingStrategy(delay);
     }
 }
