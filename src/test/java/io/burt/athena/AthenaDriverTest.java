@@ -7,7 +7,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
@@ -22,6 +21,8 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.Connection;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,11 +41,17 @@ public class AthenaDriverTest {
     @Mock private AwsClientFactory clientFactory;
     @Mock private AthenaAsyncClient athenaClient;
 
-    @InjectMocks private AthenaDriver driver;
-
+    private AthenaDriver driver;
     private Properties defaultProperties;
+    private Map<String, String> env;
 
     private final String jdbcUrl = "jdbc:awsathena://test_db";
+
+    @BeforeEach
+    void setUpDriver() {
+        env = new HashMap<>();
+        driver = new AthenaDriver(clientFactory, env);
+    }
 
     @BeforeEach
     void setUpProperties() {
@@ -59,7 +67,7 @@ public class AthenaDriverTest {
 
         @BeforeEach
         void setUpDriver() {
-            when(clientFactory.createAthenaClient(Region.AP_SOUTHEAST_1)).thenReturn(athenaClient);
+            when(clientFactory.createAthenaClient(any())).thenReturn(athenaClient);
         }
 
         StartQueryExecutionRequest executeRequest() throws Exception {
@@ -92,6 +100,43 @@ public class AthenaDriverTest {
         void usesTheAwsRegionFromTheProperties() throws Exception {
             driver.connect(jdbcUrl, defaultProperties);
             verify(clientFactory).createAthenaClient(Region.AP_SOUTHEAST_1);
+        }
+
+        @Nested
+        class WhenTheRegionIsSetInTheEnvironment {
+            @Test
+            void readsThe_AWS_REGION_EnvironmentVariable() throws Exception {
+                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
+                defaultProperties.remove("AWS_REGION");
+                driver.connect(jdbcUrl, defaultProperties);
+                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
+            }
+
+            @Test
+            void readsThe_AWS_DEFAULT_REGION_EnvironmentVariable() throws Exception {
+                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
+                defaultProperties.remove("AWS_REGION");
+                driver.connect(jdbcUrl, defaultProperties);
+                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_2);
+            }
+
+            @Test
+            void uses_AWS_REGION_Over_AWS_DEFAULT_REGION() throws Exception {
+                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
+                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
+                defaultProperties.remove("AWS_REGION");
+                driver.connect(jdbcUrl, defaultProperties);
+                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
+            }
+
+            @Test
+            void usesTheConfiguredRegionOverTheEnvironmentVariables() throws Exception {
+                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
+                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
+                defaultProperties.setProperty("AWS_REGION", Region.SA_EAST_1.toString());
+                driver.connect(jdbcUrl, defaultProperties);
+                verify(clientFactory).createAthenaClient(Region.SA_EAST_1);
+            }
         }
 
         @Test

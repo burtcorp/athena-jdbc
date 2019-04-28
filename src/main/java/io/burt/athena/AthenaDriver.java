@@ -8,6 +8,7 @@ import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -17,23 +18,37 @@ public class AthenaDriver implements Driver {
     private static Pattern URL_PATTERN = Pattern.compile("^jdbc:awsathena://(.+)$");
 
     private final AwsClientFactory clientFactory;
+    private final Map<String, String> env;
 
     public AthenaDriver() {
-        this(new AwsClientFactory());
+        this(new AwsClientFactory(), System.getenv());
     }
 
-    AthenaDriver(AwsClientFactory clientFactory) {
+    AthenaDriver(AwsClientFactory clientFactory, Map<String, String> env) {
         this.clientFactory = clientFactory;
+        this.env = env;
+    }
+
+    private Region determineRegion(Properties properties) {
+        if (properties.containsKey("AWS_REGION")) {
+            return Region.of(properties.getProperty("AWS_REGION"));
+        } else if (env.containsKey("AWS_REGION")) {
+            return Region.of(env.get("AWS_REGION"));
+        } else if (env.containsKey("AWS_DEFAULT_REGION")) {
+            return Region.of(env.get("AWS_DEFAULT_REGION"));
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public Connection connect(String url, Properties info) throws SQLException {
+    public Connection connect(String url, Properties connectionProperties) throws SQLException {
         Matcher m = matchUrl(url);
         if (m.matches()) {
             String databaseName = m.group(1);
-            Region region = Region.of(info.getProperty("AWS_REGION"));
-            String workGroup = info.getProperty("WORK_GROUP");
-            String outputLocation = info.getProperty("OUTPUT_LOCATION");
+            Region region = determineRegion(connectionProperties);
+            String workGroup = connectionProperties.getProperty("WORK_GROUP");
+            String outputLocation = connectionProperties.getProperty("OUTPUT_LOCATION");
             ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
             return new AthenaConnection(clientFactory.createAthenaClient(region), configuration);
         } else {
