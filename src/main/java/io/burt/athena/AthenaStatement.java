@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
@@ -24,6 +25,7 @@ public class AthenaStatement implements Statement {
     private String queryExecutionId;
     private ResultSet currentResultSet;
     private Supplier<PollingStrategy> pollingStrategyFactory;
+    private Function<String, String> clientRequestTokenProvider;
     private boolean open;
 
     public AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
@@ -32,7 +34,16 @@ public class AthenaStatement implements Statement {
         this.pollingStrategyFactory = pollingStrategyFactory;
         this.queryExecutionId = null;
         this.currentResultSet = null;
+        this.clientRequestTokenProvider = sql -> null;
         this.open = true;
+    }
+
+    public void setClientRequestTokenProvider(Function<String, String> provider) {
+        if (provider == null) {
+            clientRequestTokenProvider = sql -> null;
+        } else {
+            clientRequestTokenProvider = provider;
+        }
     }
 
     @Override
@@ -48,11 +59,13 @@ public class AthenaStatement implements Statement {
             currentResultSet = null;
         }
         try {
+            String clientRequestToken = clientRequestTokenProvider.apply(sql);
             StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
                 sqeb.queryString(sql);
                 sqeb.workGroup(configuration.workGroupName());
                 sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
                 sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
+                sqeb.clientRequestToken(clientRequestToken);
             }).get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
             PollingStrategy pollingStrategy = pollingStrategyFactory.get();

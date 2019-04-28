@@ -438,4 +438,38 @@ public class AthenaStatementTest {
             }
         }
     }
+
+    @Nested
+    class SetClientRequestTokenProvider extends SharedExecuteSetup {
+        @Test
+        void passesTheExecutedSqlToTheProvider() throws Exception {
+            AtomicReference<String> passedSql = new AtomicReference<>(null);
+            statement.setClientRequestTokenProvider(sql -> {
+                passedSql.set(sql);
+                return "foo";
+            });
+            statement.execute("SELECT 1");
+            assertEquals("SELECT 1", passedSql.get());
+        }
+
+        @Test
+        void usesTheReturnValueAsClientRequestToken() throws Exception {
+            statement.setClientRequestTokenProvider(sql -> "foo");
+            statement.execute("SELECT 1");
+            StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
+            assertEquals("foo", request.clientRequestToken());
+        }
+
+        @Nested
+        class WhenGivenNull {
+            @Test
+            void usesNullAsTheClientRequestToken() throws Exception {
+                statement.setClientRequestTokenProvider(sql -> "foo");
+                statement.setClientRequestTokenProvider(null);
+                statement.execute("SELECT 1");
+                StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
+                assertNull(request.clientRequestToken());
+            }
+        }
+    }
 }
