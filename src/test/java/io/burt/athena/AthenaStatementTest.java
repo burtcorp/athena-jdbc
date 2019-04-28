@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
@@ -21,7 +20,9 @@ import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,22 +31,37 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaStatementTest {
-    @Mock private PollingStrategy pollingStrategy;
-
+    private Supplier<PollingStrategy> pollingStrategyFactory;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaStatement statement;
+
+    @BeforeEach
+    void setUpPollingStrategy() {
+        PollingStrategy pollingStrategy = callback -> {
+            while (true) {
+                Optional<ResultSet> rs = callback.poll();
+                if (rs.isPresent()) {
+                    return rs.get();
+                }
+            }
+        };
+        pollingStrategyFactory = spy(new Supplier<PollingStrategy>() {
+            @Override public PollingStrategy get() {
+                return pollingStrategy;
+            }
+        });
+    }
 
     @BeforeEach
     void setUpStatement() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
-        statement = new AthenaStatement(queryExecutionHelper, configuration, () -> pollingStrategy);
+        statement = new AthenaStatement(queryExecutionHelper, configuration, pollingStrategyFactory);
     }
 
     class SharedExecuteSetup {
@@ -110,12 +126,6 @@ public class AthenaStatementTest {
         }
 
         @Test
-        void sleepsBetweenPolls() throws Exception {
-            execute();
-            verify(pollingStrategy, times(2)).waitUntilNext();
-        }
-
-        @Test
         void throwsOnFailure() {
             queryExecutionHelper.clearGetQueryExecutionResponseQueue();
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.RUNNING);
@@ -166,6 +176,9 @@ public class AthenaStatementTest {
 
             @BeforeEach
             void setUp() throws Exception {
+                when(pollingStrategyFactory.get()).thenReturn(callback -> {
+                    throw new InterruptedException();
+                });
                 executeResult = new AtomicReference<>(null);
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
@@ -176,7 +189,6 @@ public class AthenaStatementTest {
                         throw new RuntimeException(sqle);
                     }
                 });
-                doThrow(InterruptedException.class).when(pollingStrategy).waitUntilNext();
             }
 
             @Test

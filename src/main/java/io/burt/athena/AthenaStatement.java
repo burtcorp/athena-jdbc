@@ -14,6 +14,7 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -70,22 +71,22 @@ public class AthenaStatement implements Statement {
             }).get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
             PollingStrategy pollingStrategy = pollingStrategyFactory.get();
-            while (true) {
+            currentResultSet = pollingStrategy.pollUntilCompleted(() -> {
                 GetQueryExecutionResponse statusResponse = athenaClient
                         .getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId))
                         .get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
-                        currentResultSet = new AthenaResultSet(athenaClient, configuration, this, queryExecutionId);
-                        return true;
+                        return Optional.of(new AthenaResultSet(athenaClient, configuration, this, queryExecutionId));
                     case FAILED:
                     case CANCELLED:
                         throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());
                     default:
-                        pollingStrategy.waitUntilNext();
+                        return Optional.empty();
                 }
-            }
+            });
+            return currentResultSet != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return false;
