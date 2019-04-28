@@ -49,7 +49,7 @@ public class AthenaResultSet implements ResultSet {
         this.connectionConfiguration = configuration;
         this.queryExecutionId = queryExecutionId;
         this.open = true;
-        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, configuration.timeout());
+        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
         this.lastWasNull = false;
     }
 

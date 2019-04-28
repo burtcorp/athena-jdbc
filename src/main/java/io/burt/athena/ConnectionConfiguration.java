@@ -27,7 +27,7 @@ public class ConnectionConfiguration {
         return outputLocation;
     }
 
-    public Duration timeout() {
+    public Duration apiCallTimeout() {
         return timeout;
     }
 

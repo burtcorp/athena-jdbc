@@ -306,7 +306,7 @@ public class AthenaConnection implements Connection {
     @Override
     public int getNetworkTimeout() throws SQLException {
         checkClosed();
-        return (int) configuration.timeout().toMillis();
+        return (int) configuration.apiCallTimeout().toMillis();
     }
 
     @Override

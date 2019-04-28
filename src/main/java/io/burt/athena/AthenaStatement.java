@@ -68,13 +68,13 @@ public class AthenaStatement implements Statement {
                 sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
                 sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
                 sqeb.clientRequestToken(clientRequestToken);
-            }).get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
+            }).get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
             PollingStrategy pollingStrategy = pollingStrategyFactory.get();
             currentResultSet = pollingStrategy.pollUntilCompleted(() -> {
                 GetQueryExecutionResponse statusResponse = athenaClient
                         .getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId))
-                        .get(configuration.timeout().toMillis(), TimeUnit.MILLISECONDS);
+                        .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
@@ -230,7 +230,7 @@ public class AthenaStatement implements Statement {
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        return (int) configuration.timeout().toMillis() / 1000;
+        return (int) configuration.apiCallTimeout().toMillis() / 1000;
     }
 
     @Override
