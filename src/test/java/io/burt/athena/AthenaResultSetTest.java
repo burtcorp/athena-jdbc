@@ -31,6 +31,10 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1545,6 +1549,59 @@ class AthenaResultSetTest {
         }
 
         @Nested
+        class WhenTheDataIsTimeWithTimeZone {
+            @BeforeEach
+            void setUp() {
+                queryResultsHelper.update(Collections.singletonList(
+                        createColumn("col1", "time with time zone")
+                ), Arrays.asList(
+                        createRow("09:36:16.363 UTC"),
+                        createRow("09:36:16.363 Indian/Kerguelen"),
+                        createRow("not a time"),
+                        createRow("0"),
+                        createRowWithNull()
+                ));
+            }
+
+            private LocalTime correspondingTimeHereToday(ZonedDateTime zonedTime) {
+                return LocalDateTime
+                        .of(LocalDate.now(), zonedTime.toLocalTime())
+                        .atZone(zonedTime.getZone())
+                        .withZoneSameInstant(ZoneId.systemDefault())
+                        .toLocalTime();
+            }
+
+            @Test
+            void returnsTimes() throws Exception {
+                LocalTime localTime1 = correspondingTimeHereToday(ZonedDateTime.of(2019, 4, 29, 9, 36, 16, 363000000, ZoneId.of("UTC")));
+                LocalTime localTime2 = correspondingTimeHereToday(ZonedDateTime.of(2019, 4, 29, 9, 36, 16, 363000000, ZoneId.of("Indian/Kerguelen")));
+                resultSet.next();
+                assertEquals(Time.valueOf(localTime1), resultSet.getTime(1));
+                assertEquals(Time.valueOf(localTime1), resultSet.getTime("col1"));
+                resultSet.next();
+                assertEquals(Time.valueOf(localTime2), resultSet.getTime(1));
+                assertEquals(Time.valueOf(localTime2), resultSet.getTime("col1"));
+            }
+
+            @Test
+            void throwsWhenValueIsNotATime() throws Exception {
+                resultSet.relative(3);
+                assertThrows(SQLException.class, () -> resultSet.getTime(1));
+                assertThrows(SQLException.class, () -> resultSet.getTime("col1"));
+                resultSet.next();
+                assertThrows(SQLException.class, () -> resultSet.getTime(1));
+                assertThrows(SQLException.class, () -> resultSet.getTime("col1"));
+            }
+
+            @Test
+            void returnsNullForNull() throws Exception {
+                resultSet.relative(5);
+                assertNull(resultSet.getTime(1));
+                assertNull(resultSet.getTime("col1"));
+            }
+        }
+
+        @Nested
         class WhenGivenACalendar {
             @Test
             void isNotSupported() throws Exception {
@@ -1934,6 +1991,13 @@ class AthenaResultSetTest {
             resultSet.next();
             assertTrue(resultSet.getObject(16) instanceof Time);
             assertTrue(resultSet.getObject("col16") instanceof Time);
+        }
+
+        @Test
+        void returnsTIME_WITH_TIME_ZONEAsTime() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(17) instanceof Time);
+            assertTrue(resultSet.getObject("col17") instanceof Time);
         }
 
         @Test

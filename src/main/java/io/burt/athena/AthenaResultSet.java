@@ -29,8 +29,13 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalQueries;
@@ -524,12 +529,22 @@ public class AthenaResultSet implements ResultSet {
         throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
+    private static final DateTimeFormatter ATHENA_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS[ VV][ zzzz]");
+
     private Time convertToTime(String str) throws SQLException {
         if (str == null) {
             return null;
         } else {
             try {
-                LocalTime time = DateTimeFormatter.ISO_TIME.parse(str, TemporalQueries.localTime());
+                LocalTime time = ATHENA_TIME_FORMAT.parse(str, TemporalQueries.localTime());
+                ZoneId zone = ATHENA_TIME_FORMAT.parse(str, TemporalQueries.zone());
+                if (zone != null) {
+                    time = LocalDateTime
+                            .of(LocalDate.now(), time)
+                            .atZone(zone)
+                            .withZoneSameInstant(ZoneId.systemDefault())
+                            .toLocalTime();
+                }
                 return Time.valueOf(time);
             } catch (DateTimeParseException dtpe) {
                 throw new SQLDataException(String.format("Could not convert \"%s\" to Time", str), dtpe);
@@ -544,7 +559,7 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Time getTime(String columnLabel) throws SQLException {
-        return convertToTime(getString(columnLabel));
+        return getTime(findColumn(columnLabel));
     }
 
     @Override
