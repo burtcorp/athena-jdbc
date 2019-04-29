@@ -1670,6 +1670,51 @@ class AthenaResultSetTest {
         }
 
         @Nested
+        class WhenTheDataIsTimestampWithTimeZone {
+            @BeforeEach
+            void setUp() {
+                queryResultsHelper.update(Collections.singletonList(
+                        createColumn("col1", "timestamp with time zone")
+                ), Arrays.asList(
+                        createRow("2019-04-23 09:35:23.291 UTC"),
+                        createRow("2019-04-23 09:35:23.291 Indian/Kerguelen"),
+                        createRow("not a time"),
+                        createRow("0"),
+                        createRowWithNull()
+                ));
+            }
+
+            @Test
+            void returnsTimestamps() throws Exception {
+                ZonedDateTime t1 = ZonedDateTime.of(2019, 4, 23, 9, 35, 23, 291000000, ZoneId.of("UTC"));
+                ZonedDateTime t2 = ZonedDateTime.of(2019, 4, 23, 9, 35, 23, 291000000, ZoneId.of("Indian/Kerguelen"));
+                resultSet.next();
+                assertEquals(new Timestamp(t1.toInstant().toEpochMilli()), resultSet.getTimestamp(1));
+                assertEquals(new Timestamp(t1.toInstant().toEpochMilli()), resultSet.getTimestamp("col1"));
+                resultSet.next();
+                assertEquals(new Timestamp(t2.toInstant().toEpochMilli()), resultSet.getTimestamp(1));
+                assertEquals(new Timestamp(t2.toInstant().toEpochMilli()), resultSet.getTimestamp("col1"));
+            }
+
+            @Test
+            void throwsWhenValueIsNotATimestamp() throws Exception {
+                resultSet.relative(3);
+                assertThrows(SQLException.class, () -> resultSet.getTimestamp(1));
+                assertThrows(SQLException.class, () -> resultSet.getTimestamp("col1"));
+                resultSet.next();
+                assertThrows(SQLException.class, () -> resultSet.getTimestamp(1));
+                assertThrows(SQLException.class, () -> resultSet.getTimestamp("col1"));
+            }
+
+            @Test
+            void returnsNullForNull() throws Exception {
+                resultSet.relative(5);
+                assertNull(resultSet.getTimestamp(1));
+                assertNull(resultSet.getTimestamp("col1"));
+            }
+        }
+
+        @Nested
         class WhenGivenACalendar {
             @Test
             void isNotSupported() throws Exception {
@@ -2000,6 +2045,13 @@ class AthenaResultSetTest {
             resultSet.next();
             assertTrue(resultSet.getObject(18) instanceof Timestamp);
             assertTrue(resultSet.getObject("col18") instanceof Timestamp);
+        }
+
+        @Test
+        void returnsTIMESTAMP_WITH_TIME_ZONEAsTimestamp() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(19) instanceof Timestamp);
+            assertTrue(resultSet.getObject("col19") instanceof Timestamp);
         }
 
         @Test

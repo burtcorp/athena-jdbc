@@ -29,15 +29,14 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
 import java.util.Map;
@@ -572,14 +571,23 @@ public class AthenaResultSet implements ResultSet {
         throw new SQLFeatureNotSupportedException("Date/time retrieval relative to a Calendar not supported");
     }
 
+    private static final DateTimeFormatter ATHENA_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS[ VV][ zzzz]");
+
     private Timestamp convertToTimestamp(String str) throws SQLException {
         if (str == null) {
             return null;
         } else {
             try {
-                return Timestamp.valueOf(str);
-            } catch (IllegalArgumentException iae) {
-                throw new SQLDataException(String.format("Could not convert \"%s\" to Timestamp", str), iae);
+                TemporalAccessor parsedTimestamp = ATHENA_TIMESTAMP_FORMAT.parseBest(str, ZonedDateTime::from, LocalDateTime::from);
+                ZonedDateTime zonedTimestamp;
+                if (parsedTimestamp instanceof ZonedDateTime) {
+                    zonedTimestamp = (ZonedDateTime) parsedTimestamp;
+                } else {
+                    zonedTimestamp = ((LocalDateTime) parsedTimestamp).atZone(ZoneId.systemDefault());
+                }
+                return new Timestamp(zonedTimestamp.toInstant().toEpochMilli());
+            } catch (DateTimeParseException e) {
+                throw new SQLDataException(String.format("Could not convert \"%s\" to Timestamp", str), e);
             }
         }
     }
@@ -591,7 +599,7 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        return convertToTimestamp(getString(columnLabel));
+        return getTimestamp(findColumn(columnLabel));
     }
 
     @Override
