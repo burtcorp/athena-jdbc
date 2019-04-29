@@ -5,8 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
@@ -42,7 +40,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.function.Consumer;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
 import static io.burt.athena.support.GetQueryResultsHelper.createRow;
@@ -61,8 +58,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class AthenaResultSetTest {
     @Mock private AthenaStatement parentStatement;
-
-    @Captor private ArgumentCaptor<Consumer<GetQueryResultsRequest.Builder>> getQueryResultsCaptor;
 
     private AthenaResultSet resultSet;
     private GetQueryResultsHelper queryResultsHelper;
