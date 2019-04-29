@@ -11,7 +11,6 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 public class AthenaDataSource implements DataSource {
-    private final AwsClientFactory clientFactory;
     private final Driver driver;
     private final Properties properties;
     private String databaseName;
@@ -21,7 +20,6 @@ public class AthenaDataSource implements DataSource {
     }
 
     AthenaDataSource(AwsClientFactory clientFactory, Map<String, String> env) {
-        this.clientFactory = clientFactory;
         this.driver = new AthenaDriver(clientFactory, env);
         this.databaseName = "default";
         this.properties = new Properties();
