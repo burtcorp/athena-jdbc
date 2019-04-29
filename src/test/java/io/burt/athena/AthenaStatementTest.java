@@ -35,7 +35,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class AthenaStatementTest {
+class AthenaStatementTest {
     private Supplier<PollingStrategy> pollingStrategyFactory;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaStatement statement;

@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class AthenaDriverTest {
+class AthenaDriverTest {
     @Mock private AwsClientFactory clientFactory;
     @Mock private AthenaAsyncClient athenaClient;
 
