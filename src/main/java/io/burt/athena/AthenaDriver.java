@@ -17,6 +17,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AthenaDriver implements Driver {
+    public static final String REGION_PROPERTY_NAME = "region";
+    public static final String WORK_GROUP_PROPERTY_NAME = "workGroup";
+    public static final String OUTPUT_LOCATION_PROPERTY_NAME = "outputLocation";
     public static final String JDBC_SUB_PROTOCOL = "athena";
 
     private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUB_PROTOCOL + "://(.+)$");
@@ -62,8 +65,8 @@ public class AthenaDriver implements Driver {
     }
 
     private Region determineRegion(Properties properties) {
-        if (properties.containsKey("AWS_REGION")) {
-            return Region.of(properties.getProperty("AWS_REGION"));
+        if (properties.containsKey(REGION_PROPERTY_NAME)) {
+            return Region.of(properties.getProperty(REGION_PROPERTY_NAME));
         } else if (env.containsKey("AWS_REGION")) {
             return Region.of(env.get("AWS_REGION"));
         } else if (env.containsKey("AWS_DEFAULT_REGION")) {
@@ -79,8 +82,8 @@ public class AthenaDriver implements Driver {
         if (m.matches()) {
             String databaseName = m.group(1);
             Region region = determineRegion(connectionProperties);
-            String workGroup = connectionProperties.getProperty("WORK_GROUP");
-            String outputLocation = connectionProperties.getProperty("OUTPUT_LOCATION");
+            String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
+            String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
             ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
             return new AthenaConnection(clientFactory.createAthenaClient(region), configuration);
         } else {

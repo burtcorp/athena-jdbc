@@ -60,9 +60,9 @@ public class AthenaDriverTest {
     @BeforeEach
     void setUpProperties() {
         defaultProperties = new Properties();
-        defaultProperties.setProperty("AWS_REGION", Region.AP_SOUTHEAST_1.toString());
-        defaultProperties.setProperty("WORK_GROUP", "test_wg");
-        defaultProperties.setProperty("OUTPUT_LOCATION", "s3://test/location");
+        defaultProperties.setProperty(AthenaDriver.REGION_PROPERTY_NAME, Region.AP_SOUTHEAST_1.toString());
+        defaultProperties.setProperty(AthenaDriver.WORK_GROUP_PROPERTY_NAME, "test_wg");
+        defaultProperties.setProperty(AthenaDriver.OUTPUT_LOCATION_PROPERTY_NAME, "s3://test/location");
     }
 
     @Nested
@@ -111,7 +111,7 @@ public class AthenaDriverTest {
             @Test
             void readsThe_AWS_REGION_EnvironmentVariable() throws Exception {
                 env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
-                defaultProperties.remove("AWS_REGION");
+                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
                 driver.connect(jdbcUrl, defaultProperties);
                 verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
             }
@@ -119,7 +119,7 @@ public class AthenaDriverTest {
             @Test
             void readsThe_AWS_DEFAULT_REGION_EnvironmentVariable() throws Exception {
                 env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.remove("AWS_REGION");
+                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
                 driver.connect(jdbcUrl, defaultProperties);
                 verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_2);
             }
@@ -128,7 +128,7 @@ public class AthenaDriverTest {
             void uses_AWS_REGION_Over_AWS_DEFAULT_REGION() throws Exception {
                 env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
                 env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.remove("AWS_REGION");
+                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
                 driver.connect(jdbcUrl, defaultProperties);
                 verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
             }
@@ -137,7 +137,7 @@ public class AthenaDriverTest {
             void usesTheConfiguredRegionOverTheEnvironmentVariables() throws Exception {
                 env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
                 env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.setProperty("AWS_REGION", Region.SA_EAST_1.toString());
+                defaultProperties.setProperty(AthenaDriver.REGION_PROPERTY_NAME, Region.SA_EAST_1.toString());
                 driver.connect(jdbcUrl, defaultProperties);
                 verify(clientFactory).createAthenaClient(Region.SA_EAST_1);
             }

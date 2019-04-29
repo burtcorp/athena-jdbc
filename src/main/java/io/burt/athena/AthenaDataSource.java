@@ -28,7 +28,7 @@ public class AthenaDataSource implements DataSource {
     }
 
     public void setRegion(String region) {
-        properties.setProperty("AWS_REGION", region);
+        properties.setProperty(AthenaDriver.REGION_PROPERTY_NAME, region);
     }
 
     public void setDatabase(String name) {
@@ -36,16 +36,16 @@ public class AthenaDataSource implements DataSource {
     }
 
     public void setWorkGroup(String name) {
-        properties.setProperty("WORK_GROUP", name);
+        properties.setProperty(AthenaDriver.WORK_GROUP_PROPERTY_NAME, name);
     }
 
     public void setOutputLocation(String uri) {
-        properties.setProperty("OUTPUT_LOCATION", uri);
+        properties.setProperty(AthenaDriver.OUTPUT_LOCATION_PROPERTY_NAME, uri);
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        return driver.connect(String.format("jdbc:athena://%s", databaseName), properties);
+        return driver.connect(String.format("jdbc:%s://%s", AthenaDriver.JDBC_SUB_PROTOCOL, databaseName), properties);
     }
 
     @Override
