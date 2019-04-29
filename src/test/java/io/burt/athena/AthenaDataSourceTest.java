@@ -50,20 +50,20 @@ class AthenaDataSourceTest {
     class GetConnection {
         @Test
         void returnsAConnection() throws Exception {
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             assertNotNull(dataSource.getConnection());
         }
 
         @Test
         void returnsAnAthenaConnection() throws Exception {
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             assertDoesNotThrow(() -> dataSource.getConnection().unwrap(AthenaConnection.class));
             assertNotNull(dataSource.getConnection().unwrap(AthenaConnection.class));
         }
 
         @Test
         void createsAnAthenaClientForTheConfiguredRegion() throws Exception {
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             dataSource.getConnection();
             verify(clientFactory).createAthenaClient(Region.SA_EAST_1);
         }
@@ -72,7 +72,7 @@ class AthenaDataSourceTest {
         void usesTheDefaultDatabaseByDefault() throws Exception {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
@@ -93,16 +93,6 @@ class AthenaDataSourceTest {
     @Nested
     class SetRegion {
         @Nested
-        class WhenGivenARegionObject {
-            @Test
-            void setsTheRegionOfTheAthenaClient() throws Exception {
-                dataSource.setRegion(Region.CA_CENTRAL_1);
-                dataSource.getConnection();
-                verify(clientFactory).createAthenaClient(Region.CA_CENTRAL_1);
-            }
-        }
-
-        @Nested
         class WhenGivenAString {
             @Test
             void setsTheRegionOfTheAthenaClient() throws Exception {
@@ -119,7 +109,7 @@ class AthenaDataSourceTest {
         void usesTheDatabaseWhenQuerying() throws Exception {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             dataSource.setDatabase("test_db");
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
@@ -135,7 +125,7 @@ class AthenaDataSourceTest {
         void usesTheWorkGroupWhenQuerying() throws Exception {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             dataSource.setWorkGroup("test_wg");
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
@@ -151,7 +141,7 @@ class AthenaDataSourceTest {
         void usesTheWorkGroupWhenQuerying() throws Exception {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-            dataSource.setRegion(Region.SA_EAST_1);
+            dataSource.setRegion("sa-east-1");
             dataSource.setOutputLocation("s3://test/location");
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();

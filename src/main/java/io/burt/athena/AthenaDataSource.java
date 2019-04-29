@@ -1,7 +1,5 @@
 package io.burt.athena;
 
-import software.amazon.awssdk.regions.Region;
-
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -31,10 +29,6 @@ public class AthenaDataSource implements DataSource {
 
     public void setRegion(String region) {
         properties.setProperty("AWS_REGION", region);
-    }
-
-    public void setRegion(Region region) {
-        properties.setProperty("AWS_REGION", region.toString());
     }
 
     public void setDatabase(String name) {
