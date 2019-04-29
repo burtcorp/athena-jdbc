@@ -45,7 +45,7 @@ public class AthenaDriverTest {
     private Properties defaultProperties;
     private Map<String, String> env;
 
-    private final String jdbcUrl = "jdbc:awsathena://test_db";
+    private final String jdbcUrl = "jdbc:athena://test_db";
 
     @BeforeEach
     void setUpDriver() {
@@ -161,7 +161,7 @@ public class AthenaDriverTest {
 
         @Test
         void doesNotAcceptUrlWithoutDatabase() throws Exception {
-            assertFalse(driver.acceptsURL("jdbc:awsathena://"));
+            assertFalse(driver.acceptsURL("jdbc:athena://"));
         }
 
         @Test

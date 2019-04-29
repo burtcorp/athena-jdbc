@@ -15,7 +15,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AthenaDriver implements Driver {
-    private static Pattern URL_PATTERN = Pattern.compile("^jdbc:awsathena://(.+)$");
+    public static final String JDBC_SUB_PROTOCOL = "athena";
+
+    private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUB_PROTOCOL + "://(.+)$");
 
     private final AwsClientFactory clientFactory;
     private final Map<String, String> env;

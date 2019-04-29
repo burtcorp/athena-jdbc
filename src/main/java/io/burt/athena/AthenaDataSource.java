@@ -51,7 +51,7 @@ public class AthenaDataSource implements DataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return driver.connect(String.format("jdbc:awsathena://%s", databaseName), properties);
+        return driver.connect(String.format("jdbc:athena://%s", databaseName), properties);
     }
 
     @Override
