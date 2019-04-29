@@ -1945,6 +1945,16 @@ class AthenaResultSetTest {
             assertTrue(resultSet.getObject(22) instanceof String);
             assertTrue(resultSet.getObject("col22") instanceof String);
         }
+
+        @Test
+        void returnsNullWhenTheDataIsNull() throws Exception {
+            resultSet.next();
+            resultSet.next();
+            for (int i = 1; i < resultSet.getMetaData().getColumnCount(); i++) {
+                assertNull(resultSet.getObject(i), "Expected column " + i + " to be null, but was not");
+                assertNull(resultSet.getObject("col" + i), "Expected column " + i + " to be null, but was not");
+            }
+        }
     }
 
     @Nested

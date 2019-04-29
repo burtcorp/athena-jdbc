@@ -636,21 +636,28 @@ public class AthenaResultSet implements ResultSet {
     public Object getObject(int columnIndex) throws SQLException {
         switch (getMetaData().getColumnType(columnIndex)) {
             case Types.TINYINT:
-                return getByte(columnIndex);
+                byte b = getByte(columnIndex);
+                return wasNull() ? null : b;
             case Types.SMALLINT:
-                return getShort(columnIndex);
+                short s = getShort(columnIndex);
+                return wasNull() ? null : s;
             case Types.INTEGER:
-                return getInt(columnIndex);
+                int i = getInt(columnIndex);
+                return wasNull() ? null : i;
             case Types.BIGINT:
-                return getLong(columnIndex);
+                long l = getLong(columnIndex);
+                return wasNull() ? null : l;
             case Types.FLOAT:
-                return getFloat(columnIndex);
+                float f = getFloat(columnIndex);
+                return wasNull() ? null : f;
             case Types.DOUBLE:
-                return getDouble(columnIndex);
+                double d = getDouble(columnIndex);
+                return wasNull() ? null : d;
             case Types.DECIMAL:
                 return getBigDecimal(columnIndex);
             case Types.BOOLEAN:
-                return getBoolean(columnIndex);
+                boolean o = getBoolean(columnIndex);
+                return wasNull() ? null : o;
             case Types.VARBINARY:
                 return getBytes(columnIndex);
             case Types.DATE:
