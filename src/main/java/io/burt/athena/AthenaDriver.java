@@ -20,9 +20,9 @@ public class AthenaDriver implements Driver {
     public static final String REGION_PROPERTY_NAME = "region";
     public static final String WORK_GROUP_PROPERTY_NAME = "workGroup";
     public static final String OUTPUT_LOCATION_PROPERTY_NAME = "outputLocation";
-    public static final String JDBC_SUB_PROTOCOL = "athena";
+    public static final String JDBC_SUBPROTOCOL = "athena";
 
-    private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUB_PROTOCOL + "://(.+)$");
+    private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUBPROTOCOL + ":([a-zA-Z]\\w*)$");
 
     private final AwsClientFactory clientFactory;
     private final Map<String, String> env;
@@ -42,6 +42,10 @@ public class AthenaDriver implements Driver {
     AthenaDriver(AwsClientFactory clientFactory, Map<String, String> env) {
         this.clientFactory = clientFactory;
         this.env = env;
+    }
+
+    public static String jdbcUrl(String databaseName) {
+        return String.format("jdbc:%s:%s", JDBC_SUBPROTOCOL, databaseName);
     }
 
     public static void register() throws SQLException {

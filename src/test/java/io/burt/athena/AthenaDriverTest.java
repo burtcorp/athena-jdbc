@@ -49,8 +49,6 @@ class AthenaDriverTest {
     private Properties defaultProperties;
     private Map<String, String> env;
 
-    private final String jdbcUrl = "jdbc:athena://test_db";
-
     @BeforeEach
     void setUpDriver() {
         env = new HashMap<>();
@@ -68,6 +66,8 @@ class AthenaDriverTest {
     @Nested
     class Connect {
         @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
+
+        private final String jdbcUrl = "jdbc:athena:test_db";
 
         @BeforeEach
         void setUpDriver() {
@@ -159,13 +159,25 @@ class AthenaDriverTest {
     @Nested
     class AcceptsUrl {
         @Test
-        void acceptsSimpleUrl() throws Exception {
-            assertTrue(driver.acceptsURL(jdbcUrl));
+        void acceptsUrlWithDatabaseName() throws Exception {
+            assertTrue(driver.acceptsURL("jdbc:athena:test_db"));
         }
 
         @Test
-        void doesNotAcceptUrlWithoutDatabase() throws Exception {
-            assertFalse(driver.acceptsURL("jdbc:athena://"));
+        void doesNotAcceptUrlWithoutDatabaseName() throws Exception {
+            assertFalse(driver.acceptsURL("jdbc:athena:"));
+            assertFalse(driver.acceptsURL("jdbc:athena"));
+        }
+
+        @Test
+        void doesNotAcceptUrlWithSlashes() throws Exception {
+            assertFalse(driver.acceptsURL("jdbc:athena://default"));
+        }
+
+        @Test
+        void doesNotAcceptUrlWithIllegalDatabaseName() throws Exception {
+            assertFalse(driver.acceptsURL("jdbc:athena:1llegal_name"));
+            assertFalse(driver.acceptsURL("jdbc:athena:$hit_name"));
         }
 
         @Test
@@ -175,10 +187,21 @@ class AthenaDriverTest {
     }
 
     @Nested
+    class JdbcUrl {
+        @Test
+        void returnsAnAcceptableJdbcUrlForTheSpecifiedDatabase() throws Exception {
+            assertTrue(driver.acceptsURL(AthenaDriver.jdbcUrl("test_db")));
+            assertTrue(AthenaDriver.jdbcUrl("test_db").contains("test_db"));
+            assertTrue(AthenaDriver.jdbcUrl("test_db").contains("jdbc:"));
+            assertTrue(AthenaDriver.jdbcUrl("test_db").contains(AthenaDriver.JDBC_SUBPROTOCOL));
+        }
+    }
+
+    @Nested
     class PropertyInfo {
         @Test
         void returnsEmptyPropertyInfo() throws Exception {
-            assertEquals(0, driver.getPropertyInfo(jdbcUrl, new Properties()).length);
+            assertEquals(0, driver.getPropertyInfo(AthenaDriver.jdbcUrl("test_db"), new Properties()).length);
         }
     }
 
@@ -227,7 +250,7 @@ class AthenaDriverTest {
         void registersItselfWithTheGlobalDriverManager() throws Exception {
             AthenaDriver.register();
             assertTrue(findDriver().isPresent());
-            assertNotNull(DriverManager.getDriver("jdbc:athena://default"));
+            assertNotNull(DriverManager.getDriver(AthenaDriver.jdbcUrl("default")));
         }
     }
 
