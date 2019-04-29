@@ -1750,6 +1750,204 @@ class AthenaResultSetTest {
     }
 
     @Nested
+    class GetObject {
+        @BeforeEach
+        void setUp() {
+            queryResultsHelper.update(Arrays.asList(
+                    createColumn("col1", "tinyint"),
+                    createColumn("col2", "smallint"),
+                    createColumn("col3", "integer"),
+                    createColumn("col4", "bigint"),
+                    createColumn("col5", "float"),
+                    createColumn("col6", "double"),
+                    createColumn("col7", "decimal"),
+                    createColumn("col8", "boolean"),
+                    createColumn("col9", "char"),
+                    createColumn("col10", "varchar"),
+                    createColumn("col11", "json"),
+                    createColumn("col12", "interval day to second"),
+                    createColumn("col13", "interval year to month"),
+                    createColumn("col14", "varbinary"),
+                    createColumn("col15", "date"),
+                    createColumn("col16", "time"),
+                    createColumn("col17", "time with time zone"),
+                    createColumn("col18", "timestamp"),
+                    createColumn("col19", "timestamp with time zone"),
+                    createColumn("col20", "array"),
+                    createColumn("col21", "map"),
+                    createColumn("col22", "row")
+            ), Arrays.asList(
+                    createRow(
+                            "1",
+                            "11",
+                            "111",
+                            "1111",
+                            "1.0",
+                            "1.1",
+                            "1.2",
+                            "true",
+                            "x",
+                            "xyz",
+                            "{\"hello\":\"world\"}",
+                            "9 00:00:01.000",
+                            "3-0",
+                            "68 65 6c 6c 6f 20 77 6f 72 6c 64",
+                            "2019-04-29",
+                            "16:15:00.269",
+                            "16:15:00.269 UTC",
+                            "2019-04-29 12:13:14.012",
+                            "2019-04-29 12:13:14.012 UTC",
+                            "[1, 2, 3]",
+                            "{hello=world}",
+                            "{hello=world}"
+                    ),
+                    createRow(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                    createRowWithNull()
+            ));
+        }
+
+        @Test
+        void returnsTINYINTAsByte() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(1) instanceof Byte);
+            assertTrue(resultSet.getObject("col1") instanceof Byte);
+        }
+
+        @Test
+        void returnsSMALLINTAsShort() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(2) instanceof Short);
+            assertTrue(resultSet.getObject("col2") instanceof Short);
+        }
+
+        @Test
+        void returnsINTEGERAsInteger() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(3) instanceof Integer);
+            assertTrue(resultSet.getObject("col3") instanceof Integer);
+        }
+
+        @Test
+        void returnsBIGINTAsLong() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(4) instanceof Long);
+            assertTrue(resultSet.getObject("col4") instanceof Long);
+        }
+
+        @Test
+        void returnsFLOATAsFloat() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(5) instanceof Float);
+            assertTrue(resultSet.getObject("col5") instanceof Float);
+        }
+
+        @Test
+        void returnsDOUBLEAsDouble() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(6) instanceof Double);
+            assertTrue(resultSet.getObject("col6") instanceof Double);
+        }
+
+        @Test
+        void returnsDECIMALAsBigDecimal() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(7) instanceof BigDecimal);
+            assertTrue(resultSet.getObject("col7") instanceof BigDecimal);
+        }
+
+        @Test
+        void returnsBOOLEANAsBoolean() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(8) instanceof Boolean);
+            assertTrue(resultSet.getObject("col8") instanceof Boolean);
+        }
+
+        @Test
+        void returnsCHARAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(9) instanceof String);
+            assertTrue(resultSet.getObject("col9") instanceof String);
+        }
+
+        @Test
+        void returnsVARCHARAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(10) instanceof String);
+            assertTrue(resultSet.getObject("col10") instanceof String);
+        }
+
+        @Test
+        void returnsJSONAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(11) instanceof String);
+            assertTrue(resultSet.getObject("col11") instanceof String);
+        }
+
+        @Test
+        void returnsINTERVAL_DAY_TO_SECONDAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(12) instanceof String);
+            assertTrue(resultSet.getObject("col12") instanceof String);
+        }
+
+        @Test
+        void returnsINTERVAL_YEAR_TO_MONTHAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(13) instanceof String);
+            assertTrue(resultSet.getObject("col13") instanceof String);
+        }
+
+        @Test
+        void returnsVARBINARYAsByteArray() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(14) instanceof byte[]);
+            assertTrue(resultSet.getObject("col14") instanceof byte[]);
+        }
+
+        @Test
+        void returnsDATEAsDate() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(15) instanceof Date);
+            assertTrue(resultSet.getObject("col15") instanceof Date);
+        }
+
+        @Test
+        void returnsTIMEAsTime() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(16) instanceof Time);
+            assertTrue(resultSet.getObject("col16") instanceof Time);
+        }
+
+        @Test
+        void returnsTIMESTAMPAsTimestamp() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(18) instanceof Timestamp);
+            assertTrue(resultSet.getObject("col18") instanceof Timestamp);
+        }
+
+        @Test
+        void returnsARRAYAsArray() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(20) instanceof Array);
+            assertTrue(resultSet.getObject("col20") instanceof Array);
+        }
+
+        @Test
+        void returnsMAPAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(21) instanceof String);
+            assertTrue(resultSet.getObject("col21") instanceof String);
+        }
+
+        @Test
+        void returnsROWAsString() throws Exception {
+            resultSet.next();
+            assertTrue(resultSet.getObject(22) instanceof String);
+            assertTrue(resultSet.getObject("col22") instanceof String);
+        }
+    }
+
+    @Nested
     class WasNull {
         @BeforeEach
         void setUp() {

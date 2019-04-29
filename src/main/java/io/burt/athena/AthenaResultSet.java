@@ -28,6 +28,7 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -633,12 +634,47 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        switch (getMetaData().getColumnType(columnIndex)) {
+            case Types.TINYINT:
+                return getByte(columnIndex);
+            case Types.SMALLINT:
+                return getShort(columnIndex);
+            case Types.INTEGER:
+                return getInt(columnIndex);
+            case Types.BIGINT:
+                return getLong(columnIndex);
+            case Types.FLOAT:
+                return getFloat(columnIndex);
+            case Types.DOUBLE:
+                return getDouble(columnIndex);
+            case Types.DECIMAL:
+                return getBigDecimal(columnIndex);
+            case Types.BOOLEAN:
+                return getBoolean(columnIndex);
+            case Types.VARBINARY:
+                return getBytes(columnIndex);
+            case Types.DATE:
+                return getDate(columnIndex);
+            case Types.TIME:
+            case Types.TIME_WITH_TIMEZONE:
+                return getTime(columnIndex);
+            case Types.TIMESTAMP:
+            case Types.TIMESTAMP_WITH_TIMEZONE:
+                return getTimestamp(columnIndex);
+            case Types.ARRAY:
+                return getArray(columnIndex);
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.STRUCT:
+            case Types.OTHER:
+            default:
+                return getString(columnIndex);
+        }
     }
 
     @Override
     public Object getObject(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return getObject(findColumn(columnLabel));
     }
 
     @Override
