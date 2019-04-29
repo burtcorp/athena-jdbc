@@ -75,13 +75,17 @@ class AthenaDriverTest {
         }
 
         StartQueryExecutionRequest executeRequest() throws Exception {
+            return executeRequest(jdbcUrl);
+        }
+
+        StartQueryExecutionRequest executeRequest(String url) throws Exception {
             StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
             when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(startQueryResponse));
             QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
             QueryExecution queryExecution = QueryExecution.builder().status(status).build();
             GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
             when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(getQueryResponse));
-            Connection connection = driver.connect(jdbcUrl, defaultProperties);
+            Connection connection = driver.connect(url, defaultProperties);
             connection.createStatement().execute("SELECT 1");
             verify(athenaClient).startQueryExecution(startQueryExecutionCaptor.capture());
             StartQueryExecutionRequest.Builder builder = StartQueryExecutionRequest.builder();
@@ -95,9 +99,15 @@ class AthenaDriverTest {
         }
 
         @Test
-        void parsesTheDatabaseFromTheUrl() throws Exception {
+        void parsesTheDatabaseNameFromTheUrl() throws Exception {
             StartQueryExecutionRequest request = executeRequest();
             assertEquals("test_db", request.queryExecutionContext().database());
+        }
+
+        @Test
+        void usesTheDefaultDatabaseWhenThereIsNoDatabaseNameInTheUrl() throws Exception {
+            StartQueryExecutionRequest request = executeRequest("jdbc:athena");
+            assertEquals("default", request.queryExecutionContext().database());
         }
 
         @Test
@@ -164,9 +174,13 @@ class AthenaDriverTest {
         }
 
         @Test
-        void doesNotAcceptUrlWithoutDatabaseName() throws Exception {
+        void acceptsUrlWithoutDatabaseName() throws Exception {
+            assertTrue(driver.acceptsURL("jdbc:athena"));
+        }
+
+        @Test
+        void doesNotAcceptUrlWitEmptyDatabaseName() throws Exception {
             assertFalse(driver.acceptsURL("jdbc:athena:"));
-            assertFalse(driver.acceptsURL("jdbc:athena"));
         }
 
         @Test

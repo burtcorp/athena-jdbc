@@ -20,9 +20,10 @@ public class AthenaDriver implements Driver {
     public static final String REGION_PROPERTY_NAME = "region";
     public static final String WORK_GROUP_PROPERTY_NAME = "workGroup";
     public static final String OUTPUT_LOCATION_PROPERTY_NAME = "outputLocation";
+    public static final String DEFAULT_DATABASE_NAME = "default";
     public static final String JDBC_SUBPROTOCOL = "athena";
 
-    private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUBPROTOCOL + ":([a-zA-Z]\\w*)$");
+    private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUBPROTOCOL + "(?::([a-zA-Z]\\w*))?$");
 
     private final AwsClientFactory clientFactory;
     private final Map<String, String> env;
@@ -84,7 +85,7 @@ public class AthenaDriver implements Driver {
     public Connection connect(String url, Properties connectionProperties) throws SQLException {
         Matcher m = matchUrl(url);
         if (m.matches()) {
-            String databaseName = m.group(1);
+            String databaseName = m.group(1) == null ? DEFAULT_DATABASE_NAME : m.group(1);
             Region region = determineRegion(connectionProperties);
             String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
             String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
