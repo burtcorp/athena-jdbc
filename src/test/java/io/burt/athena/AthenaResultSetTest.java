@@ -934,35 +934,53 @@ class AthenaResultSetTest {
                     createColumn("col2", "integer")
             ), Arrays.asList(
                     createRow("row1", "1"),
-                    createRow("row2", "2"),
                     createRow(null, null)
             ));
         }
 
-        @Test
-        void returnsTheColumnAtTheSpecifiedIndexOfTheCurrentRowAsAString() throws Exception {
-            resultSet.next();
-            assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes(1));
-            assertArrayEquals("1".getBytes(UTF_8), resultSet.getBytes(2));
-            resultSet.next();
-            assertArrayEquals("row2".getBytes(UTF_8), resultSet.getBytes(1));
-            assertArrayEquals("2".getBytes(UTF_8), resultSet.getBytes(2));
+        @Nested
+        class WhenTheDataIsNotBinary {
+            @Test
+            void returnsTheColumnAtTheSpecifiedIndexOfTheCurrentRowAsAByteArray() throws Exception {
+                resultSet.next();
+                assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes(1));
+                assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes("col1"));
+            }
+
+            @Test
+            void returnsNullWhenValueIsNull() throws Exception {
+                resultSet.next();
+                resultSet.next();
+                assertNull(resultSet.getBytes("col1"));
+            }
         }
 
-        @Test
-        void returnsTheColumnWithTheSpecifiedNameOfTheCurrentRowAsAString() throws Exception {
-            resultSet.next();
-            assertArrayEquals("row1".getBytes(UTF_8), resultSet.getBytes("col1"));
-            assertArrayEquals("1".getBytes(UTF_8), resultSet.getBytes("col2"));
-            resultSet.next();
-            assertArrayEquals("row2".getBytes(UTF_8), resultSet.getBytes("col1"));
-            assertArrayEquals("2".getBytes(UTF_8), resultSet.getBytes("col2"));
-        }
+        @Nested
+        class WhenTheDataIsVarbinary {
+            @BeforeEach
+            void setUp() {
+                queryResultsHelper.update(Collections.singletonList(
+                        createColumn("col1", "varbinary")
+                ), Arrays.asList(
+                        createRow("68 65 6c 6c 6f 20 77 6f 72 6c 64"),
+                        createRowWithNull()
+                ));
+            }
 
-        @Test
-        void returnsNullWhenValueIsNull() throws Exception {
-            resultSet.relative(3);
-            assertNull(resultSet.getBytes("col1"));
+            @Test
+            void returnsTheBytesAsAByteArray() throws Exception {
+                resultSet.next();
+                assertArrayEquals("hello world".getBytes(UTF_8), resultSet.getBytes(1));
+                assertArrayEquals("hello world".getBytes(UTF_8), resultSet.getBytes("col1"));
+            }
+
+            @Test
+            void returnsNullWhenValueIsNull() throws Exception {
+                resultSet.next();
+                resultSet.next();
+                assertNull(resultSet.getBytes(1));
+                assertNull(resultSet.getBytes("col1"));
+            }
         }
 
         @Nested

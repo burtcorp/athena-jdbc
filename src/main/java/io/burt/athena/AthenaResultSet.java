@@ -36,6 +36,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class AthenaResultSet implements ResultSet {
     private final String queryExecutionId;
@@ -463,10 +464,18 @@ public class AthenaResultSet implements ResultSet {
     }
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
+    private static final Pattern SPACE = Pattern.compile(" ");
 
-    private byte[] convertToBytes(String str) {
+    private byte[] convertToBytes(String str, boolean isVarbinary) {
         if (str == null) {
             return null;
+        } else if (isVarbinary) {
+            String[] hextets = SPACE.split(str);
+            byte[] bytes = new byte[hextets.length];
+            for (int i = 0; i < hextets.length; i++) {
+                bytes[i] = Byte.valueOf(hextets[i], 16);
+            }
+            return bytes;
         } else {
             return str.getBytes(UTF_8);
         }
@@ -474,12 +483,12 @@ public class AthenaResultSet implements ResultSet {
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return convertToBytes(getString(columnIndex));
+        return convertToBytes(getString(columnIndex), getMetaData().getColumnTypeName(columnIndex).equalsIgnoreCase("varbinary"));
     }
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        return convertToBytes(getString(columnLabel));
+        return getBytes(findColumn(columnLabel));
     }
 
     private Date convertToDate(String str) throws SQLException {
