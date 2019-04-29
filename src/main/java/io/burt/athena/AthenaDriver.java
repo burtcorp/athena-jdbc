@@ -4,10 +4,12 @@ import software.amazon.awssdk.regions.Region;
 
 import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.time.Duration;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -22,6 +24,14 @@ public class AthenaDriver implements Driver {
     private final AwsClientFactory clientFactory;
     private final Map<String, String> env;
 
+    static {
+        try {
+            register();
+        } catch (SQLException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
     public AthenaDriver() {
         this(new AwsClientFactory(), System.getenv());
     }
@@ -29,6 +39,26 @@ public class AthenaDriver implements Driver {
     AthenaDriver(AwsClientFactory clientFactory, Map<String, String> env) {
         this.clientFactory = clientFactory;
         this.env = env;
+    }
+
+    public static void register() throws SQLException {
+        if (registeredDriver() == null) {
+            DriverManager.registerDriver(new AthenaDriver());
+        }
+    }
+
+    public static void deregister() throws SQLException {
+        DriverManager.deregisterDriver(registeredDriver());
+    }
+
+    private static Driver registeredDriver() {
+        for (Enumeration<Driver> e = DriverManager.getDrivers(); e.hasMoreElements(); ) {
+            Driver d = e.nextElement();
+            if (d.getClass() == AthenaDriver.class) {
+                return d;
+            }
+        }
+        return null;
     }
 
     private Region determineRegion(Properties properties) {

@@ -20,9 +20,13 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -202,6 +206,38 @@ public class AthenaDriverTest {
             assertThrows(SQLFeatureNotSupportedException.class, () -> {
                 driver.getParentLogger();
             });
+        }
+    }
+
+    class SharedDriverManagerContext {
+        Optional<Driver> findDriver() {
+            for (Enumeration<Driver> e = DriverManager.getDrivers(); e.hasMoreElements(); ) {
+                Driver d = e.nextElement();
+                if (d.getClass() == AthenaDriver.class) {
+                    return Optional.of(d);
+                }
+            }
+            return Optional.empty();
+        }
+    }
+
+    @Nested
+    class Register extends SharedDriverManagerContext {
+        @Test
+        void registersItselfWithTheGlobalDriverManager() throws Exception {
+            AthenaDriver.register();
+            assertTrue(findDriver().isPresent());
+            assertNotNull(DriverManager.getDriver("jdbc:athena://default"));
+        }
+    }
+
+    @Nested
+    class Deregister extends SharedDriverManagerContext {
+        @Test
+        void deregistersItselfFromTheGlobalDriverManager() throws Exception {
+            AthenaDriver.register();
+            AthenaDriver.deregister();
+            assertFalse(findDriver().isPresent());
         }
     }
 }
