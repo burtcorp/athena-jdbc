@@ -1955,6 +1955,26 @@ class AthenaResultSetTest {
                 assertNull(resultSet.getObject("col" + i), "Expected column " + i + " to be null, but was not");
             }
         }
+
+        @Nested
+        class WhenGivenATypeMap {
+            @Test
+            void isNotSupported() throws Exception {
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getObject(1, Collections.emptyMap()));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getObject("col1", Collections.emptyMap()));
+            }
+        }
+
+        @Nested
+        class WhenGivenTypeMap {
+            @Test
+            void isNotSupported() throws Exception {
+                resultSet.next();
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getObject(1, String.class));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> resultSet.getObject("col1", String.class));
+            }
+        }
     }
 
     @Nested
