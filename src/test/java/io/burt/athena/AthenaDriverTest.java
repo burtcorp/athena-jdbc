@@ -116,43 +116,6 @@ class AthenaDriverTest {
             verify(clientFactory).createAthenaClient(Region.AP_SOUTHEAST_1);
         }
 
-        @Nested
-        class WhenTheRegionIsSetInTheEnvironment {
-            @Test
-            void readsThe_AWS_REGION_EnvironmentVariable() throws Exception {
-                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
-                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
-                driver.connect(jdbcUrl, defaultProperties);
-                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
-            }
-
-            @Test
-            void readsThe_AWS_DEFAULT_REGION_EnvironmentVariable() throws Exception {
-                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
-                driver.connect(jdbcUrl, defaultProperties);
-                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_2);
-            }
-
-            @Test
-            void uses_AWS_REGION_Over_AWS_DEFAULT_REGION() throws Exception {
-                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
-                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.remove(AthenaDriver.REGION_PROPERTY_NAME);
-                driver.connect(jdbcUrl, defaultProperties);
-                verify(clientFactory).createAthenaClient(Region.AP_NORTHEAST_1);
-            }
-
-            @Test
-            void usesTheConfiguredRegionOverTheEnvironmentVariables() throws Exception {
-                env.put("AWS_REGION", Region.AP_NORTHEAST_1.toString());
-                env.put("AWS_DEFAULT_REGION", Region.AP_NORTHEAST_2.toString());
-                defaultProperties.setProperty(AthenaDriver.REGION_PROPERTY_NAME, Region.SA_EAST_1.toString());
-                driver.connect(jdbcUrl, defaultProperties);
-                verify(clientFactory).createAthenaClient(Region.SA_EAST_1);
-            }
-        }
-
         @Test
         void usesTheWorkGroupFromTheProperties() throws Exception {
             StartQueryExecutionRequest request = executeRequest();

@@ -69,24 +69,12 @@ public class AthenaDriver implements Driver {
         return null;
     }
 
-    private Region determineRegion(Properties properties) {
-        if (properties.containsKey(REGION_PROPERTY_NAME)) {
-            return Region.of(properties.getProperty(REGION_PROPERTY_NAME));
-        } else if (env.containsKey("AWS_REGION")) {
-            return Region.of(env.get("AWS_REGION"));
-        } else if (env.containsKey("AWS_DEFAULT_REGION")) {
-            return Region.of(env.get("AWS_DEFAULT_REGION"));
-        } else {
-            return null;
-        }
-    }
-
     @Override
     public Connection connect(String url, Properties connectionProperties) throws SQLException {
         Matcher m = matchUrl(url);
         if (m.matches()) {
             String databaseName = m.group(1) == null ? DEFAULT_DATABASE_NAME : m.group(1);
-            Region region = determineRegion(connectionProperties);
+            Region region = connectionProperties.containsKey(REGION_PROPERTY_NAME) ? Region.of(connectionProperties.getProperty(REGION_PROPERTY_NAME)) : null;
             String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
             String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
             ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
