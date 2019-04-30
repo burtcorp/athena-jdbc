@@ -20,11 +20,6 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>athena</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
       <version>${aws-sdk.version}</version>
     </dependency>
     <dependency>
