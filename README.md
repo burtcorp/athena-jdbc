@@ -122,6 +122,52 @@ try (
 }
 ```
 
+#### Getting the query execution ID from a `ResultSet`
+
+```java
+import io.burt.athena.AthenaResultSet;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+try (
+  Statement statement = connection.createStatement();
+  ResultSet resultSet = statement.executeQuery("SELECT 'Hello from Athena'")
+) {
+  if (resultSet.isWrapperFor(AthenaResultSet.class)) {
+    AthenaResultSet unwrappedResultSet = resultSet.unwrap(AthenaResultSet.class);
+    String queryExecutionId = unwrappedResultSet.queryExecutionId();
+    System.out.println(queryExecutionId);
+  }
+}
+```
+
+#### Providing client request tokens
+
+By setting a client request token on a query execution you can make Athena reuse a previous result set if the exact same query has already been run. If you run the same query multiple times this can save money and improve performance.
+
+```java
+import io.burt.athena.AthenaStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import org.apache.commons.codec.binary.Hex;
+
+try (Statement statement = connection.createStatement()) {
+  if (statement.isWrapperFor(AthenaStatement.class)) {
+    AthenaStatement unwrappedStatement = statement.unwrap(AthenaStatement.class);
+    unwrappedStatement.setClientRequestTokenProvider(sql -> Optional.ofNullable(Hex.encodeHexString(sql)));
+  }
+  for (int i = 0; i < 10; i++) {
+    try (ResultSet resultSet = statement.executeQuery("SELECT 'Hello from Athena'")) {
+        resultSet.next();
+        System.err.println(resultSet.getString(1));
+      }
+    }
+  }
+}
+```
+
+The client request token provider is a `Function<String, Optional<String>>`, and receives the SQL that will be executed, and should return the token to use for the request, wrapped in an `java.util.Optional`.
+
 ## Description
 
 ### Why another Athena JDBC driver?
