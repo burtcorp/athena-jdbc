@@ -1,5 +1,6 @@
 package io.burt.athena;
 
+import io.burt.athena.support.PomVersionLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AthenaDriverTest {
+class AthenaDriverTest implements PomVersionLoader {
     @Mock private AwsClientFactory clientFactory;
     @Mock private AthenaAsyncClient athenaClient;
 
@@ -248,6 +249,22 @@ class AthenaDriverTest {
             AthenaDriver.register();
             AthenaDriver.deregister();
             assertFalse(findDriver().isPresent());
+        }
+    }
+
+    @Nested
+    class GetMajorVersion {
+        @Test
+        void returnsTheSameMajorVersionAsInThePomFile() throws Exception {
+            assertEquals(pomVersionComponents().get()[0], driver.getMajorVersion());
+        }
+    }
+
+    @Nested
+    class GetMinorVersion {
+        @Test
+        void returnsTheSameMajorVersionAsInThePomFile() throws Exception {
+            assertEquals(pomVersionComponents().get()[1], driver.getMinorVersion());
         }
     }
 }
