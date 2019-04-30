@@ -30,7 +30,7 @@ public class AthenaStatement implements Statement {
     private Function<String, Optional<String>> clientRequestTokenProvider;
     private boolean open;
 
-    public AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
+    AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
         this.pollingStrategyFactory = pollingStrategyFactory;

@@ -50,7 +50,7 @@ public class AthenaResultSet implements ResultSet {
     private Result result;
     private boolean lastWasNull;
 
-    public AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, String queryExecutionId) {
+    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, String queryExecutionId) {
         this.statement = statement;
         this.connectionConfiguration = configuration;
         this.queryExecutionId = queryExecutionId;

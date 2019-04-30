@@ -11,7 +11,7 @@ import java.util.Map;
 public class AthenaArray implements Array {
     private final String[] elements;
 
-    public AthenaArray(String[] elements) {
+    AthenaArray(String[] elements) {
         this.elements = elements;
     }
 

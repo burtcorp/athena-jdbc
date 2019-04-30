@@ -31,7 +31,7 @@ public class AthenaConnection implements Connection {
     private AthenaAsyncClient athenaClient;
     private boolean open;
 
-    public AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
+    AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
         this.open = true;
