@@ -9,9 +9,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.InternalServerException;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StopQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.TooManyRequestsException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -123,6 +125,20 @@ class AthenaStatementTest {
         void pollsUntilSucceeded() throws Exception {
             execute();
             assertEquals(3, queryExecutionHelper.getQueryExecutionRequests().size());
+        }
+
+        @Test
+        void throwsWhenStartQueryExecutionThrows() {
+            queryExecutionHelper.queueStartQueryExecutionException(InternalServerException.builder().message("b0rk").build());
+            Exception e = assertThrows(SQLException.class, this::execute);
+            assertTrue(e.getCause().getCause() instanceof InternalServerException);
+        }
+
+        @Test
+        void throwsWhenGetQueryExecutionThrows() {
+            queryExecutionHelper.queueStartQueryExecutionException(TooManyRequestsException.builder().message("b0rk").build());
+            Exception e = assertThrows(SQLException.class, this::execute);
+            assertTrue(e.getCause().getCause() instanceof TooManyRequestsException);
         }
 
         @Test

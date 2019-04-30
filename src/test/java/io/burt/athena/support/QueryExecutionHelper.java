@@ -29,6 +29,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
     private final List<StopQueryExecutionRequest> stopQueryExecutionRequests;
     private final Queue<StartQueryExecutionResponse> startQueryExecutionResponseQueue;
     private final Queue<GetQueryExecutionResponse> getQueryExecutionResponseQueue;
+    private final Queue<Exception> startQueryExecutionExceptionQueue;
+    private final Queue<Exception> getQueryExecutionExceptionQueue;
     private Duration startQueryExecutionDelay;
     private Duration getQueryExecutionDelay;
     private Duration getQueryResultsDelay;
@@ -42,6 +44,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         this.stopQueryExecutionRequests = new LinkedList<>();
         this.startQueryExecutionResponseQueue = new LinkedList<>();
         this.getQueryExecutionResponseQueue = new LinkedList<>();
+        this.startQueryExecutionExceptionQueue = new LinkedList<>();
+        this.getQueryExecutionExceptionQueue = new LinkedList<>();
         this.startQueryExecutionDelay = Duration.ZERO;
         this.getQueryExecutionDelay = Duration.ZERO;
         this.getQueryResultsDelay = Duration.ZERO;
@@ -117,6 +121,14 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         getQueryExecutionBlocker.unlock();
     }
 
+    public void queueStartQueryExecutionException(Exception e) {
+        startQueryExecutionExceptionQueue.add(e);
+    }
+
+    public void queueGetQueryExecutionException(Exception e) {
+        getQueryExecutionExceptionQueue.add(e);
+    }
+
     private <T> CompletableFuture<T> maybeDelayResponse(CompletableFuture<T> future, Duration delay) {
         if (delay.isZero()) {
             return future;
@@ -132,6 +144,16 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         }
     }
 
+    private <T> CompletableFuture<T> maybeFailResponse(CompletableFuture<T> future, Queue<Exception> exceptions) {
+        if (exceptions.isEmpty()) {
+            return future;
+        } else {
+            CompletableFuture<T> failedFuture = new CompletableFuture<T>();
+            failedFuture.completeExceptionally(exceptions.remove());
+            return failedFuture;
+        }
+    }
+
     @Override
     public CompletableFuture<StartQueryExecutionResponse> startQueryExecution(Consumer<StartQueryExecutionRequest.Builder> requestBuilderConsumer) {
         StartQueryExecutionRequest.Builder builder = StartQueryExecutionRequest.builder();
@@ -140,7 +162,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         startQueryRequests.add(request);
         StartQueryExecutionResponse response = startQueryExecutionResponseQueue.remove();
         CompletableFuture<StartQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
-        return maybeDelayResponse(future, startQueryExecutionDelay);
+        return maybeDelayResponse(maybeFailResponse(future, startQueryExecutionExceptionQueue), startQueryExecutionDelay);
     }
 
     @Override
@@ -154,7 +176,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         try {
             getQueryExecutionBlocker.lock();
             CompletableFuture<GetQueryExecutionResponse> future = CompletableFuture.completedFuture(response);
-            return maybeDelayResponse(future, getQueryExecutionDelay);
+            return maybeDelayResponse(maybeFailResponse(future, getQueryExecutionExceptionQueue), getQueryExecutionDelay);
         } finally {
             getQueryExecutionBlocker.unlock();
         }
