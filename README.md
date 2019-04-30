@@ -1,6 +1,7 @@
 # athena-jdbc
 
-[![Build Status](https://travis-ci.org/burtcorp/athena-jdbc.png?branch=master)](https://travis-ci.org/burtcorp/athena-jdbc)
+[![Build Status](https://travis-ci.org/burtcorp/athena-jdbc.png?branch=master)](https://travis-ci.org/burtcorp/athena-jdbc) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.burt/athena-jdbc/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.burt/athena-jdbc)
+
 
 _If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can find the readme for a specific version via the release tags ([here is an example](https://github.com/burtcorp/athena-jdbc/releases/tag/athena-jdbc-0.1.0))._
 
