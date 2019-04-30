@@ -22,6 +22,8 @@ Check the [releases page](https://github.com/burtcorp/athena-jdbc/releases) for 
 
 ### Dependencies
 
+The driver requires Java 8 or later.
+
 The only dependency is [AWS SDK](https://github.com/aws/aws-sdk-java-v2), specifically `software.amazon.awssdk:athena`. See `pom.xml` for more details.
 
 ## Usage
