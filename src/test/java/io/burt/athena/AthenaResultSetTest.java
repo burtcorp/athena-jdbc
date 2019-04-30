@@ -1941,17 +1941,17 @@ class AthenaResultSetTest {
         }
 
         @Test
-        void returnsTINYINTAsByte() throws Exception {
+        void returnsTINYINTAsInteger() throws Exception {
             resultSet.next();
-            assertTrue(resultSet.getObject(1) instanceof Byte);
-            assertTrue(resultSet.getObject("col1") instanceof Byte);
+            assertTrue(resultSet.getObject(1) instanceof Integer);
+            assertTrue(resultSet.getObject("col1") instanceof Integer);
         }
 
         @Test
-        void returnsSMALLINTAsShort() throws Exception {
+        void returnsSMALLINTAsInteger() throws Exception {
             resultSet.next();
-            assertTrue(resultSet.getObject(2) instanceof Short);
-            assertTrue(resultSet.getObject("col2") instanceof Short);
+            assertTrue(resultSet.getObject(2) instanceof Integer);
+            assertTrue(resultSet.getObject("col2") instanceof Integer);
         }
 
         @Test

@@ -667,10 +667,10 @@ public class AthenaResultSet implements ResultSet {
         switch (getMetaData().getColumnType(columnIndex)) {
             case Types.TINYINT:
                 byte b = getByte(columnIndex);
-                return wasNull() ? null : b;
+                return wasNull() ? null : (int) b;
             case Types.SMALLINT:
                 short s = getShort(columnIndex);
-                return wasNull() ? null : s;
+                return wasNull() ? null : (int) s;
             case Types.INTEGER:
                 int i = getInt(columnIndex);
                 return wasNull() ? null : i;
