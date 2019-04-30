@@ -40,6 +40,23 @@ public class AthenaStatement implements Statement {
         this.open = true;
     }
 
+    /**
+     * Set a client request token provider for this statement.
+     *
+     * If query executions have the same client request token Athena can
+     * immediately return the results instead of executing the request again and
+     * again. This is a great way to save costs and improve performance.
+     *
+     * The client request token provider receives the SQL to be executed and is
+     * expected to return an <code>Option</code> containing a token that
+     * conforms to the requirements of the <code>ClientRequestToken</code>
+     * property of the <code>StartQueryExecutionRequest</code>, or
+     * <code>Option.empty()</code> when the request should not have a client
+     * request token.
+     *
+     * @param provider the function that produces the client request token given
+     *                 the SQL to be executed
+     */
     public void setClientRequestTokenProvider(Function<String, Optional<String>> provider) {
         if (provider == null) {
             clientRequestTokenProvider = sql -> Optional.empty();
