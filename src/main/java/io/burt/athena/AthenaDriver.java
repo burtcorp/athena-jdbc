@@ -45,7 +45,7 @@ public class AthenaDriver implements Driver {
         this.env = env;
     }
 
-    public static String jdbcUrl(String databaseName) {
+    public static String createURL(String databaseName) {
         return String.format("jdbc:%s:%s", JDBC_SUBPROTOCOL, databaseName);
     }
 

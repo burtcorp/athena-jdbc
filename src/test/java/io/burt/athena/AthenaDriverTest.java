@@ -177,10 +177,10 @@ class AthenaDriverTest {
     class JdbcUrl {
         @Test
         void returnsAnAcceptableJdbcUrlForTheSpecifiedDatabase() throws Exception {
-            assertTrue(driver.acceptsURL(AthenaDriver.jdbcUrl("test_db")));
-            assertTrue(AthenaDriver.jdbcUrl("test_db").contains("test_db"));
-            assertTrue(AthenaDriver.jdbcUrl("test_db").contains("jdbc:"));
-            assertTrue(AthenaDriver.jdbcUrl("test_db").contains(AthenaDriver.JDBC_SUBPROTOCOL));
+            assertTrue(driver.acceptsURL(AthenaDriver.createURL("test_db")));
+            assertTrue(AthenaDriver.createURL("test_db").contains("test_db"));
+            assertTrue(AthenaDriver.createURL("test_db").contains("jdbc:"));
+            assertTrue(AthenaDriver.createURL("test_db").contains(AthenaDriver.JDBC_SUBPROTOCOL));
         }
     }
 
@@ -188,7 +188,7 @@ class AthenaDriverTest {
     class PropertyInfo {
         @Test
         void returnsEmptyPropertyInfo() throws Exception {
-            assertEquals(0, driver.getPropertyInfo(AthenaDriver.jdbcUrl("test_db"), new Properties()).length);
+            assertEquals(0, driver.getPropertyInfo(AthenaDriver.createURL("test_db"), new Properties()).length);
         }
     }
 
@@ -237,7 +237,7 @@ class AthenaDriverTest {
         void registersItselfWithTheGlobalDriverManager() throws Exception {
             AthenaDriver.register();
             assertTrue(findDriver().isPresent());
-            assertNotNull(DriverManager.getDriver(AthenaDriver.jdbcUrl("default")));
+            assertNotNull(DriverManager.getDriver(AthenaDriver.createURL("default")));
         }
     }
 

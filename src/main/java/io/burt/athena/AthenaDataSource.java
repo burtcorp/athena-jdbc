@@ -43,7 +43,7 @@ public class AthenaDataSource implements DataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return driver.connect(AthenaDriver.jdbcUrl(databaseName), properties);
+        return driver.connect(AthenaDriver.createURL(databaseName), properties);
     }
 
     @Override
