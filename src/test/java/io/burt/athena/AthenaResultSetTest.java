@@ -1814,6 +1814,25 @@ class AthenaResultSetTest {
         }
 
         @Nested
+        class WhenTheArrayDataIsAmbiguous {
+            @BeforeEach
+            void setUp() {
+                queryResultsHelper.update(Collections.singletonList(
+                        createColumn("col1", "array")
+                ), Collections.singletonList(
+                        createRow("[hello, world, she exclaimed]")
+                ));
+            }
+
+            @Test
+            void doesTheBestItCan() throws Exception {
+                resultSet.next();
+                assertArrayEquals(new String[]{"hello", "world", "she exclaimed"}, (String[]) resultSet.getArray(1).getArray());
+                assertArrayEquals(new String[]{"hello", "world", "she exclaimed"}, (String[]) resultSet.getArray("col1").getArray());
+            }
+        }
+
+        @Nested
         class WhenTheArrayIsAskedForAResultSet {
             @Test
             void isNotSupported() throws Exception {
