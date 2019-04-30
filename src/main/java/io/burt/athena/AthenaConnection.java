@@ -29,11 +29,13 @@ import java.util.concurrent.Executor;
 public class AthenaConnection implements Connection {
     private ConnectionConfiguration configuration;
     private AthenaAsyncClient athenaClient;
+    private DatabaseMetaData metaData;
     private boolean open;
 
     AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
+        this.metaData = null;
         this.open = true;
     }
 
@@ -175,7 +177,10 @@ public class AthenaConnection implements Connection {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        if (metaData == null) {
+            metaData = new AthenaDatabaseMetaData();
+        }
+        return metaData;
     }
 
     @Override

@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -601,6 +603,21 @@ class AthenaConnectionTest {
                 connection.close();
                 assertThrows(SQLException.class, () -> connection.getNetworkTimeout());
             }
+        }
+    }
+
+    @Nested
+    class GetMetaData {
+        @Test
+        void returnsADatabaseMetaDataObject() throws Exception {
+            assertNotNull(connection.getMetaData());
+        }
+
+        @Test
+        void returnsTheSameMetaDataEveryTime() throws Exception {
+            DatabaseMetaData md1 = connection.getMetaData();
+            DatabaseMetaData md2 = connection.getMetaData();
+            assertSame(md1, md2);
         }
     }
 }
