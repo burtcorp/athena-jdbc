@@ -8,17 +8,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class BackoffPollingStrategy implements PollingStrategy {
+class BackoffPollingStrategy implements PollingStrategy {
     private final Duration firstDelay;
     private final Duration maxDelay;
     private final long factor;
     private final Sleeper sleeper;
 
-    public BackoffPollingStrategy(Duration firstDelay, Duration maxDelay) {
+    BackoffPollingStrategy(Duration firstDelay, Duration maxDelay) {
         this(firstDelay, maxDelay, 2L, duration -> TimeUnit.MILLISECONDS.sleep(duration.toMillis()));
     }
 
-    public BackoffPollingStrategy(Duration firstDelay, Duration maxDelay, long factor) {
+    BackoffPollingStrategy(Duration firstDelay, Duration maxDelay, long factor) {
         this(firstDelay, maxDelay, factor, duration -> TimeUnit.MILLISECONDS.sleep(duration.toMillis()));
     }
 

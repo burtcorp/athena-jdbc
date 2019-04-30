@@ -12,7 +12,7 @@ public class FixedDelayPollingStrategy implements PollingStrategy {
     private final Duration delay;
     private final Sleeper sleeper;
 
-    public FixedDelayPollingStrategy(Duration delay) {
+    FixedDelayPollingStrategy(Duration delay) {
         this(delay, duration -> TimeUnit.MILLISECONDS.sleep(duration.toMillis()));
     }
 
