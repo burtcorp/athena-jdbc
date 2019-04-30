@@ -47,7 +47,9 @@ There are three connection properties:
 
 These properties are the same for both the `java.sql.DriverManager` and `javax.sql.DataSource` APIs.
 
-### Example code: connecting with `DriverManager`
+### Examples
+
+#### Connecting with `DriverManager`
 
 ```java
 import java.sql.Connection;
@@ -65,7 +67,7 @@ try (Connection connection = DriverManager.getConnection("jdbc:athena:default", 
 
 Currently the `java.sql.Connection` returned by the driver is thread safe and doesn't need to be closed until the application stops, if at all.
 
-### Example code: creating a `DataSource`
+#### Creating a `DataSource`
 
 This is the least amount of code needed to obtain a connection, and you also get type safe configuration:
 
@@ -82,7 +84,7 @@ try (Connection connection = dataSource.getConnection()) {
 }
 ```
 
-### Example code: connecting with a connection pool
+#### Connecting with a connection pool
 
 This example uses [HikariCP](https://github.com/brettwooldridge/HikariCP), but of course other connection pools work too. The driver supports both JDBC URL and `javax.sql.DataSource` based configurations, and both use the same property names.
 
@@ -103,7 +105,7 @@ try (Connection connection = dataSource.getConnection()) {
 }
 ```
 
-### Example code: using a connection
+#### Using a connection
 
 Once you have a `java.sql.Connection` instance you can use it as you would one from any other JDBC driver.
 
