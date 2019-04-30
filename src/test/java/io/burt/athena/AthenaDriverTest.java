@@ -34,9 +34,11 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +73,7 @@ class AthenaDriverTest {
 
         @BeforeEach
         void setUpDriver() {
-            when(clientFactory.createAthenaClient(any())).thenReturn(athenaClient);
+            lenient().when(clientFactory.createAthenaClient(any())).thenReturn(athenaClient);
         }
 
         StartQueryExecutionRequest executeRequest() throws Exception {
@@ -126,6 +128,14 @@ class AthenaDriverTest {
         void usesTheOutputLocationFromTheProperties() throws Exception {
             StartQueryExecutionRequest request = executeRequest();
             assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
+        }
+
+        @Nested
+        class WhenGivenABadUrl {
+            @Test
+            void returnsNull() throws Exception {
+                assertNull(driver.connect("athena:jdbc://hello", new Properties()));
+            }
         }
     }
 
