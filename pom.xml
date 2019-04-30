@@ -10,7 +10,7 @@
   <description>Athena JDBC driver</description>
 
   <properties>
-    <athena.version>2.5.25</athena.version>
+    <aws-sdk.version>2.5.25</aws-sdk.version>
     <slf4j.version>1.7.26</slf4j.version>
     <junit.version>5.4.2</junit.version>
     <mockito.version>2.27.0</mockito.version>
@@ -20,12 +20,12 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>athena</artifactId>
-      <version>${athena.version}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
+      <version>${aws-sdk.version}</version>
     </dependency>
     <dependency>
         <groupId>org.junit.jupiter</groupId>
