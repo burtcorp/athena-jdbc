@@ -27,7 +27,7 @@ public class AthenaStatement implements Statement {
     private String queryExecutionId;
     private ResultSet currentResultSet;
     private Supplier<PollingStrategy> pollingStrategyFactory;
-    private Function<String, String> clientRequestTokenProvider;
+    private Function<String, Optional<String>> clientRequestTokenProvider;
     private boolean open;
 
     public AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
@@ -36,13 +36,13 @@ public class AthenaStatement implements Statement {
         this.pollingStrategyFactory = pollingStrategyFactory;
         this.queryExecutionId = null;
         this.currentResultSet = null;
-        this.clientRequestTokenProvider = sql -> null;
+        this.clientRequestTokenProvider = sql -> Optional.empty();
         this.open = true;
     }
 
-    public void setClientRequestTokenProvider(Function<String, String> provider) {
+    public void setClientRequestTokenProvider(Function<String, Optional<String>> provider) {
         if (provider == null) {
-            clientRequestTokenProvider = sql -> null;
+            clientRequestTokenProvider = sql -> Optional.empty();
         } else {
             clientRequestTokenProvider = provider;
         }
@@ -61,13 +61,13 @@ public class AthenaStatement implements Statement {
             currentResultSet = null;
         }
         try {
-            String clientRequestToken = clientRequestTokenProvider.apply(sql);
+            Optional<String> clientRequestToken = clientRequestTokenProvider.apply(sql);
             StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
                 sqeb.queryString(sql);
                 sqeb.workGroup(configuration.workGroupName());
                 sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
                 sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
-                sqeb.clientRequestToken(clientRequestToken);
+                clientRequestToken.ifPresent(sqeb::clientRequestToken);
             }).get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
             PollingStrategy pollingStrategy = pollingStrategyFactory.get();

@@ -475,7 +475,7 @@ class AthenaStatementTest {
             AtomicReference<String> passedSql = new AtomicReference<>(null);
             statement.setClientRequestTokenProvider(sql -> {
                 passedSql.set(sql);
-                return "foo";
+                return Optional.of("foo");
             });
             statement.execute("SELECT 1");
             assertEquals("SELECT 1", passedSql.get());
@@ -483,7 +483,7 @@ class AthenaStatementTest {
 
         @Test
         void usesTheReturnValueAsClientRequestToken() throws Exception {
-            statement.setClientRequestTokenProvider(sql -> "foo");
+            statement.setClientRequestTokenProvider(sql -> Optional.of("foo"));
             statement.execute("SELECT 1");
             StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
             assertEquals("foo", request.clientRequestToken());
@@ -493,7 +493,7 @@ class AthenaStatementTest {
         class WhenGivenNull {
             @Test
             void usesNullAsTheClientRequestToken() throws Exception {
-                statement.setClientRequestTokenProvider(sql -> "foo");
+                statement.setClientRequestTokenProvider(sql -> Optional.of("foo"));
                 statement.setClientRequestTokenProvider(null);
                 statement.execute("SELECT 1");
                 StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
