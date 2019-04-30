@@ -71,7 +71,7 @@ public class AthenaDriver implements Driver {
 
     @Override
     public Connection connect(String url, Properties connectionProperties) throws SQLException {
-        Matcher m = matchUrl(url);
+        Matcher m = matchURL(url);
         if (m.matches()) {
             String databaseName = m.group(1) == null ? DEFAULT_DATABASE_NAME : m.group(1);
             Region region = connectionProperties.containsKey(REGION_PROPERTY_NAME) ? Region.of(connectionProperties.getProperty(REGION_PROPERTY_NAME)) : null;
@@ -84,13 +84,13 @@ public class AthenaDriver implements Driver {
         }
     }
 
-    private Matcher matchUrl(String url) {
+    private Matcher matchURL(String url) {
         return URL_PATTERN.matcher(url);
     }
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        return matchUrl(url).matches();
+        return matchURL(url).matches();
     }
 
     @Override
