@@ -9,6 +9,31 @@
   <name>Athena JDBC</name>
   <description>Athena JDBC driver</description>
 
+  <licenses>
+    <license>
+      <name>BSD 3-Clause</name>
+      <url>https://opensource.org/licenses/BSD-3-Clause</url>
+    </license>
+  </licenses>
+
+  <inceptionYear>2019</inceptionYear>
+
+  <scm>
+    <connection>scm:git:ssh://git@github.com/burtcorp/athena-jdbc.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/burtcorp/athena-jdbc.git</developerConnection>
+    <url>https://github.com/burtcorp/athena-jdbc.git</url>
+    <tag>athena-jdbc-${project.version}</tag>
+  </scm>
+
+  <developers>
+    <developer>
+      <name>Theo Hultberg</name>
+      <email>theo@burtcorp.com</email>
+      <organization>Burt</organization>
+      <organizationUrl>http://burt.ai/</organizationUrl>
+    </developer>
+  </developers>
+
   <properties>
     <aws-sdk.version>2.5.25</aws-sdk.version>
     <slf4j.version>1.7.26</slf4j.version>
@@ -40,6 +65,17 @@
       <version>${mockito.version}</version>
     </dependency>
   </dependencies>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
   <build>
     <plugins>
@@ -79,4 +115,42 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.8</version>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>ossrh</serverId>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <configuration>
+              <keyname>9ED21C6E</keyname>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
