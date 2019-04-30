@@ -99,7 +99,7 @@ class AthenaResultSetTest {
     class QueryExecutionId {
         @Test
         void returnsTheQueryExecutionId() {
-            assertEquals("Q1234", resultSet.queryExecutionId());
+            assertEquals("Q1234", resultSet.getQueryExecutionId());
         }
     }
 

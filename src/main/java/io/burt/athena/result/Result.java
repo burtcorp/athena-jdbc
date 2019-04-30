@@ -5,17 +5,17 @@ import io.burt.athena.AthenaResultSetMetaData;
 import java.sql.SQLException;
 
 public interface Result {
-    int fetchSize() throws SQLException;
+    int getFetchSize() throws SQLException;
 
-    void updateFetchSize(int newFetchSize) throws SQLException;
+    void setFetchSize(int newFetchSize) throws SQLException;
 
-    AthenaResultSetMetaData metaData() throws SQLException;
+    AthenaResultSetMetaData getMetaData() throws SQLException;
 
-    int rowNumber() throws SQLException;
+    int getRowNumber() throws SQLException;
 
     boolean next() throws SQLException;
 
-    String stringValue(int columnIndex) throws SQLException;
+    String getString(int columnIndex) throws SQLException;
 
-    ResultPosition position() throws SQLException;
+    ResultPosition getPosition() throws SQLException;
 }

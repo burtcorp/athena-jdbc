@@ -20,7 +20,7 @@ public class PreloadingStandardResult extends StandardResult {
 
     @Override
     protected boolean shouldLoadNextPage() throws SQLException {
-        return (rowNumber() == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext());
+        return (getRowNumber() == 0 && currentRows == null) || (pendingResult != null && !currentRows.hasNext());
     }
 
     @Override
@@ -40,13 +40,13 @@ public class PreloadingStandardResult extends StandardResult {
     }
 
     @Override
-    public ResultPosition position() throws SQLException {
+    public ResultPosition getPosition() throws SQLException {
         if (pendingResult == null && currentRows != null && currentRow != null && !currentRows.hasNext()) {
             return ResultPosition.LAST;
         } else if (pendingResult == null && currentRows != null && currentRow == null) {
             return ResultPosition.AFTER_LAST;
         } else {
-            return super.position();
+            return super.getPosition();
         }
     }
 }

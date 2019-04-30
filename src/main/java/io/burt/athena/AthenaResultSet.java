@@ -62,7 +62,7 @@ public class AthenaResultSet implements ResultSet {
         return statement;
     }
 
-    public String queryExecutionId() {
+    public String getQueryExecutionId() {
         return queryExecutionId;
     }
 
@@ -108,7 +108,7 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
-        return result.metaData();
+        return result.getMetaData();
     }
 
     @Override
@@ -125,25 +125,25 @@ public class AthenaResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClosed();
-        return result.position() == ResultPosition.BEFORE_FIRST;
+        return result.getPosition() == ResultPosition.BEFORE_FIRST;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClosed();
-        return result.position() == ResultPosition.AFTER_LAST;
+        return result.getPosition() == ResultPosition.AFTER_LAST;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClosed();
-        return result.position() == ResultPosition.FIRST;
+        return result.getPosition() == ResultPosition.FIRST;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return result.position() == ResultPosition.LAST;
+        return result.getPosition() == ResultPosition.LAST;
     }
 
     @Override
@@ -152,7 +152,7 @@ public class AthenaResultSet implements ResultSet {
         if (isBeforeFirst() || isAfterLast()) {
             return 0;
         } else {
-            return result.rowNumber();
+            return result.getRowNumber();
         }
     }
 
@@ -170,14 +170,14 @@ public class AthenaResultSet implements ResultSet {
         if (rows < 0) {
             throw new SQLException(String.format("Fetch size cannot be negative (got %d)", rows));
         } else {
-            result.updateFetchSize(rows);
+            result.setFetchSize(rows);
         }
     }
 
     @Override
     public int getFetchSize() throws SQLException {
         checkClosed();
-        return result.fetchSize();
+        return result.getFetchSize();
     }
 
     @Override
@@ -253,7 +253,7 @@ public class AthenaResultSet implements ResultSet {
     public String getString(int columnIndex) throws SQLException {
         checkClosed();
         checkPosition(columnIndex);
-        String value = result.stringValue(columnIndex);
+        String value = result.getString(columnIndex);
         lastWasNull = value == null;
         return value;
     }
@@ -855,11 +855,11 @@ public class AthenaResultSet implements ResultSet {
     public boolean absolute(int row) throws SQLException {
         if (row < 1) {
             throw new SQLException(String.format("Invalid row number %d", row));
-        } else if (row < result.rowNumber()) {
-            throw new SQLException(String.format("Only forward movement is supported (cannot go back to %d from %d)", row, result.rowNumber()));
+        } else if (row < result.getRowNumber()) {
+            throw new SQLException(String.format("Only forward movement is supported (cannot go back to %d from %d)", row, result.getRowNumber()));
         } else {
             boolean status = false;
-            while (result.rowNumber() < row) {
+            while (result.getRowNumber() < row) {
                 status = next();
             }
             return status;

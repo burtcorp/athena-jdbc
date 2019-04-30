@@ -61,7 +61,7 @@ public class StandardResult implements Result {
     }
 
     protected boolean shouldLoadNextPage() throws SQLException {
-        return (rowNumber() == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext());
+        return (getRowNumber() == 0 && currentRows == null) || (nextToken != null && !currentRows.hasNext());
     }
 
     protected GetQueryResultsResponse loadNextPage() throws InterruptedException, TimeoutException, ExecutionException {
@@ -81,12 +81,12 @@ public class StandardResult implements Result {
     }
 
     @Override
-    public int fetchSize() throws SQLException {
+    public int getFetchSize() throws SQLException {
         return fetchSize;
     }
 
     @Override
-    public void updateFetchSize(int newFetchSize) throws SQLException {
+    public void setFetchSize(int newFetchSize) throws SQLException {
         if (newFetchSize > MAX_FETCH_SIZE) {
             throw new SQLException(String.format("Fetch size too large (got %d, max is %d)", newFetchSize, MAX_FETCH_SIZE));
         } else {
@@ -95,7 +95,7 @@ public class StandardResult implements Result {
     }
 
     @Override
-    public AthenaResultSetMetaData metaData() throws SQLException {
+    public AthenaResultSetMetaData getMetaData() throws SQLException {
         if (resultSetMetaData == null) {
             try {
                 ensureResults();
@@ -108,7 +108,7 @@ public class StandardResult implements Result {
     }
 
     @Override
-    public int rowNumber() throws SQLException {
+    public int getRowNumber() throws SQLException {
         return rowNumber;
     }
 
@@ -130,15 +130,15 @@ public class StandardResult implements Result {
     }
 
     @Override
-    public String stringValue(int columnIndex) throws SQLException {
+    public String getString(int columnIndex) throws SQLException {
         return currentRow.data().get(columnIndex - 1).varCharValue();
     }
 
     @Override
-    public ResultPosition position() throws SQLException {
-        if (rowNumber() == 0) {
+    public ResultPosition getPosition() throws SQLException {
+        if (getRowNumber() == 0) {
             return ResultPosition.BEFORE_FIRST;
-        } else if (rowNumber() == 1) {
+        } else if (getRowNumber() == 1) {
             return ResultPosition.FIRST;
         } else if (nextToken == null && currentRows != null && currentRow != null && !currentRows.hasNext()) {
             return ResultPosition.LAST;

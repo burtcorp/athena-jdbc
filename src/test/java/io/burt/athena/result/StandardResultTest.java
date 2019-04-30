@@ -52,9 +52,9 @@ class StandardResultTest {
     class FetchSize {
         @Test
         void returnsTheCurrentFetchSize() throws Exception {
-            assertEquals(123, result.fetchSize());
-            result.updateFetchSize(234);
-            assertEquals(234, result.fetchSize());
+            assertEquals(123, result.getFetchSize());
+            result.setFetchSize(234);
+            assertEquals(234, result.getFetchSize());
         }
     }
 
@@ -75,7 +75,7 @@ class StandardResultTest {
 
         @Test
         void setsTheFetchSize() throws Exception {
-            result.updateFetchSize(77);
+            result.setFetchSize(77);
             result.next();
             assertEquals(77, queryResultsHelper.pageSizes().get(0));
         }
@@ -83,7 +83,7 @@ class StandardResultTest {
         @Test
         void setsTheFetchSizeOfAFutureRequest() throws Exception {
             result.next();
-            result.updateFetchSize(99);
+            result.setFetchSize(99);
             while (result.next()) {
             }
             List<Integer> pageSizes = queryResultsHelper.pageSizes();
@@ -95,7 +95,7 @@ class StandardResultTest {
         class WhenCalledWithTooLargeNumber {
             @Test
             void throwsAnError() throws Exception {
-                assertThrows(SQLException.class, () -> result.updateFetchSize(1001));
+                assertThrows(SQLException.class, () -> result.setFetchSize(1001));
             }
         }
     }
@@ -117,18 +117,18 @@ class StandardResultTest {
         @Test
         void returnsMetaData() throws Exception {
             result.next();
-            assertEquals("col1", result.metaData().getColumnLabel(1));
+            assertEquals("col1", result.getMetaData().getColumnLabel(1));
         }
 
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
-            assertNotNull(result.metaData());
+            assertNotNull(result.getMetaData());
             assertTrue(queryResultsHelper.requestCount() > 0);
         }
 
         @Test
         void doesNotLoadTheSamePageTwice() throws Exception {
-            result.metaData();
+            result.getMetaData();
             result.next();
             List<String> nextTokens = queryResultsHelper.nextTokens();
             assertEquals(new HashSet<>(nextTokens).size(), nextTokens.size());
@@ -146,7 +146,7 @@ class StandardResultTest {
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
                     try {
-                        executeResult.set(result.metaData());
+                        executeResult.set(result.getMetaData());
                         interruptedState.set(Thread.currentThread().isInterrupted());
                     } catch (SQLException sqle) {
                         throw new RuntimeException(sqle);
@@ -226,17 +226,17 @@ class StandardResultTest {
             @Test
             void skipsTheHeaderRow() throws Exception {
                 result.next();
-                assertNotEquals("col1", result.stringValue(1));
+                assertNotEquals("col1", result.getString(1));
             }
 
             @Test
             void returnsEachRow() throws Exception {
                 result.next();
-                assertEquals("row1", result.stringValue(1));
+                assertEquals("row1", result.getString(1));
                 result.next();
-                assertEquals("row2", result.stringValue(1));
+                assertEquals("row2", result.getString(1));
                 result.next();
-                assertEquals("row3", result.stringValue(1));
+                assertEquals("row3", result.getString(1));
             }
 
             @Nested
@@ -273,10 +273,10 @@ class StandardResultTest {
 
             @Test
             void loadsAllPages() throws Exception {
-                result.updateFetchSize(3);
+                result.setFetchSize(3);
                 List<String> rows = new ArrayList<>(9);
                 while (result.next()) {
-                    rows.add(result.stringValue(2));
+                    rows.add(result.getString(2));
                 }
                 assertEquals(4, queryResultsHelper.requestCount());
                 assertEquals(Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9"), rows);
@@ -285,7 +285,7 @@ class StandardResultTest {
 
             @Test
             void stopsLoadingWhenThereAreNoMorePages() throws Exception {
-                result.updateFetchSize(3);
+                result.setFetchSize(3);
                 for (int i = 0; i < 9; i++) {
                     result.next();
                 }
@@ -369,23 +369,23 @@ class StandardResultTest {
 
         @Test
         void returnsZeroWhenBeforeFirstRow() throws Exception {
-            assertEquals(0, result.rowNumber());
+            assertEquals(0, result.getRowNumber());
         }
 
         @Test
         void returnsOneWhenOnFirstRow() throws Exception {
             result.next();
-            assertEquals(1, result.rowNumber());
+            assertEquals(1, result.getRowNumber());
         }
 
         @Test
         void returnsTheRowNumber() throws Exception {
             result.next();
-            assertEquals(1, result.rowNumber());
+            assertEquals(1, result.getRowNumber());
             result.next();
-            assertEquals(2, result.rowNumber());
+            assertEquals(2, result.getRowNumber());
             result.next();
-            assertEquals(3, result.rowNumber());
+            assertEquals(3, result.getRowNumber());
         }
     }
 
@@ -406,11 +406,11 @@ class StandardResultTest {
         @Test
         void returnsTheColumnAtTheSpecifiedIndexOfTheCurrentRowAsAString() throws Exception {
             result.next();
-            assertEquals("row1", result.stringValue(1));
-            assertEquals("1", result.stringValue(2));
+            assertEquals("row1", result.getString(1));
+            assertEquals("1", result.getString(2));
             result.next();
-            assertEquals("row2", result.stringValue(1));
-            assertEquals("2", result.stringValue(2));
+            assertEquals("row2", result.getString(1));
+            assertEquals("2", result.getString(2));
         }
 
         @Test
@@ -418,7 +418,7 @@ class StandardResultTest {
             for (int i = 0; i < 3; i++) {
                 result.next();
             }
-            assertNull(result.stringValue(1));
+            assertNull(result.getString(1));
         }
     }
 
@@ -438,20 +438,20 @@ class StandardResultTest {
 
         @Test
         void returnsBeforeFirstBeforeNextIsCalled() throws Exception {
-            assertEquals(ResultPosition.BEFORE_FIRST, result.position());
+            assertEquals(ResultPosition.BEFORE_FIRST, result.getPosition());
         }
 
         @Test
         void returnsFirstWhenOnFirstRow() throws Exception {
             result.next();
-            assertEquals(ResultPosition.FIRST, result.position());
+            assertEquals(ResultPosition.FIRST, result.getPosition());
         }
 
         @Test
         void returnsMiddleAfterFirst() throws Exception {
             result.next();
             result.next();
-            assertEquals(ResultPosition.MIDDLE, result.position());
+            assertEquals(ResultPosition.MIDDLE, result.getPosition());
         }
 
         @Test
@@ -459,7 +459,7 @@ class StandardResultTest {
             for (int i = 0; i < 3; i++) {
                 result.next();
             }
-            assertEquals(ResultPosition.LAST, result.position());
+            assertEquals(ResultPosition.LAST, result.getPosition());
         }
 
         @Test
@@ -467,9 +467,9 @@ class StandardResultTest {
             for (int i = 0; i < 4; i++) {
                 result.next();
             }
-            assertEquals(ResultPosition.AFTER_LAST, result.position());
+            assertEquals(ResultPosition.AFTER_LAST, result.getPosition());
             result.next();
-            assertEquals(ResultPosition.AFTER_LAST, result.position());
+            assertEquals(ResultPosition.AFTER_LAST, result.getPosition());
         }
     }
 }

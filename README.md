@@ -135,7 +135,7 @@ try (
 ) {
   if (resultSet.isWrapperFor(AthenaResultSet.class)) {
     AthenaResultSet unwrappedResultSet = resultSet.unwrap(AthenaResultSet.class);
-    String queryExecutionId = unwrappedResultSet.queryExecutionId();
+    String queryExecutionId = unwrappedResultSet.getQueryExecutionId();
     System.out.println(queryExecutionId);
   }
 }
