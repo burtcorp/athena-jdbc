@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
@@ -14,16 +15,29 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaDatabaseMetaDataTest implements PomVersionLoader {
     private DatabaseMetaData metaData;
+    private Connection connection;
 
     @BeforeEach
     void setUp() {
-        metaData = new AthenaDatabaseMetaData();
+        connection = mock(Connection.class);
+        metaData = new AthenaDatabaseMetaData(connection);
+    }
+
+    @Nested
+    class GetConnection {
+        @Test
+        void returnsTheConnectionTheMetaDataWasCreatedBy() throws Exception {
+            assertSame(connection, metaData.getConnection());
+        }
     }
 
     @Nested
@@ -151,6 +165,19 @@ class AthenaDatabaseMetaDataTest implements PomVersionLoader {
         @Test
         void returnsTrue() throws Exception {
             assertTrue(metaData.isReadOnly());
+        }
+    }
+
+    @Nested
+    class GetURL {
+        @BeforeEach
+        void setUp() throws Exception {
+            when(connection.getSchema()).thenReturn("some_db");
+        }
+
+        @Test
+        void returnsAJdbcUrl() throws Exception {
+            assertEquals(AthenaDriver.createURL("some_db"), metaData.getURL());
         }
     }
 

@@ -7,12 +7,15 @@ import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
 class AthenaDatabaseMetaData implements DatabaseMetaData {
-    AthenaDatabaseMetaData() {
+    private final Connection connection;
+
+    AthenaDatabaseMetaData(Connection connection) {
+        this.connection = connection;
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return connection;
     }
 
     @Override
@@ -91,7 +94,7 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getURL() throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
+        return AthenaDriver.createURL(connection.getSchema());
     }
 
     @Override

@@ -178,7 +178,7 @@ public class AthenaConnection implements Connection {
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
         if (metaData == null) {
-            metaData = new AthenaDatabaseMetaData();
+            metaData = new AthenaDatabaseMetaData(this);
         }
         return metaData;
     }
