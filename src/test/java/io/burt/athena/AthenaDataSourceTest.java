@@ -154,7 +154,7 @@ class AthenaDataSourceTest {
     @Nested
     class IsWrapperFor {
         @Test
-        void isWrapperForAthenaConnection() throws Exception {
+        void isWrapperForAthenaDataSource() throws Exception {
             assertTrue(dataSource.isWrapperFor(AthenaDataSource.class));
         }
 
