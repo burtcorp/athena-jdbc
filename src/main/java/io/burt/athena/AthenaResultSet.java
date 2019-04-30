@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 
 public class AthenaResultSet implements ResultSet {
     private final String queryExecutionId;
-    private final ConnectionConfiguration connectionConfiguration;
     private AthenaStatement statement;
     private boolean open;
     private Result result;
@@ -52,7 +51,6 @@ public class AthenaResultSet implements ResultSet {
 
     AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, String queryExecutionId) {
         this.statement = statement;
-        this.connectionConfiguration = configuration;
         this.queryExecutionId = queryExecutionId;
         this.open = true;
         this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
