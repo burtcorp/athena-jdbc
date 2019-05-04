@@ -1,26 +1,17 @@
 package io.burt.athena;
 
 import io.burt.athena.support.PomVersionLoader;
+import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.athena.AthenaAsyncClient;
-import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
-import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
-import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
-import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLFeatureNotSupportedException;
@@ -29,8 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,21 +30,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaDriverTest implements PomVersionLoader {
     @Mock private AwsClientFactory clientFactory;
-    @Mock private AthenaAsyncClient athenaClient;
 
     private AthenaDriver driver;
     private Properties defaultProperties;
     private Map<String, String> env;
+    private QueryExecutionHelper queryExecutionHelper;
 
     @BeforeEach
     void setUpDriver() {
         env = new HashMap<>();
         driver = new AthenaDriver(clientFactory, env);
+        queryExecutionHelper = new QueryExecutionHelper();
+        lenient().when(clientFactory.createAthenaClient(any())).thenReturn(queryExecutionHelper);
     }
 
     @BeforeEach
@@ -68,66 +58,48 @@ class AthenaDriverTest implements PomVersionLoader {
 
     @Nested
     class Connect {
-        @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
-
-        private final String jdbcUrl = "jdbc:athena:test_db";
-
         @BeforeEach
-        void setUpDriver() {
-            lenient().when(clientFactory.createAthenaClient(any())).thenReturn(athenaClient);
-        }
-
-        StartQueryExecutionRequest executeRequest() throws Exception {
-            return executeRequest(jdbcUrl);
-        }
-
-        StartQueryExecutionRequest executeRequest(String url) throws Exception {
-            StartQueryExecutionResponse startQueryResponse = StartQueryExecutionResponse.builder().queryExecutionId("Q1234").build();
-            when(athenaClient.startQueryExecution(ArgumentMatchers.<Consumer<StartQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(startQueryResponse));
-            QueryExecutionStatus status = QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build();
-            QueryExecution queryExecution = QueryExecution.builder().status(status).build();
-            GetQueryExecutionResponse getQueryResponse = GetQueryExecutionResponse.builder().queryExecution(queryExecution).build();
-            when(athenaClient.getQueryExecution(ArgumentMatchers.<Consumer<GetQueryExecutionRequest.Builder>>any())).thenReturn(CompletableFuture.completedFuture(getQueryResponse));
-            Connection connection = driver.connect(url, defaultProperties);
-            connection.createStatement().execute("SELECT 1");
-            verify(athenaClient).startQueryExecution(startQueryExecutionCaptor.capture());
-            StartQueryExecutionRequest.Builder builder = StartQueryExecutionRequest.builder();
-            startQueryExecutionCaptor.getValue().accept(builder);
-            return builder.build();
+        void setUp() {
+            queryExecutionHelper.queueStartQueryResponse("Q1234");
+            queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
         }
 
         @Test
         void returnsConnection() throws Exception {
-            assertNotNull(driver.connect(jdbcUrl, defaultProperties));
+            assertNotNull(driver.connect("jdbc:athena:test_db", defaultProperties));
         }
 
         @Test
         void parsesTheDatabaseNameFromTheUrl() throws Exception {
-            StartQueryExecutionRequest request = executeRequest();
+            driver.connect("jdbc:athena:test_db", defaultProperties).createStatement().execute("SELECT 1");
+            StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
             assertEquals("test_db", request.queryExecutionContext().database());
         }
 
         @Test
         void usesTheDefaultDatabaseWhenThereIsNoDatabaseNameInTheUrl() throws Exception {
-            StartQueryExecutionRequest request = executeRequest("jdbc:athena");
+            driver.connect("jdbc:athena", defaultProperties).createStatement().execute("SELECT 1");
+            StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
             assertEquals("default", request.queryExecutionContext().database());
         }
 
         @Test
         void usesTheAwsRegionFromTheProperties() throws Exception {
-            driver.connect(jdbcUrl, defaultProperties);
+            driver.connect("jdbc:athena", defaultProperties);
             verify(clientFactory).createAthenaClient(Region.AP_SOUTHEAST_1);
         }
 
         @Test
         void usesTheWorkGroupFromTheProperties() throws Exception {
-            StartQueryExecutionRequest request = executeRequest();
+            driver.connect("jdbc:athena:test_db", defaultProperties).createStatement().execute("SELECT 1");
+            StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
             assertEquals("test_wg", request.workGroup());
         }
 
         @Test
         void usesTheOutputLocationFromTheProperties() throws Exception {
-            StartQueryExecutionRequest request = executeRequest();
+            driver.connect("jdbc:athena:test_db", defaultProperties).createStatement().execute("SELECT 1");
+            StartQueryExecutionRequest request = queryExecutionHelper.startQueryRequests().get(0);
             assertEquals("s3://test/location", request.resultConfiguration().outputLocation());
         }
 
