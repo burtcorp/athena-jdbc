@@ -59,7 +59,7 @@ class StandardResultTest {
     }
 
     @Nested
-    class UpdateFetchSize {
+    class SetFetchSize {
         @BeforeEach
         void setUp() {
             List<ColumnInfo> columns = Arrays.asList(
@@ -101,7 +101,7 @@ class StandardResultTest {
     }
 
     @Nested
-    class MetaData {
+    class GetMetaData {
         @BeforeEach
         void setUp() {
             queryResultsHelper.update(Arrays.asList(
@@ -354,7 +354,7 @@ class StandardResultTest {
     }
 
     @Nested
-    class RowNumber {
+    class GetRowNumber {
         @BeforeEach
         void setUp() {
             queryResultsHelper.update(Arrays.asList(
@@ -390,7 +390,7 @@ class StandardResultTest {
     }
 
     @Nested
-    class StringValue {
+    class GetString {
         @BeforeEach
         void setUp() {
             queryResultsHelper.update(Arrays.asList(
