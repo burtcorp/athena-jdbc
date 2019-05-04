@@ -115,6 +115,14 @@ public class AthenaResultSet implements ResultSet {
     public void close() throws SQLException {
         statement = null;
         open = false;
+        if (result != null) {
+            try {
+                result.close();
+            } catch (Exception e) {
+                throw new SQLException(e);
+            }
+            result = null;
+        }
     }
 
     @Override

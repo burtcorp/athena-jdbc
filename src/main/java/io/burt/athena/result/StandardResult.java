@@ -148,4 +148,10 @@ public class StandardResult implements Result {
             return ResultPosition.MIDDLE;
         }
     }
+
+    @Override
+    public void close() {
+        currentRows = null;
+        currentRow = null;
+    }
 }

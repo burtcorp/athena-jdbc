@@ -4,7 +4,7 @@ import io.burt.athena.AthenaResultSetMetaData;
 
 import java.sql.SQLException;
 
-public interface Result {
+public interface Result extends AutoCloseable {
     int getFetchSize() throws SQLException;
 
     void setFetchSize(int newFetchSize) throws SQLException;
