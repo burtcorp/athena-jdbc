@@ -5,6 +5,7 @@ import io.burt.athena.result.Result;
 import io.burt.athena.result.ResultPosition;
 import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -43,27 +44,23 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class AthenaResultSet implements ResultSet {
-    private final String queryExecutionId;
+    private final QueryExecution queryExecution;
     private AthenaStatement statement;
     private boolean open;
     private Result result;
     private boolean lastWasNull;
 
-    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, String queryExecutionId) {
+    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, QueryExecution queryExecution) {
         this.statement = statement;
-        this.queryExecutionId = queryExecutionId;
+        this.queryExecution = queryExecution;
         this.open = true;
-        this.result = new PreloadingStandardResult(athenaClient, queryExecutionId, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
+        this.result = new PreloadingStandardResult(athenaClient, queryExecution, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
         this.lastWasNull = false;
     }
 
     @Override
     public Statement getStatement() throws SQLException {
         return statement;
-    }
-
-    public String getQueryExecutionId() {
-        return queryExecutionId;
     }
 
     private void checkClosed() throws SQLException {

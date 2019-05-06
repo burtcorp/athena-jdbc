@@ -1,6 +1,7 @@
 package io.burt.athena;
 
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 
 import java.sql.ResultSetMetaData;
@@ -9,9 +10,11 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 
 public class AthenaResultSetMetaData implements ResultSetMetaData {
+    private final QueryExecution queryExecution;
     private final ResultSetMetadata metaData;
 
-    public AthenaResultSetMetaData(ResultSetMetadata metaData) {
+    public AthenaResultSetMetaData(QueryExecution queryExecution, ResultSetMetadata metaData) {
+        this.queryExecution = queryExecution;
         this.metaData = metaData;
     }
 
@@ -201,5 +204,9 @@ public class AthenaResultSetMetaData implements ResultSetMetaData {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isAssignableFrom(getClass());
+    }
+
+    public String getQueryExecutionId() {
+        return queryExecution.queryExecutionId();
     }
 }

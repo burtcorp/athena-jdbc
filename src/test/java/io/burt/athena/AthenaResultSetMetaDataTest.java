@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.ColumnNullable;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 
 import java.sql.ResultSetMetaData;
@@ -26,9 +27,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class AthenaResultSetMetaDataTest {
     private ResultSetMetaData metaData;
+    private QueryExecution queryExecution;
 
     @BeforeEach
     void setUp() {
+        queryExecution = QueryExecution
+                .builder()
+                .queryExecutionId("Q1234")
+                .resultConfiguration(b -> b.outputLocation("s3://some/location.csv"))
+                .build();
         metaData = createMetaData(
                 createColumn(cb -> cb.label("col1_label").name("col1_name").type("varchar").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(0).scale(0)),
                 createColumn(cb -> cb.label("col2_label").name("col2_name").type("bigint").tableName("table1").schemaName("schema1").catalogName("catalog1").precision(17).scale(3)),
@@ -47,7 +54,7 @@ class AthenaResultSetMetaDataTest {
     }
 
     private ResultSetMetaData createMetaData(ColumnInfo... columnInfos) {
-        return new AthenaResultSetMetaData(ResultSetMetadata.builder().columnInfo(columnInfos).build());
+        return new AthenaResultSetMetaData(queryExecution, ResultSetMetadata.builder().columnInfo(columnInfos).build());
     }
 
     @Nested
@@ -652,6 +659,14 @@ class AthenaResultSetMetaDataTest {
                 assertThrows(IndexOutOfBoundsException.class, () -> metaData.isDefinitelyWritable(0));
                 assertThrows(IndexOutOfBoundsException.class, () -> metaData.isDefinitelyWritable(metaData.getColumnCount() + 1));
             }
+        }
+    }
+
+    @Nested
+    class GetQueryExecutionId {
+        @Test
+        void returnsTheQueryExecutionIdFromTheQueryExecutionResult() throws Exception {
+            assertEquals("Q1234", metaData.unwrap(AthenaResultSetMetaData.class).getQueryExecutionId());
         }
     }
 }

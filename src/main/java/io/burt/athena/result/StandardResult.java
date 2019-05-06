@@ -3,6 +3,7 @@ package io.burt.athena.result;
 import io.burt.athena.AthenaResultSetMetaData;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.sql.SQLException;
@@ -19,7 +20,7 @@ public class StandardResult implements Result {
 
     private int fetchSize;
 
-    protected final String queryExecutionId;
+    protected final QueryExecution queryExecution;
     protected final AthenaAsyncClient athenaClient;
     protected final Duration timeout;
 
@@ -30,9 +31,9 @@ public class StandardResult implements Result {
     private String nextToken;
     private int rowNumber;
 
-    public StandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize, Duration timeout) {
+    public StandardResult(AthenaAsyncClient athenaClient, QueryExecution queryExecution, int fetchSize, Duration timeout) {
         this.athenaClient = athenaClient;
-        this.queryExecutionId = queryExecutionId;
+        this.queryExecution = queryExecution;
         this.fetchSize = fetchSize;
         this.timeout = timeout;
         this.rowNumber = 0;
@@ -47,7 +48,7 @@ public class StandardResult implements Result {
             try {
                 GetQueryResultsResponse response = loadNextPage();
                 nextToken = response.nextToken();
-                resultSetMetaData = new AthenaResultSetMetaData(response.resultSet().resultSetMetadata());
+                resultSetMetaData = new AthenaResultSetMetaData(queryExecution, response.resultSet().resultSetMetadata());
                 currentRows = response.resultSet().rows().iterator();
                 if (rowNumber == 0 && currentRows.hasNext()) {
                     currentRows.next();
@@ -75,7 +76,7 @@ public class StandardResult implements Result {
     protected CompletableFuture<GetQueryResultsResponse> loadPage(String nextToken) {
         return athenaClient.getQueryResults(builder -> {
             builder.nextToken(nextToken);
-            builder.queryExecutionId(queryExecutionId);
+            builder.queryExecutionId(queryExecution.queryExecutionId());
             builder.maxResults(fetchSize);
         });
     }

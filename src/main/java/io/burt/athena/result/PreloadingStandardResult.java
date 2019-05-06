@@ -2,6 +2,7 @@ package io.burt.athena.result;
 
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.sql.SQLException;
 import java.time.Duration;
@@ -13,8 +14,8 @@ import java.util.concurrent.TimeoutException;
 public class PreloadingStandardResult extends StandardResult {
     private CompletableFuture<GetQueryResultsResponse> pendingResult;
 
-    public PreloadingStandardResult(AthenaAsyncClient athenaClient, String queryExecutionId, int fetchSize, Duration timeout) {
-        super(athenaClient, queryExecutionId, fetchSize, timeout);
+    public PreloadingStandardResult(AthenaAsyncClient athenaClient, QueryExecution queryExecution, int fetchSize, Duration timeout) {
+        super(athenaClient, queryExecution, fetchSize, timeout);
         this.pendingResult = null;
     }
 

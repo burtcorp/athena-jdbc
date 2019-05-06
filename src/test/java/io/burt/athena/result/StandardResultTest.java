@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.sql.ResultSetMetaData;
@@ -39,7 +40,8 @@ class StandardResultTest {
     private StandardResult result;
 
     protected StandardResult createResult(AthenaAsyncClient athenaClient) {
-        return new StandardResult(queryResultsHelper, "Q1234", 123, Duration.ofMillis(10));
+        QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
+        return new StandardResult(queryResultsHelper, queryExecution, 123, Duration.ofMillis(10));
     }
 
     @BeforeEach
@@ -333,8 +335,9 @@ class StandardResultTest {
         class WhenLoadingTimesOut {
             @Test
             void throwsSQLTimeoutException() {
+                QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
                 queryResultsHelper.delayResponses(Duration.ofMillis(10));
-                result = new StandardResult(queryResultsHelper, "Q1234", 123, Duration.ZERO);
+                result = new StandardResult(queryResultsHelper, queryExecution, 123, Duration.ZERO);
                 Exception e = assertThrows(Exception.class, () -> result.next());
                 assertEquals(SQLTimeoutException.class, e.getClass());
                 assertEquals(TimeoutException.class, e.getCause().getClass());

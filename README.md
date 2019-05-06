@@ -127,15 +127,17 @@ try (
 ```java
 import io.burt.athena.AthenaResultSet;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 
 try (
   Statement statement = connection.createStatement();
   ResultSet resultSet = statement.executeQuery("SELECT 'Hello from Athena'")
 ) {
-  if (resultSet.isWrapperFor(AthenaResultSet.class)) {
-    AthenaResultSet unwrappedResultSet = resultSet.unwrap(AthenaResultSet.class);
-    String queryExecutionId = unwrappedResultSet.getQueryExecutionId();
+  ResultSetMetaData metaData = resultSet.getMetaData();
+  if (metaData.isWrapperFor(AthenaResultSetMetaData.class)) {
+    AthenaResultSetMetaData unwrappedMetaData = resultSetMetaData.unwrap(AthenaResultSetMetaData.class);
+    String queryExecutionId = unwrappedMetaData.getQueryExecutionId();
     System.out.println(queryExecutionId);
   }
 }

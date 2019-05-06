@@ -95,7 +95,7 @@ public class AthenaStatement implements Statement {
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
-                        return Optional.of(new AthenaResultSet(athenaClient, configuration, this, queryExecutionId));
+                        return Optional.of(new AthenaResultSet(athenaClient, configuration, this, statusResponse.queryExecution()));
                     case FAILED:
                     case CANCELLED:
                         throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());

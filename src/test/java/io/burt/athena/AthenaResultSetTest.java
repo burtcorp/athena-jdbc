@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.Row;
 
 import java.io.ByteArrayInputStream;
@@ -65,8 +66,9 @@ class AthenaResultSetTest {
     @BeforeEach
     void setUpResultSet() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
+        QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();
-        resultSet = new AthenaResultSet(queryResultsHelper, configuration, parentStatement, "Q1234");
+        resultSet = new AthenaResultSet(queryResultsHelper, configuration, parentStatement, queryExecution);
     }
 
     private void noRows() {
@@ -92,14 +94,6 @@ class AthenaResultSetTest {
         @Test
         void returnsTheParentStatement() throws Exception {
             assertSame(parentStatement, resultSet.getStatement());
-        }
-    }
-
-    @Nested
-    class QueryExecutionId {
-        @Test
-        void returnsTheQueryExecutionId() {
-            assertEquals("Q1234", resultSet.getQueryExecutionId());
         }
     }
 
