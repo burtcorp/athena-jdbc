@@ -95,6 +95,7 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public CompletableFuture<GetQueryResultsResponse> getQueryResults(Consumer<GetQueryResultsRequest.Builder> requestBuilderConsumer) {
         CompletableFuture<GetQueryResultsResponse> future;
         if (exceptionQueue.isEmpty()) {
