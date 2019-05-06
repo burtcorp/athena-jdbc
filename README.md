@@ -201,6 +201,7 @@ These are some specific limitations and known issues that you might run into:
 * `ResultSet#getArray` always returns string arrays, because Athena does not return any type information beyond `"array"`. It also does it's best splitting the array, but there is no way to tell the arrays `["hello", "world"]` and `["hello, world"]` apart. We recommend always casting to JSON for complex types, extract them using `ResultSet#getString` and parse them in your own code.
 * Similarly to arrays, maps and structs don't have unambiguous serializations in the Athena output format, but there is also no support in the JDBC API for these types. Cast to JSON, and use `ResultSet#getString` and parse them in your own code.
 * `Connection#prepareStatement` is not supported. The official Athena driver tries to support prepared statements and interpolation on the client side (it's unclear if it even works), but it's not the goal of this alternative driver to do that. Athena itself does not support prepared statements or interpolation, and there is no performance gain to be had from preparing statements.
+* The current mechanism for loading results uses the `GetQueryResult` API call, which has terrible performance for results with more than a few hundred rows. This will be changed in a future version, probably with something that streams the results directly from S3. The official driver has a "streaming" API that is currently private and undocumented, but also not necessarily any better than actually streaming the result from S3.
 
 ## Contributing
 
