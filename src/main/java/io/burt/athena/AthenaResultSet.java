@@ -1,11 +1,8 @@
 package io.burt.athena;
 
-import io.burt.athena.result.PreloadingStandardResult;
 import io.burt.athena.result.Result;
 import io.burt.athena.result.ResultPosition;
-import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
-import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -44,17 +41,15 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class AthenaResultSet implements ResultSet {
-    private final QueryExecution queryExecution;
     private AthenaStatement statement;
     private boolean open;
     private Result result;
     private boolean lastWasNull;
 
-    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, AthenaStatement statement, QueryExecution queryExecution) {
+    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Result result, AthenaStatement statement) {
         this.statement = statement;
-        this.queryExecution = queryExecution;
         this.open = true;
-        this.result = new PreloadingStandardResult(athenaClient, queryExecution, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
+        this.result = result;
         this.lastWasNull = false;
     }
 

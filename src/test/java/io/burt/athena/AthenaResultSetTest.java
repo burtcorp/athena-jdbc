@@ -1,5 +1,8 @@
 package io.burt.athena;
 
+import io.burt.athena.result.PreloadingStandardResult;
+import io.burt.athena.result.Result;
+import io.burt.athena.result.StandardResult;
 import io.burt.athena.support.GetQueryResultsHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -68,7 +71,8 @@ class AthenaResultSetTest {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();
-        resultSet = new AthenaResultSet(queryResultsHelper, configuration, parentStatement, queryExecution);
+        Result result = new PreloadingStandardResult(queryResultsHelper, queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(1));
+        resultSet = new AthenaResultSet(queryResultsHelper, configuration, result, parentStatement);
     }
 
     private void noRows() {

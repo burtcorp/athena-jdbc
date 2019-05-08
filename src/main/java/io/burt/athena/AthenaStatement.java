@@ -1,6 +1,9 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.result.PreloadingStandardResult;
+import io.burt.athena.result.Result;
+import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
@@ -95,7 +98,8 @@ public class AthenaStatement implements Statement {
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
-                        return Optional.of(new AthenaResultSet(athenaClient, configuration, this, statusResponse.queryExecution()));
+                        Result result = new PreloadingStandardResult(athenaClient, statusResponse.queryExecution(), StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
+                        return Optional.of(new AthenaResultSet(athenaClient, configuration, result, this));
                     case FAILED:
                     case CANCELLED:
                         throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());

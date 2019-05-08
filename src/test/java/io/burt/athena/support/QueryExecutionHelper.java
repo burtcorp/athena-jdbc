@@ -96,7 +96,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
     }
 
     public void queueGetQueryExecutionResponse(QueryExecutionState state) {
-        queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(state))));
+        queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(state)).resultConfiguration(bbb -> bbb.outputLocation("s3://dummy/location.csv"))));
     }
 
     public void queueGetQueryExecutionResponse(QueryExecutionState state, String stateChangeReason) {
