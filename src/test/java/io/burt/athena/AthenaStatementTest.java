@@ -422,9 +422,6 @@ class AthenaStatementTest {
         class WhenCalledAfterExecute {
             @Test
             void sendsACancelRequest() throws Exception {
-                queryExecutionHelper.queueStartQueryResponse("Q1234");
-                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-                ResultSet rs = statement.executeQuery("SELECT 1");
                 queryExecutionHelper.blockGetQueryExecutionResponse();
                 queryExecutionHelper.queueStartQueryResponse("Q2345");
                 queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.RUNNING);
@@ -437,7 +434,8 @@ class AthenaStatementTest {
                     }
                 });
                 runner.start();
-                while (!rs.isClosed()) {
+                while (queryExecutionHelper.getQueryExecutionRequests().size() == 0) {
+                    Thread.sleep(1);
                 }
                 statement.cancel();
                 queryExecutionHelper.unblockGetQueryExecutionResponse();
