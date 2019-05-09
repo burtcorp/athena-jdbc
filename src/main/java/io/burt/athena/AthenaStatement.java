@@ -1,11 +1,10 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
-import io.burt.athena.result.PreloadingStandardResult;
 import io.burt.athena.result.Result;
-import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
@@ -25,6 +24,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
+    private final Function<QueryExecution, Result> resultFactory;
+
     private ConnectionConfiguration configuration;
     private AthenaAsyncClient athenaClient;
     private String queryExecutionId;
@@ -33,12 +34,13 @@ public class AthenaStatement implements Statement {
     private Function<String, Optional<String>> clientRequestTokenProvider;
     private boolean open;
 
-    AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory) {
+    AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory, Function<QueryExecution, Result> resultFactory) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
         this.pollingStrategyFactory = pollingStrategyFactory;
         this.queryExecutionId = null;
         this.currentResultSet = null;
+        this.resultFactory = resultFactory;
         this.clientRequestTokenProvider = sql -> Optional.empty();
         this.open = true;
     }
@@ -98,8 +100,12 @@ public class AthenaStatement implements Statement {
                 QueryExecutionState state = statusResponse.queryExecution().status().state();
                 switch (state) {
                     case SUCCEEDED:
-                        Result result = new PreloadingStandardResult(athenaClient, statusResponse.queryExecution(), StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
-                        return Optional.of(new AthenaResultSet(athenaClient, configuration, result, this));
+                        return Optional.of(new AthenaResultSet(
+                                athenaClient,
+                                configuration,
+                                resultFactory.apply(statusResponse.queryExecution()),
+                                this
+                        ));
                     case FAILED:
                     case CANCELLED:
                         throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());

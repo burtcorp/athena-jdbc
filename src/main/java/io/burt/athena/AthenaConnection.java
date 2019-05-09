@@ -1,7 +1,10 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategies;
+import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.result.Result;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -25,16 +28,22 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class AthenaConnection implements Connection {
+    private final Function<QueryExecution, Result> resultFactory;
+    private final Supplier<PollingStrategy> pollingStrategyFactory;
     private ConnectionConfiguration configuration;
     private AthenaAsyncClient athenaClient;
     private DatabaseMetaData metaData;
     private boolean open;
 
-    AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
+    AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Function<QueryExecution, Result> resultFactory, Supplier<PollingStrategy> pollingStrategyFactory) {
         this.athenaClient = athenaClient;
         this.configuration = configuration;
+        this.resultFactory = resultFactory;
+        this.pollingStrategyFactory = pollingStrategyFactory;
         this.metaData = null;
         this.open = true;
     }
@@ -48,7 +57,7 @@ public class AthenaConnection implements Connection {
     @Override
     public Statement createStatement() throws SQLException {
         checkClosed();
-        return new AthenaStatement(athenaClient, configuration, () -> PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5)));
+        return new AthenaStatement(athenaClient, configuration, pollingStrategyFactory, resultFactory);
     }
 
     @Override

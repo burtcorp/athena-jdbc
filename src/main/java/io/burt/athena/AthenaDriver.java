@@ -1,6 +1,13 @@
 package io.burt.athena;
 
+import io.burt.athena.polling.PollingStrategies;
+import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.result.PreloadingStandardResult;
+import io.burt.athena.result.Result;
+import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.athena.AthenaAsyncClient;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.sql.Connection;
 import java.sql.Driver;
@@ -12,6 +19,8 @@ import java.time.Duration;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,7 +87,10 @@ public class AthenaDriver implements Driver {
             String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
             String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
             ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
-            return new AthenaConnection(clientFactory.createAthenaClient(region), configuration);
+            AthenaAsyncClient athenaClient = clientFactory.createAthenaClient(region);
+            Function<QueryExecution, Result> resultFactory = (queryExecution) -> new PreloadingStandardResult(athenaClient, queryExecution, StandardResult.MAX_FETCH_SIZE, configuration.apiCallTimeout());
+            Supplier<PollingStrategy> pollingStrategyFactory = () -> PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5));
+            return new AthenaConnection(athenaClient, configuration, resultFactory, pollingStrategyFactory);
         } else {
             return null;
         }

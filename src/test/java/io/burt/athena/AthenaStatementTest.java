@@ -1,14 +1,15 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.result.Result;
 import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.InternalServerException;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
@@ -34,10 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaStatementTest {
+    @Mock private Result result;
+
     private Supplier<PollingStrategy> pollingStrategyFactory;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaStatement statement;
@@ -63,7 +67,7 @@ class AthenaStatementTest {
     void setUpStatement() {
         ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
-        statement = new AthenaStatement(queryExecutionHelper, configuration, pollingStrategyFactory);
+        statement = new AthenaStatement(queryExecutionHelper, configuration, pollingStrategyFactory, ignored -> result);
     }
 
     class SharedExecuteSetup {
@@ -249,20 +253,19 @@ class AthenaStatementTest {
         @Nested
         class WhenTheResultSetIsUsed {
             @Test
-            void queriesForResultMetadata() throws Exception {
+            void proxiesToTheResultInstance1() throws Exception {
                 ResultSet rs = execute();
                 rs.next();
-                List<GetQueryResultsRequest> requests = queryExecutionHelper.getQueryResultsRequests();
-                assertEquals("Q1234", requests.get(0).queryExecutionId());
+                verify(result).next();
             }
 
             @Test
-            void usesTheConfiguredTimeout() throws Exception {
-                statement.setQueryTimeout(0);
-                queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
+            void proxiesToTheResultInstance2() throws Exception {
                 ResultSet rs = execute();
-                assertThrows(SQLTimeoutException.class, rs::next);
+                rs.getMetaData();
+                verify(result).getMetaData();
             }
+
         }
     }
 
@@ -397,14 +400,6 @@ class AthenaStatementTest {
             queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
-        }
-
-        @Test
-        void setsTheTimeoutUsedForApiCalls3() throws Exception {
-            queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
-            statement.setQueryTimeout(0);
-            ResultSet rs = statement.executeQuery("SELECT 1");
-            assertThrows(SQLTimeoutException.class, rs::next);
         }
     }
 
