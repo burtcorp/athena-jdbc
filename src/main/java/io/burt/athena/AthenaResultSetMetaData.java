@@ -209,4 +209,8 @@ public class AthenaResultSetMetaData implements ResultSetMetaData {
     public String getQueryExecutionId() {
         return queryExecution.queryExecutionId();
     }
+
+    public String getOutputLocation() {
+        return queryExecution.resultConfiguration().outputLocation();
+    }
 }
