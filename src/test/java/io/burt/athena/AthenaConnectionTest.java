@@ -8,8 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
@@ -61,8 +59,6 @@ class AthenaConnectionTest {
     }
 
     class SharedQuerySetup {
-        @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
-
         protected StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
