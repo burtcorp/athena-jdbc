@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
@@ -16,8 +15,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,23 +24,28 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaDataSourceTest {
-    @Mock private AwsClientFactory clientFactory;
-
+    private ConnectionConfigurationFactory connectionConfigurationFactory;
     private AthenaDataSource dataSource;
-    private Map<String, String> env;
     private QueryExecutionHelper queryExecutionHelper;
 
     @BeforeEach
     void setUp() {
-        env = new HashMap<>();
-        dataSource = new AthenaDataSource(clientFactory, env);
+        connectionConfigurationFactory = spy(new ConnectionConfigurationFactory());
+        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any())).then(invocation -> {
+            ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+            cc = spy(cc);
+            lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+            return cc;
+        });
+        dataSource = new AthenaDataSource(connectionConfigurationFactory);
         queryExecutionHelper = new QueryExecutionHelper();
-        lenient().when(clientFactory.createAthenaClient(any())).thenReturn(queryExecutionHelper);
     }
 
     @Nested
@@ -65,7 +67,7 @@ class AthenaDataSourceTest {
         void createsAnAthenaClientForTheConfiguredRegion() throws Exception {
             dataSource.setRegion("sa-east-1");
             dataSource.getConnection();
-            verify(clientFactory).createAthenaClient(Region.SA_EAST_1);
+            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.SA_EAST_1), any(), any(), any(), any());
         }
 
         @Test
@@ -98,7 +100,7 @@ class AthenaDataSourceTest {
             void setsTheRegionOfTheAthenaClient() throws Exception {
                 dataSource.setRegion("ca-central-1");
                 dataSource.getConnection();
-                verify(clientFactory).createAthenaClient(Region.CA_CENTRAL_1);
+                verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.CA_CENTRAL_1), any(), any(), any(), any());
             }
         }
     }

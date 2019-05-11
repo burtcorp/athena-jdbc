@@ -1,10 +1,8 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
-import io.burt.athena.result.Result;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
-import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 
@@ -21,26 +19,21 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class AthenaStatement implements Statement {
-    private final Function<QueryExecution, Result> resultFactory;
+    private final AthenaAsyncClient athenaClient;
 
     private ConnectionConfiguration configuration;
-    private AthenaAsyncClient athenaClient;
     private String queryExecutionId;
     private ResultSet currentResultSet;
-    private Supplier<PollingStrategy> pollingStrategyFactory;
     private Function<String, Optional<String>> clientRequestTokenProvider;
     private boolean open;
 
-    AthenaStatement(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Supplier<PollingStrategy> pollingStrategyFactory, Function<QueryExecution, Result> resultFactory) {
-        this.athenaClient = athenaClient;
+    AthenaStatement(ConnectionConfiguration configuration) {
         this.configuration = configuration;
-        this.pollingStrategyFactory = pollingStrategyFactory;
+        this.athenaClient = configuration.athenaClient();
         this.queryExecutionId = null;
         this.currentResultSet = null;
-        this.resultFactory = resultFactory;
         this.clientRequestTokenProvider = sql -> Optional.empty();
         this.open = true;
     }
@@ -92,7 +85,7 @@ public class AthenaStatement implements Statement {
                 clientRequestToken.ifPresent(sqeb::clientRequestToken);
             }).get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
             queryExecutionId = startResponse.queryExecutionId();
-            PollingStrategy pollingStrategy = pollingStrategyFactory.get();
+            PollingStrategy pollingStrategy = configuration.pollingStrategy();
             currentResultSet = pollingStrategy.pollUntilCompleted(() -> {
                 GetQueryExecutionResponse statusResponse = athenaClient
                         .getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId))
@@ -103,7 +96,7 @@ public class AthenaStatement implements Statement {
                         return Optional.of(new AthenaResultSet(
                                 athenaClient,
                                 configuration,
-                                resultFactory.apply(statusResponse.queryExecution()),
+                                configuration.createResult(statusResponse.queryExecution()),
                                 this
                         ));
                     case FAILED:
@@ -135,7 +128,6 @@ public class AthenaStatement implements Statement {
         if (currentResultSet != null) {
             currentResultSet.close();
         }
-        athenaClient = null;
         open = false;
     }
 

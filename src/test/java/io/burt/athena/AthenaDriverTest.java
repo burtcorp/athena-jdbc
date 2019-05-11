@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
@@ -16,8 +15,6 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -28,24 +25,29 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaDriverTest implements PomVersionLoader {
-    @Mock private AwsClientFactory clientFactory;
-
     private AthenaDriver driver;
     private Properties defaultProperties;
-    private Map<String, String> env;
     private QueryExecutionHelper queryExecutionHelper;
+    private ConnectionConfigurationFactory connectionConfigurationFactory;
 
     @BeforeEach
     void setUpDriver() {
-        env = new HashMap<>();
-        driver = new AthenaDriver(clientFactory, env);
+        connectionConfigurationFactory = spy(new ConnectionConfigurationFactory());
+        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any())).then(invocation -> {
+            ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+            cc = spy(cc);
+            lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+            return cc;
+        });
+        driver = new AthenaDriver(connectionConfigurationFactory);
         queryExecutionHelper = new QueryExecutionHelper();
-        lenient().when(clientFactory.createAthenaClient(any())).thenReturn(queryExecutionHelper);
     }
 
     @BeforeEach
@@ -86,7 +88,7 @@ class AthenaDriverTest implements PomVersionLoader {
         @Test
         void usesTheAwsRegionFromTheProperties() throws Exception {
             driver.connect("jdbc:athena", defaultProperties);
-            verify(clientFactory).createAthenaClient(Region.AP_SOUTHEAST_1);
+            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.AP_SOUTHEAST_1), any(), any(), any(), any());
         }
 
         @Test

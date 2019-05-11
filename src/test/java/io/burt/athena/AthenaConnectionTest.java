@@ -1,16 +1,12 @@
 package io.burt.athena;
 
-import io.burt.athena.polling.PollingStrategies;
-import io.burt.athena.polling.PollingStrategy;
-import io.burt.athena.result.Result;
 import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.model.QueryExecution;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 
@@ -27,9 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,23 +32,24 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaConnectionTest {
-    @Mock private Result result;
-    @Mock private PollingStrategy pollingStrategy;
-
+    private ConnectionConfiguration connectionConfiguration;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
-        Function<QueryExecution, Result> resultFactory = (ignored) -> result;
-        Supplier<PollingStrategy> pollingStrategyFactory = () -> PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5));
-        connection = new AthenaConnection(queryExecutionHelper, configuration, resultFactory, pollingStrategyFactory);
+        connectionConfiguration = spy(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(1)));
+        when(connectionConfiguration.athenaClient()).thenReturn(queryExecutionHelper);
+        connection = new AthenaConnection(connectionConfiguration);
     }
 
     class SharedQuerySetup {
@@ -70,6 +64,12 @@ class AthenaConnectionTest {
         void setUp() {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
+            lenient().when(connectionConfiguration.withDatabaseName(any())).then(invocation -> {
+                ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+                cc = spy(cc);
+                when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+                return cc;
+            });
         }
     }
 

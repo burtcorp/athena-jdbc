@@ -6,7 +6,6 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -16,11 +15,11 @@ public class AthenaDataSource implements DataSource {
     private String databaseName;
 
     public AthenaDataSource() {
-        this(new AwsClientFactory(), System.getenv());
+        this(new ConnectionConfigurationFactory());
     }
 
-    AthenaDataSource(AwsClientFactory clientFactory, Map<String, String> env) {
-        this.driver = new AthenaDriver(clientFactory, env);
+    AthenaDataSource(ConnectionConfigurationFactory connectionConfigurationFactory) {
+        this.driver = new AthenaDriver(connectionConfigurationFactory);
         this.databaseName = "default";
         this.properties = new Properties();
     }

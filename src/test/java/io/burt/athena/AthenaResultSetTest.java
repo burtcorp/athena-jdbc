@@ -62,17 +62,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class AthenaResultSetTest {
     @Mock private AthenaStatement parentStatement;
+    @Mock private ConnectionConfiguration connectionConfiguration;
 
     private AthenaResultSet resultSet;
     private GetQueryResultsHelper queryResultsHelper;
 
     @BeforeEach
     void setUpResultSet() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();
         Result result = new PreloadingStandardResult(queryResultsHelper, queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(1));
-        resultSet = new AthenaResultSet(queryResultsHelper, configuration, result, parentStatement);
+        resultSet = new AthenaResultSet(queryResultsHelper, connectionConfiguration, result, parentStatement);
     }
 
     private void noRows() {
