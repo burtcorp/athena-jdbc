@@ -74,7 +74,14 @@ public class AthenaDriver implements Driver {
             Region region = connectionProperties.containsKey(REGION_PROPERTY_NAME) ? Region.of(connectionProperties.getProperty(REGION_PROPERTY_NAME)) : null;
             String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
             String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
-            ConnectionConfiguration configuration = connectionConfigurationFactory.createConnectionConfiguration(region, databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
+            ConnectionConfiguration configuration = connectionConfigurationFactory.createConnectionConfiguration(
+                    region,
+                    databaseName,
+                    workGroup,
+                    outputLocation,
+                    Duration.ofMinutes(1),
+                    ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS
+            );
             return new AthenaConnection(configuration);
         } else {
             return null;

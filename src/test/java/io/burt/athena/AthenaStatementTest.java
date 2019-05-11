@@ -69,7 +69,7 @@ class AthenaStatementTest {
     @BeforeEach
     void setUpStatement() {
         queryExecutionHelper = new QueryExecutionHelper();
-        connectionConfiguration = configureConfiguration(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(60)));
+        connectionConfiguration = configureConfiguration(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(60), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
         statement = new AthenaStatement(connectionConfiguration);
     }
 

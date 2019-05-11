@@ -47,7 +47,7 @@ class AthenaConnectionTest {
     @BeforeEach
     void setUpConnection() {
         queryExecutionHelper = new QueryExecutionHelper();
-        connectionConfiguration = spy(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(1)));
+        connectionConfiguration = spy(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(1), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
         when(connectionConfiguration.athenaClient()).thenReturn(queryExecutionHelper);
         connection = new AthenaConnection(connectionConfiguration);
     }

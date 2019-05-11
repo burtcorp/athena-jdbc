@@ -40,7 +40,7 @@ class AthenaDriverTest implements PomVersionLoader {
     @BeforeEach
     void setUpDriver() {
         connectionConfigurationFactory = spy(new ConnectionConfigurationFactory());
-        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any())).then(invocation -> {
+        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any(), any())).then(invocation -> {
             ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
             cc = spy(cc);
             lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
@@ -88,7 +88,7 @@ class AthenaDriverTest implements PomVersionLoader {
         @Test
         void usesTheAwsRegionFromTheProperties() throws Exception {
             driver.connect("jdbc:athena", defaultProperties);
-            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.AP_SOUTHEAST_1), any(), any(), any(), any());
+            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.AP_SOUTHEAST_1), any(), any(), any(), any(), any());
         }
 
         @Test
