@@ -1,33 +1,27 @@
 package io.burt.athena.result;
 
 import io.burt.athena.support.GetObjectHelper;
-import io.burt.athena.support.GetQueryResultsHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class S3ResultTest {
-    private GetQueryResultsHelper queryResultsHelper;
     private GetObjectHelper getObjectHelper;
     private S3Result result;
 
@@ -38,16 +32,46 @@ class S3ResultTest {
                 .queryExecutionId("Q1234")
                 .resultConfiguration(b -> b.outputLocation("s3://some-bucket/the/prefix/Q1234.csv"))
                 .build();
-        queryResultsHelper = new GetQueryResultsHelper();
         getObjectHelper = new GetObjectHelper();
-        result = new S3Result(queryResultsHelper, getObjectHelper, queryExecution, Duration.ofMillis(10));
+        result = new S3Result(getObjectHelper, queryExecution, Duration.ofMillis(10));
+    }
+
+    private ByteBuffer createMetadata(List<ColumnInfo> columns) {
+        ByteBuffer outerBuffer = ByteBuffer.allocate(1 << 16);
+        outerBuffer.put((byte) (1 << 3 | 2));
+        outerBuffer.put((byte) 5);
+        outerBuffer.put("fnord".getBytes());
+        for (ColumnInfo column : columns) {
+            ByteBuffer innerBuffer = ByteBuffer.allocate(1 << 12);
+            if (column.name() != null) {
+                innerBuffer.put((byte) (4 << 3 | 2));
+                innerBuffer.put((byte) column.name().length());
+                innerBuffer.put(column.name().getBytes(StandardCharsets.UTF_8));
+            }
+            if (column.label() != null) {
+                innerBuffer.put((byte) (5 << 3 | 2));
+                innerBuffer.put((byte) column.label().length());
+                innerBuffer.put(column.label().getBytes(StandardCharsets.UTF_8));
+            }
+            if (column.type() != null) {
+                innerBuffer.put((byte) (6 << 3 | 2));
+                innerBuffer.put((byte) column.type().length());
+                innerBuffer.put(column.type().getBytes(StandardCharsets.UTF_8));
+            }
+            innerBuffer.flip();
+            outerBuffer.put((byte) (4 << 3 | 2));
+            outerBuffer.put((byte) innerBuffer.remaining());
+            outerBuffer.put(innerBuffer);
+        }
+        return outerBuffer;
     }
 
     private void createData() {
-        queryResultsHelper.update(Arrays.asList(
+        ByteBuffer metadata = createMetadata(Arrays.asList(
                 createColumn("col1", "string"),
                 createColumn("col2", "integer")
-        ), Collections.emptyList());
+        ));
+        getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv.metadata", new String(metadata.array(), StandardCharsets.ISO_8859_1));
         StringBuilder contents = new StringBuilder();
         contents.append("\"col1\",\"col2\"\n");
         contents.append("\"row1\",\"1\"\n");
@@ -82,7 +106,9 @@ class S3ResultTest {
         @Test
         void loadsTheMetaDataIfNotLoaded() throws Exception {
             assertNotNull(result.getMetaData());
-            assertTrue(queryResultsHelper.requestCount() > 0);
+            GetObjectRequest request = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".metadata")).findFirst().get();
+            assertEquals("some-bucket", request.bucket());
+            assertEquals("the/prefix/Q1234.csv.metadata", request.key());
         }
 
         @Test
@@ -91,50 +117,18 @@ class S3ResultTest {
             result.next();
             result.getMetaData();
             result.next();
-            assertEquals(1, queryResultsHelper.requestCount());
-        }
-
-        @Test
-        void doesNotLoadRowsWhenLoadingMetaData() throws Exception {
-            result.getMetaData();
-            GetQueryResultsRequest request = queryResultsHelper.resultsRequests().get(0);
-            assertEquals(1, request.maxResults());
+            long count = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".metadata")).count();
+            assertEquals(1, count);
         }
 
         @Nested
-        class WhenLoadingIsInterrupted {
-            private Thread runner;
-            private AtomicReference<ResultSetMetaData> executeResult;
-            private AtomicReference<Boolean> interruptedState;
+        class WhenTheOutputLocationIsMalformed {
+            // TODO
+        }
 
-            @BeforeEach
-            void setUp() {
-                executeResult = new AtomicReference<>(null);
-                interruptedState = new AtomicReference<>(null);
-                runner = new Thread(() -> {
-                    try {
-                        executeResult.set(result.getMetaData());
-                        interruptedState.set(Thread.currentThread().isInterrupted());
-                    } catch (SQLException sqle) {
-                        throw new RuntimeException(sqle);
-                    }
-                });
-                queryResultsHelper.interruptLoading(true);
-            }
-
-            @Test
-            void setsTheInterruptFlag() throws Exception {
-                runner.start();
-                runner.join();
-                assertTrue(interruptedState.get());
-            }
-
-            @Test
-            void returnsNull() throws Exception {
-                runner.start();
-                runner.join();
-                assertNull(executeResult.get());
-            }
+        @Nested
+        class WhenReadingTheMetaDataThrowsIoException {
+            // TODO
         }
     }
 
@@ -148,24 +142,31 @@ class S3ResultTest {
         @Test
         void loadsMetaData() throws Exception {
             result.next();
-            assertEquals(1, queryResultsHelper.requestCount());
+            long count = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".metadata")).count();
+            assertEquals(1, count);
         }
 
         @Test
         void onlyLoadsMetaDataOnTheFirstCall() throws Exception {
             result.next();
             result.next();
-            assertEquals(1, queryResultsHelper.requestCount());
+            long count = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".metadata")).count();
+            assertEquals(1, count);
         }
 
         @Test
         void requestsTheResultObject() throws Exception {
             result.next();
-            List<GetObjectRequest> requests = getObjectHelper.getObjectRequests();
-            assertEquals(1, requests.size());
-            GetObjectRequest request = requests.get(0);
+            GetObjectRequest request = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".csv")).findFirst().get();
             assertEquals("some-bucket", request.bucket());
             assertEquals("the/prefix/Q1234.csv", request.key());
+        }
+
+        @Test
+        void requestsTheResultObjectOnce() throws Exception {
+            result.next();
+            long count = getObjectHelper.getObjectRequests().stream().filter(r -> r.key().endsWith(".csv")).count();
+            assertEquals(1, count);
         }
 
         @Test
@@ -180,6 +181,11 @@ class S3ResultTest {
             assertEquals("row3", result.getString(1));
             assertEquals("3", result.getString(2));
         }
+
+        @Nested
+        class WhenReadingTheDataThrowsIoException {
+            // TODO
+        }
     }
 
     @Nested
@@ -190,7 +196,7 @@ class S3ResultTest {
         }
 
         @Test
-        void returnsZeroWhenBeforeFirstRow() throws Exception {
+        void returnsZeroWhenBeforeFirstRow() {
             assertEquals(0, result.getRowNumber());
         }
 
@@ -219,7 +225,7 @@ class S3ResultTest {
         }
 
         @Test
-        void returnsBeforeFirstBeforeNextIsCalled() throws Exception {
+        void returnsBeforeFirstBeforeNextIsCalled() {
             assertEquals(ResultPosition.BEFORE_FIRST, result.getPosition());
         }
 
