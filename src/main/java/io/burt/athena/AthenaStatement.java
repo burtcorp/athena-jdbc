@@ -1,10 +1,7 @@
 package io.burt.athena;
 
-import io.burt.athena.polling.PollingStrategy;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
-import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
-import software.amazon.awssdk.services.athena.model.QueryExecutionState;
-import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -76,36 +73,8 @@ public class AthenaStatement implements Statement {
             currentResultSet = null;
         }
         try {
-            Optional<String> clientRequestToken = clientRequestTokenProvider.apply(sql);
-            StartQueryExecutionResponse startResponse = athenaClient.startQueryExecution(sqeb -> {
-                sqeb.queryString(sql);
-                sqeb.workGroup(configuration.workGroupName());
-                sqeb.queryExecutionContext(ecb -> ecb.database(configuration.databaseName()));
-                sqeb.resultConfiguration(rcb -> rcb.outputLocation(configuration.outputLocation()));
-                clientRequestToken.ifPresent(sqeb::clientRequestToken);
-            }).get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            queryExecutionId = startResponse.queryExecutionId();
-            PollingStrategy pollingStrategy = configuration.pollingStrategy();
-            currentResultSet = pollingStrategy.pollUntilCompleted(() -> {
-                GetQueryExecutionResponse statusResponse = athenaClient
-                        .getQueryExecution(builder -> builder.queryExecutionId(queryExecutionId))
-                        .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS);
-                QueryExecutionState state = statusResponse.queryExecution().status().state();
-                switch (state) {
-                    case SUCCEEDED:
-                        return Optional.of(new AthenaResultSet(
-                                athenaClient,
-                                configuration,
-                                configuration.createResult(statusResponse.queryExecution()),
-                                this
-                        ));
-                    case FAILED:
-                    case CANCELLED:
-                        throw new SQLException(statusResponse.queryExecution().status().stateChangeReason());
-                    default:
-                        return Optional.empty();
-                }
-            });
+            queryExecutionId = startQueryExecution(sql);
+            currentResultSet = configuration.pollingStrategy().pollUntilCompleted(this::poll);
             return currentResultSet != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -115,6 +84,44 @@ public class AthenaStatement implements Statement {
         } catch (ExecutionException ee) {
             throw new SQLException(ee);
         }
+    }
+
+    private String startQueryExecution(String sql) throws InterruptedException, ExecutionException, TimeoutException {
+        return athenaClient
+                .startQueryExecution(b -> {
+                    b.queryString(sql);
+                    b.workGroup(configuration.workGroupName());
+                    b.queryExecutionContext(bb -> bb.database(configuration.databaseName()));
+                    b.resultConfiguration(bb -> bb.outputLocation(configuration.outputLocation()));
+                    clientRequestTokenProvider.apply(sql).ifPresent(b::clientRequestToken);
+                })
+                .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .queryExecutionId();
+    }
+
+    private Optional<ResultSet> poll() throws SQLException, InterruptedException, ExecutionException, TimeoutException {
+        QueryExecution queryExecution = athenaClient
+                .getQueryExecution(b -> b.queryExecutionId(queryExecutionId))
+                .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .queryExecution();
+        switch (queryExecution.status().state()) {
+            case SUCCEEDED:
+                return Optional.of(createResultSet(queryExecution));
+            case FAILED:
+            case CANCELLED:
+                throw new SQLException(queryExecution.status().stateChangeReason());
+            default:
+                return Optional.empty();
+        }
+    }
+
+    private ResultSet createResultSet(QueryExecution queryExecution) {
+        return new AthenaResultSet(
+                athenaClient,
+                configuration,
+                configuration.createResult(queryExecution),
+                this
+        );
     }
 
     private void checkClosed() throws SQLException {
