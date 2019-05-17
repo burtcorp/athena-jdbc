@@ -101,6 +101,9 @@ public class VeryBasicCsvParser implements Iterator<String[]> {
     private String consumeString() throws IOException, IllegalStateException {
         StringBuilder builder = new StringBuilder();
         while (nextChar0 != '"' || nextChar1 == '"') {
+            if (nextChar0 == -1) {
+                throw new IllegalStateException("Stream ended in the middle of a string");
+            }
             if (nextChar0 == '"') {
                 advance();
             }

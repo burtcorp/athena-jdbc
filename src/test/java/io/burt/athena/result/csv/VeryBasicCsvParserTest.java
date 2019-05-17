@@ -202,6 +202,15 @@ class VeryBasicCsvParserTest {
                     assertNull(parser.next());
                 }
             }
+
+            @Nested
+            class AndTheStreamEndsAbruptly {
+                @Test
+                void returnsNull() {
+                    parser = new VeryBasicCsvParser(new StringReader("\"hello\",\"world\",\""), 3);
+                    assertNull(parser.next());
+                }
+            }
         }
     }
 }
