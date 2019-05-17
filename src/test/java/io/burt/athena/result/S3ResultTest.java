@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -58,12 +59,12 @@ class S3ResultTest {
                 innerBuffer.put((byte) column.type().length());
                 innerBuffer.put(column.type().getBytes(StandardCharsets.UTF_8));
             }
-            innerBuffer.flip();
+            ((Buffer) innerBuffer).flip();
             outerBuffer.put((byte) (4 << 3 | 2));
             outerBuffer.put((byte) innerBuffer.remaining());
             outerBuffer.put(innerBuffer);
         }
-        outerBuffer.flip();
+        ((Buffer) outerBuffer).flip();
         return outerBuffer;
     }
 

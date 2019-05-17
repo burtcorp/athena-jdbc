@@ -403,7 +403,7 @@ public class S3Result implements Result {
 
         @Override
         public void onComplete() {
-            resultBuffer.flip();
+            ((Buffer) resultBuffer).flip();
             future.complete(resultBuffer);
         }
     }
