@@ -80,7 +80,7 @@ public class AthenaDriver implements Driver {
                     workGroup,
                     outputLocation,
                     Duration.ofMinutes(1),
-                    ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS
+                    ConnectionConfiguration.ResultLoadingStrategy.S3
             );
             return new AthenaConnection(configuration);
         } else {
