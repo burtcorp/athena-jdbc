@@ -117,8 +117,6 @@ public class AthenaStatement implements Statement {
 
     private ResultSet createResultSet(QueryExecution queryExecution) {
         return new AthenaResultSet(
-                athenaClient,
-                configuration,
                 configuration.createResult(queryExecution),
                 this
         );

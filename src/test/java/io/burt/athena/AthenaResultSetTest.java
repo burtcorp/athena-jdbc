@@ -72,7 +72,7 @@ class AthenaResultSetTest {
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();
         Result result = new PreloadingStandardResult(queryResultsHelper, queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(1));
-        resultSet = new AthenaResultSet(queryResultsHelper, connectionConfiguration, result, parentStatement);
+        resultSet = new AthenaResultSet(result, parentStatement);
     }
 
     private void noRows() {
