@@ -212,10 +212,12 @@ public class S3Result implements Result {
 
     private static class InputStreamResponseTransformer extends InputStream implements AsyncResponseTransformer<GetObjectResponse, InputStream>, Subscriber<ByteBuffer> {
         private static final ByteBuffer END_MARKER = ByteBuffer.allocate(0);
+        private static int TARGET_BUFFER_SIZE = 1 << 25;
 
         private final CompletableFuture<InputStream> future;
         private final BlockingQueue<ByteBuffer> chunks;
 
+        private GetObjectResponse response;
         private Subscription subscription;
         private ByteBuffer readChunk;
         private Throwable error;
@@ -235,7 +237,8 @@ public class S3Result implements Result {
         }
 
         @Override
-        public void onResponse(GetObjectResponse response) {
+        public void onResponse(GetObjectResponse r) {
+            response = r;
             future.complete(this);
         }
 
@@ -253,7 +256,11 @@ public class S3Result implements Result {
         @Override
         public void onSubscribe(Subscription s) {
             subscription = s;
-            subscription.request(1000L);
+            if (response.contentLength() < TARGET_BUFFER_SIZE) {
+                subscription.request(Long.MAX_VALUE);
+            } else {
+                subscription.request(10L);
+            }
         }
 
         @Override
@@ -264,8 +271,8 @@ public class S3Result implements Result {
         }
 
         private void maybeRequestMore(int currentSize) {
-            if (currentSize < (1 << 25)) {
-                subscription.request(1000L);
+            if (currentSize < TARGET_BUFFER_SIZE) {
+                subscription.request(10L);
             }
         }
 
