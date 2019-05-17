@@ -63,6 +63,7 @@ class S3ResultTest {
             outerBuffer.put((byte) innerBuffer.remaining());
             outerBuffer.put(innerBuffer);
         }
+        outerBuffer.flip();
         return outerBuffer;
     }
 
@@ -71,13 +72,15 @@ class S3ResultTest {
                 createColumn("col1", "string"),
                 createColumn("col2", "integer")
         ));
-        getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv.metadata", new String(metadata.array(), StandardCharsets.ISO_8859_1));
+        byte[] bytes = new byte[metadata.remaining()];
+        metadata.get(bytes);
+        getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv.metadata", bytes);
         StringBuilder contents = new StringBuilder();
         contents.append("\"col1\",\"col2\"\n");
         contents.append("\"row1\",\"1\"\n");
         contents.append("\"row2\",\"2\"\n");
         contents.append("\"row3\",\"3\"\n");
-        getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv", contents.toString());
+        getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv", contents.toString().getBytes(StandardCharsets.UTF_8));
 
     }
 
@@ -180,6 +183,11 @@ class S3ResultTest {
             result.next();
             assertEquals("row3", result.getString(1));
             assertEquals("3", result.getString(2));
+        }
+
+        @Nested
+        class WhenS3ThrowsNoSuchKeyError {
+            // TODO
         }
 
         @Nested

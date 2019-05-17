@@ -9,7 +9,7 @@ import io.burt.athena.result.StandardResult;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import java.time.Duration;
 
@@ -27,7 +27,7 @@ class ConnectionConfiguration {
     private final ResultLoadingStrategy resultLoadingStrategy;
 
     private AthenaAsyncClient athenaClient;
-    private S3Client s3Client;
+    private S3AsyncClient s3Client;
     private PollingStrategy pollingStrategy;
 
     ConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy) {
@@ -39,7 +39,7 @@ class ConnectionConfiguration {
         this.resultLoadingStrategy = resultLoadingStrategy;
     }
 
-    private ConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3Client s3Client, PollingStrategy pollingStrategy) {
+    private ConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3AsyncClient s3Client, PollingStrategy pollingStrategy) {
         this(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
         this.athenaClient = athenaClient;
         this.s3Client = s3Client;
@@ -69,9 +69,9 @@ class ConnectionConfiguration {
         return athenaClient;
     }
 
-    S3Client s3Client() {
+    S3AsyncClient s3Client() {
         if (s3Client == null) {
-            s3Client = S3Client.builder().region(awsRegion).build();
+            s3Client = S3AsyncClient.builder().region(awsRegion).build();
         }
         return s3Client;
     }
