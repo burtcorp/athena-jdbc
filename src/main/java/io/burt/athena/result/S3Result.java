@@ -87,6 +87,10 @@ public class S3Result implements Result {
                 throw new SQLTimeoutException(e);
             } catch (NoSuchKeyException e) {
                 throw new SQLException(e);
+            } catch (RuntimeException e) {
+                if (!(e.getCause() instanceof RuntimeException)) {
+                    throw new SQLException(e.getCause());
+                }
             }
         }
         return resultSetMetaData;
@@ -111,6 +115,12 @@ public class S3Result implements Result {
                 throw new SQLTimeoutException(e);
             } catch (NoSuchKeyException e) {
                 throw new SQLException(e);
+            } catch (RuntimeException e) {
+                if (!(e.getCause() instanceof RuntimeException)) {
+                    throw new SQLException(e.getCause());
+                } else {
+                    throw e;
+                }
             }
         }
         currentRow = csvParser.next();

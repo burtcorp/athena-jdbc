@@ -27,12 +27,14 @@ import java.util.function.Consumer;
 public class GetObjectHelper implements S3AsyncClient {
     private final Map<String, byte[]> objects;
     private final Map<String, Exception> exceptions;
+    private final Map<String, Exception> lateExceptions;
     private final Map<String, Duration> delays;
     private final List<GetObjectRequest> getObjectRequests;
 
     public GetObjectHelper() {
         this.objects = new HashMap<>();
         this.exceptions = new HashMap<>();
+        this.lateExceptions = new HashMap<>();
         this.delays = new HashMap<>();
         this.getObjectRequests = new LinkedList<>();
     }
@@ -47,6 +49,10 @@ public class GetObjectHelper implements S3AsyncClient {
 
     public void setObjectException(String bucket, String key, Exception e) {
         exceptions.put(uri(bucket, key), e);
+    }
+
+    public void setObjectLateException(String bucket, String key, Exception e) {
+        lateExceptions.put(uri(bucket, key), e);
     }
 
     public void removeObject(String bucket, String key) {
@@ -108,6 +114,33 @@ public class GetObjectHelper implements S3AsyncClient {
         }
     }
 
+    private static class GetObjectExceptionPublisher implements SdkPublisher<ByteBuffer>, Subscription {
+        private final Exception e;
+        private final ExecutorService executor;
+
+        private Subscriber<? super ByteBuffer> subscriber;
+
+        public GetObjectExceptionPublisher(Exception e) {
+            this.e = e;
+            this.executor = Executors.newSingleThreadExecutor();
+        }
+
+        @Override
+        public void subscribe(Subscriber<? super ByteBuffer> s) {
+            subscriber = s;
+            executor.submit(() -> subscriber.onSubscribe(this));
+            executor.submit(() -> subscriber.onError(e));
+        }
+
+        @Override
+        public void request(long n) {
+        }
+
+        @Override
+        public void cancel() {
+        }
+    }
+
     @Override
     public <T> CompletableFuture<T> getObject(Consumer<GetObjectRequest.Builder> getObjectRequestConsumer, AsyncResponseTransformer<GetObjectResponse, T> requestTransformer) throws AwsServiceException, SdkClientException {
         GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder();
@@ -119,6 +152,11 @@ public class GetObjectHelper implements S3AsyncClient {
         if (exceptions.containsKey(uri)) {
             future = new CompletableFuture<>();
             future.completeExceptionally(exceptions.get(uri));
+        } else if (lateExceptions.containsKey(uri)) {
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            future = requestTransformer.prepare();
+            requestTransformer.onResponse(response);
+            requestTransformer.onStream(new GetObjectExceptionPublisher(lateExceptions.get(uri)));
         } else if (objects.containsKey(uri)) {
             byte[] object = objects.get(uri);
             GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();

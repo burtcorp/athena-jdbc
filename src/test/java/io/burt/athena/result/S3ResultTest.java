@@ -11,11 +11,13 @@ import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
+import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
+import java.text.ParseException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -179,6 +181,17 @@ class S3ResultTest {
         }
 
         @Nested
+        class WhenLoadingTheMetaDataThrowsAnExceptionDuringLoading {
+            @Test
+            void wrapsItInSqlException() {
+                getObjectHelper.setObjectLateException("some-bucket", "the/prefix/Q1234.csv.metadata", new ArrayIndexOutOfBoundsException("b0rk"));
+                Exception e = assertThrows(SQLException.class, () -> result.getMetaData());
+                assertEquals("b0rk", e.getCause().getMessage());
+                assertEquals(ArrayIndexOutOfBoundsException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
         class WhenLoadingTheMetaDataTimesOut {
             @Test
             void throwsSqlTimeoutException() {
@@ -270,6 +283,18 @@ class S3ResultTest {
                 Exception e = assertThrows(SQLException.class, () -> result.next());
                 assertEquals("b0rk", e.getCause().getMessage());
                 assertEquals(ArrayIndexOutOfBoundsException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
+        class WhenLoadingTheResultThrowsAnExceptionDuringLoading {
+            @Test
+            void wrapsItInIoExceptionAndThenSqlException() {
+                getObjectHelper.setObjectLateException("some-bucket", "the/prefix/Q1234.csv", new RuntimeException(new ParseException("b0rk", 13)));
+                Exception e = assertThrows(SQLException.class, () -> result.next());
+                assertEquals("b0rk", e.getCause().getCause().getCause().getMessage());
+                assertEquals(IOException.class, e.getCause().getClass());
+                assertEquals(ParseException.class, e.getCause().getCause().getCause().getClass());
             }
         }
 
