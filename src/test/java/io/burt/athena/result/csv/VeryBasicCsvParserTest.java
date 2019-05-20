@@ -8,10 +8,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.text.ParseException;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -173,16 +176,42 @@ class VeryBasicCsvParserTest {
                 @BeforeEach
                 void setUp() {
                     parser = new VeryBasicCsvParser(createInput(new String[][]{
-                            new String[]{"r\"\"0\"\"c0", "r0c\"\"1\"\"", "r0c2"},
+                            new String[]{"r0c0", "r0c1", "r0c2"},
                             new String[]{"r1c0", "r1c1"},
                             new String[]{"r2c0", "r2c1", "r2c2"}
                     }), 3);
                 }
 
                 @Test
-                void returnsNull() {
+                void throwsParseException() {
                     parser.next();
-                    assertNull(parser.next());
+                    Exception e = assertThrows(RuntimeException.class, parser::next);
+                    assertEquals(ParseException.class, e.getCause().getClass());
+                    ParseException pe = (ParseException) e.getCause();
+                    assertEquals("Expected comma but found \"\\n\"", pe.getMessage());
+                    assertEquals(34, pe.getErrorOffset());
+                }
+            }
+
+            @Nested
+            class AndARowHasTooManyColumns {
+                @BeforeEach
+                void setUp() {
+                    parser = new VeryBasicCsvParser(createInput(new String[][]{
+                            new String[]{"r0c0", "r0c1", "r0c2"},
+                            new String[]{"r1c0", "r1c1", "r1c2", "r1c3"},
+                            new String[]{"r2c0", "r2c1", "r2c2"}
+                    }), 3);
+                }
+
+                @Test
+                void throwsParseException() {
+                    parser.next();
+                    Exception e = assertThrows(RuntimeException.class, parser::next);
+                    assertEquals(ParseException.class, e.getCause().getClass());
+                    ParseException pe = (ParseException) e.getCause();
+                    assertEquals("Expected newline but found \",\"", pe.getMessage());
+                    assertEquals(41, pe.getErrorOffset());
                 }
             }
 
@@ -198,17 +227,42 @@ class VeryBasicCsvParserTest {
                 }
 
                 @Test
-                void returnsNull() {
-                    assertNull(parser.next());
+                void throwsParseException() {
+                    Exception e = assertThrows(RuntimeException.class, parser::next);
+                    assertEquals(ParseException.class, e.getCause().getClass());
+                    ParseException pe = (ParseException) e.getCause();
+                    assertEquals("Expected comma but found \"1\"", pe.getMessage());
+                    assertEquals(16, pe.getErrorOffset());
+                }
+            }
+
+            @Nested
+            class AndAColumnIsNotQuoted {
+                @BeforeEach
+                void setUp() {
+                    parser = new VeryBasicCsvParser(new StringReader("\"1\",2,\"3\"\n"), 3);
+                }
+
+                @Test
+                void throwsParseException() {
+                    Exception e = assertThrows(RuntimeException.class, parser::next);
+                    assertEquals(ParseException.class, e.getCause().getClass());
+                    ParseException pe = (ParseException) e.getCause();
+                    assertEquals("Expected quote but found \"2\"", pe.getMessage());
+                    assertEquals(4, pe.getErrorOffset());
                 }
             }
 
             @Nested
             class AndTheStreamEndsAbruptly {
                 @Test
-                void returnsNull() {
+                void throwsParseException() {
                     parser = new VeryBasicCsvParser(new StringReader("\"hello\",\"world\",\""), 3);
-                    assertNull(parser.next());
+                    Exception e = assertThrows(RuntimeException.class, parser::next);
+                    assertEquals(ParseException.class, e.getCause().getClass());
+                    ParseException pe = (ParseException) e.getCause();
+                    assertEquals("Unexpected end of stream", pe.getMessage());
+                    assertEquals(17, pe.getErrorOffset());
                 }
             }
         }

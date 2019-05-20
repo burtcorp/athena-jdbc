@@ -2,6 +2,7 @@ package io.burt.athena.result.csv;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.text.ParseException;
 import java.util.Iterator;
 
 public class VeryBasicCsvParser implements Iterator<String[]> {
@@ -10,6 +11,7 @@ public class VeryBasicCsvParser implements Iterator<String[]> {
     private String[] nextRow;
     private int nextChar0;
     private int nextChar1;
+    private int position;
 
     public VeryBasicCsvParser(Reader csv, int columnCount) {
         this.csv = csv;
@@ -17,6 +19,7 @@ public class VeryBasicCsvParser implements Iterator<String[]> {
         this.nextRow = null;
         this.nextChar0 = -1;
         this.nextChar1 = -1;
+        this.position = -1;
     }
 
     @Override
@@ -54,9 +57,9 @@ public class VeryBasicCsvParser implements Iterator<String[]> {
                 }
             }
             return true;
-        } catch (IOException | IllegalStateException e) {
+        } catch (IOException | ParseException e) {
             nextRow = null;
-            return false;
+            throw new RuntimeException(e);
         }
     }
 
@@ -72,37 +75,46 @@ public class VeryBasicCsvParser implements Iterator<String[]> {
             nextChar0 = nextChar1;
         }
         nextChar1 = csv.read();
+        position++;
     }
 
-    private void consumeQuote() throws IOException, IllegalStateException {
+    private String charToString(int chr) {
+        if (chr == '\n') {
+            return "\\n";
+        } else {
+            return String.format("%c", chr);
+        }
+    }
+
+    private void consumeQuote() throws IOException, ParseException {
         if (nextChar0 == '"') {
             advance();
         } else {
-            throw new IllegalStateException(String.format("Expected quote but found %c", nextChar0));
+            throw new ParseException(String.format("Expected quote but found \"%s\"", charToString(nextChar0)), position);
         }
     }
 
-    private void consumeComma() throws IOException, IllegalStateException {
+    private void consumeComma() throws IOException, ParseException {
         if (nextChar0 == ',') {
             advance();
         } else {
-            throw new IllegalStateException(String.format("Expected comma but found %c", nextChar0));
+            throw new ParseException(String.format("Expected comma but found \"%s\"", charToString(nextChar0)), position);
         }
     }
 
-    private void consumeNewline() throws IOException, IllegalStateException {
+    private void consumeNewline() throws IOException, ParseException {
         if (nextChar0 == '\n') {
             advance();
         } else {
-            throw new IllegalStateException(String.format("Expected newline but found %c", nextChar0));
+            throw new ParseException(String.format("Expected newline but found \"%s\"", charToString(nextChar0)), position);
         }
     }
 
-    private String consumeString() throws IOException, IllegalStateException {
+    private String consumeString() throws IOException, ParseException {
         StringBuilder builder = new StringBuilder();
         while (nextChar0 != '"' || nextChar1 == '"') {
             if (nextChar0 == -1) {
-                throw new IllegalStateException("Stream ended in the middle of a string");
+                throw new ParseException("Unexpected end of stream", position);
             }
             if (nextChar0 == '"') {
                 advance();
