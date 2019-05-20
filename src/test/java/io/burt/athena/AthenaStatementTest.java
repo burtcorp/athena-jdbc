@@ -3,7 +3,9 @@ package io.burt.athena;
 import io.burt.athena.polling.PollingStrategy;
 import io.burt.athena.result.Result;
 import io.burt.athena.support.QueryExecutionHelper;
+import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(TestNameGenerator.class)
 class AthenaStatementTest {
     @Mock private Result result;
 

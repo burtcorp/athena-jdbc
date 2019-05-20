@@ -1,7 +1,9 @@
 package io.burt.athena;
 
 import io.burt.athena.support.PomVersionLoader;
+import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(TestNameGenerator.class)
 class AthenaDatabaseMetaDataTest implements PomVersionLoader {
     private DatabaseMetaData metaData;
     private Connection connection;

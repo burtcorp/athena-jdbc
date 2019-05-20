@@ -1,6 +1,8 @@
 package io.burt.athena.result.protobuf;
 
+import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(TestNameGenerator.class)
 class VeryBasicProtobufParserTest {
     private VeryBasicProtobufParser parser;
 

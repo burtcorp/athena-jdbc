@@ -1,7 +1,9 @@
 package io.burt.athena;
 
 import io.burt.athena.support.QueryExecutionHelper;
+import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(TestNameGenerator.class)
 class AthenaDataSourceTest {
     private ConnectionConfigurationFactory connectionConfigurationFactory;
     private AthenaDataSource dataSource;

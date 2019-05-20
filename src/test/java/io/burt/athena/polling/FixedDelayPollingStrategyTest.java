@@ -1,6 +1,8 @@
 package io.burt.athena.polling;
 
+import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(TestNameGenerator.class)
 class FixedDelayPollingStrategyTest {
     @Mock private Sleeper sleeper;
 
