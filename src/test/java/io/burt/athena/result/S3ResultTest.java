@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import software.amazon.awssdk.core.async.SdkPublisher;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -21,6 +25,8 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
@@ -395,9 +401,50 @@ class S3ResultTest {
 
     @Nested
     class Close {
+        @BeforeEach
+        void setUp() {
+            createData();
+        }
+
+        private class CancellablePublisher implements SdkPublisher<ByteBuffer> {
+            public CancellableSubscription subscription;
+
+            @Override
+            public void subscribe(Subscriber<? super ByteBuffer> s) {
+                subscription = new CancellableSubscription(s);
+                s.onSubscribe(subscription);
+            }
+        }
+
+        private class CancellableSubscription implements Subscription {
+            private final Subscriber<? super ByteBuffer> subscriber;
+            private final ExecutorService executor;
+
+            public boolean cancelled = false;
+
+            public CancellableSubscription(Subscriber<? super ByteBuffer> subscriber) {
+                this.subscriber = subscriber;
+                this.executor = Executors.newSingleThreadExecutor();
+            }
+
+            @Override
+            public void request(long n) {
+                executor.submit(() -> subscriber.onNext(ByteBuffer.wrap("\"col1\",\"col2\"\n\"one\",\"1\"\n".getBytes(StandardCharsets.UTF_8))));
+            }
+
+            @Override
+            public void cancel() {
+                cancelled = true;
+            }
+        }
+
         @Test
-        void abortsTheResponseStreamWhenNotAtEnd() {
-            // TODO
+        void abortsTheDownloadByCancellingTheSubscription() throws Exception {
+            CancellablePublisher publisher = new CancellablePublisher();
+            getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", publisher);
+            result.next();
+            result.close();
+            assertTrue(publisher.subscription.cancelled);
         }
     }
 }

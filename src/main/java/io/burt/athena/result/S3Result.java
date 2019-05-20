@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
@@ -35,6 +36,7 @@ public class S3Result implements Result {
     private Iterator<String[]> csvParser;
     private String[] currentRow;
     private int rowNumber;
+    private InputStream responseStream;
 
     public S3Result(S3AsyncClient s3Client, QueryExecution queryExecution, Duration timeout) {
         this.s3Client = s3Client;
@@ -70,6 +72,7 @@ public class S3Result implements Result {
         csvParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         csvParser.next();
         rowNumber = 0;
+        responseStream = responseStreamFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         resultSetMetaData = metadataFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
@@ -153,6 +156,11 @@ public class S3Result implements Result {
     }
 
     @Override
-    public void close() {
+    public void close() throws SQLException {
+        try {
+            responseStream.close();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
     }
 }

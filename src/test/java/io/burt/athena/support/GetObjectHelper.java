@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 public class GetObjectHelper implements S3AsyncClient {
     private final Map<String, byte[]> objects;
+    private final Map<String, SdkPublisher<ByteBuffer>> publishers;
     private final Map<String, Exception> exceptions;
     private final Map<String, Exception> lateExceptions;
     private final Map<String, Duration> delays;
@@ -33,6 +34,7 @@ public class GetObjectHelper implements S3AsyncClient {
 
     public GetObjectHelper() {
         this.objects = new HashMap<>();
+        this.publishers = new HashMap<>();
         this.exceptions = new HashMap<>();
         this.lateExceptions = new HashMap<>();
         this.delays = new HashMap<>();
@@ -45,6 +47,10 @@ public class GetObjectHelper implements S3AsyncClient {
 
     public void setObject(String bucket, String key, byte[] contents) {
         objects.put(uri(bucket, key), contents);
+    }
+
+    public void setObjectPublisher(String bucket, String key, SdkPublisher<ByteBuffer> publisher) {
+        publishers.put(uri(bucket, key), publisher);
     }
 
     public void setObjectException(String bucket, String key, Exception e) {
@@ -157,6 +163,11 @@ public class GetObjectHelper implements S3AsyncClient {
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.onStream(new GetObjectExceptionPublisher(lateExceptions.get(uri)));
+        } else if (publishers.containsKey(uri)) {
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            future = requestTransformer.prepare();
+            requestTransformer.onResponse(response);
+            requestTransformer.onStream(publishers.get(uri));
         } else if (objects.containsKey(uri)) {
             byte[] object = objects.get(uri);
             GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();
