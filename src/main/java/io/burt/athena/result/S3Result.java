@@ -3,22 +3,17 @@ package io.burt.athena.result;
 import io.burt.athena.AthenaResultSetMetaData;
 import io.burt.athena.result.csv.VeryBasicCsvParser;
 import io.burt.athena.result.protobuf.VeryBasicProtobufParser;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-import software.amazon.awssdk.core.async.AsyncResponseTransformer;
-import software.amazon.awssdk.core.async.SdkPublisher;
+import io.burt.athena.result.s3.ByteBufferResponseTransformer;
+import io.burt.athena.result.s3.InputStreamResponseTransformer;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.ColumnNullable;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -26,12 +21,8 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +35,6 @@ public class S3Result implements Result {
     private final String key;
 
     private AthenaResultSetMetaData resultSetMetaData;
-    private InputStream responseStream;
     private Iterator<String[]> csvParser;
     private String[] currentRow;
     private int rowNumber;
@@ -53,7 +43,6 @@ public class S3Result implements Result {
         this.s3Client = s3Client;
         this.queryExecution = queryExecution;
         this.resultSetMetaData = null;
-        this.responseStream = null;
         this.csvParser = null;
         this.currentRow = null;
         this.rowNumber = 0;
@@ -208,203 +197,5 @@ public class S3Result implements Result {
 
     @Override
     public void close() {
-    }
-
-    private static class InputStreamResponseTransformer extends InputStream implements AsyncResponseTransformer<GetObjectResponse, InputStream>, Subscriber<ByteBuffer> {
-        private static final ByteBuffer END_MARKER = ByteBuffer.allocate(0);
-        private static int TARGET_BUFFER_SIZE = 1 << 25;
-
-        private final CompletableFuture<InputStream> future;
-        private final BlockingQueue<ByteBuffer> chunks;
-
-        private GetObjectResponse response;
-        private Subscription subscription;
-        private ByteBuffer readChunk;
-        private Throwable error;
-        private AtomicBoolean complete;
-        private AtomicInteger approximateBufferSize;
-
-        public InputStreamResponseTransformer() {
-            this.future = new CompletableFuture<>();
-            this.chunks = new LinkedBlockingQueue<>();
-            this.complete = new AtomicBoolean(false);
-            this.approximateBufferSize = new AtomicInteger(0);
-        }
-
-        @Override
-        public CompletableFuture<InputStream> prepare() {
-            return future;
-        }
-
-        @Override
-        public void onResponse(GetObjectResponse r) {
-            response = r;
-            future.complete(this);
-        }
-
-        @Override
-        public void onStream(SdkPublisher<ByteBuffer> publisher) {
-            publisher.subscribe(this);
-        }
-
-        @Override
-        public void exceptionOccurred(Throwable t) {
-            error = t;
-            future.completeExceptionally(t);
-        }
-
-        @Override
-        public void onSubscribe(Subscription s) {
-            subscription = s;
-            if (response.contentLength() < TARGET_BUFFER_SIZE) {
-                subscription.request(Long.MAX_VALUE);
-            } else {
-                subscription.request(10L);
-            }
-        }
-
-        @Override
-        public void onNext(ByteBuffer byteBuffer) {
-            chunks.offer(byteBuffer);
-            int size = approximateBufferSize.addAndGet(byteBuffer.remaining());
-            maybeRequestMore(size);
-        }
-
-        private void maybeRequestMore(int currentSize) {
-            if (currentSize < TARGET_BUFFER_SIZE) {
-                subscription.request(10L);
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            exceptionOccurred(t);
-        }
-
-        @Override
-        public void onComplete() {
-            chunks.offer(END_MARKER);
-            complete.set(true);
-        }
-
-        @Override
-        public int available() throws IOException {
-            if (error != null) {
-                throw new IOException(error);
-            }
-            if (readChunk != null) {
-                return readChunk.remaining();
-            } else {
-                return 0;
-            }
-        }
-
-        private boolean ensureChunk() throws IOException {
-            if (error != null) {
-                throw new IOException(error);
-            }
-            if (readChunk == END_MARKER) {
-                return false;
-            } else if (readChunk == null || !readChunk.hasRemaining()) {
-                try {
-                    readChunk = chunks.take();
-                    if (readChunk == END_MARKER) {
-                        return false;
-                    } else {
-                        int size = approximateBufferSize.addAndGet(-readChunk.remaining());
-                        maybeRequestMore(size);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public int read(byte[] destination, int offset, int length) throws IOException {
-            if (ensureChunk()) {
-                int actualLength = Math.min(length, readChunk.remaining());
-                readChunk.get(destination, offset, actualLength);
-                return actualLength;
-            } else {
-                return -1;
-            }
-        }
-
-        @Override
-        public int read() throws IOException {
-            if (ensureChunk()) {
-                return Byte.toUnsignedInt(readChunk.get());
-            } else {
-                return -1;
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (!complete.get()) {
-                chunks.clear();
-                chunks.offer(END_MARKER);
-                subscription.cancel();
-                future.cancel(true);
-            }
-            super.close();
-        }
-    }
-
-    private static class ByteBufferResponseTransformer implements AsyncResponseTransformer<GetObjectResponse, ByteBuffer>, Subscriber<ByteBuffer> {
-        private final CompletableFuture<ByteBuffer> future;
-
-        private Subscription subscription;
-        private ByteBuffer resultBuffer;
-
-        public ByteBufferResponseTransformer() {
-            this.future = new CompletableFuture<>();
-        }
-
-        @Override
-        public CompletableFuture<ByteBuffer> prepare() {
-            return future;
-        }
-
-        @Override
-        public void onResponse(GetObjectResponse response) {
-            resultBuffer = ByteBuffer.allocate(Math.toIntExact(response.contentLength()));
-        }
-
-        @Override
-        public void onStream(SdkPublisher<ByteBuffer> publisher) {
-            publisher.subscribe(this);
-        }
-
-        @Override
-        public void exceptionOccurred(Throwable t) {
-            future.completeExceptionally(t);
-        }
-
-        @Override
-        public void onSubscribe(Subscription s) {
-            subscription = s;
-            subscription.request(Long.MAX_VALUE);
-        }
-
-        @Override
-        public void onNext(ByteBuffer byteBuffer) {
-            resultBuffer.put(byteBuffer);
-            subscription.request(Long.MAX_VALUE);
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            exceptionOccurred(t);
-        }
-
-        @Override
-        public void onComplete() {
-            ((Buffer) resultBuffer).flip();
-            future.complete(resultBuffer);
-        }
     }
 }
