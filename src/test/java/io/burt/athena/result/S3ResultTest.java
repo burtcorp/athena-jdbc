@@ -9,17 +9,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class S3ResultTest {
@@ -86,13 +92,39 @@ class S3ResultTest {
     }
 
     @Nested
-    class FetchSize {
-        // TODO
+    class Constructor {
+        @Nested
+        class WhenTheOutputLocationIsMalformed {
+            @Test
+            void throwsAnException() {
+                QueryExecution queryExecution = QueryExecution
+                        .builder()
+                        .queryExecutionId("Q1234")
+                        .resultConfiguration(b -> b.outputLocation("://some-bucket/the/prefix/Q1234.csv"))
+                        .build();
+                Exception e = assertThrows(IllegalArgumentException.class, () -> new S3Result(getObjectHelper, queryExecution, Duration.ofMillis(10)));
+                assertTrue(e.getMessage().contains("\"://some-bucket/the/prefix/Q1234.csv\""));
+                assertTrue(e.getMessage().contains("malformed"));
+            }
+        }
+    }
+
+
+    @Nested
+    class GetFetchSize {
+        @Test
+        void alwaysReturnsMinusOne() {
+            assertEquals(-1, result.getFetchSize());
+        }
     }
 
     @Nested
     class SetFetchSize {
-        // TODO
+        @Test
+        void ignoresTheNewSize() {
+            result.setFetchSize(1000000);
+            assertEquals(-1, result.getFetchSize());
+        }
     }
 
     @Nested
@@ -126,13 +158,47 @@ class S3ResultTest {
         }
 
         @Nested
-        class WhenTheOutputLocationIsMalformed {
-            // TODO
+        class WhenTheMetaDataObjectIsNotFound {
+            @Test
+            void throwsAnException() {
+                getObjectHelper.removeObject("some-bucket", "the/prefix/Q1234.csv.metadata");
+                Exception e = assertThrows(SQLException.class, () -> result.getMetaData());
+                assertEquals(NoSuchKeyException.class, e.getCause().getClass());
+            }
         }
 
         @Nested
-        class WhenReadingTheMetaDataThrowsIoException {
-            // TODO
+        class WhenLoadingTheMetaDataThrowsAnException {
+            @Test
+            void wrapsItInSqlException() {
+                getObjectHelper.setObjectException("some-bucket", "the/prefix/Q1234.csv.metadata", new ArrayIndexOutOfBoundsException("b0rk"));
+                Exception e = assertThrows(SQLException.class, () -> result.getMetaData());
+                assertEquals("b0rk", e.getCause().getMessage());
+                assertEquals(ArrayIndexOutOfBoundsException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
+        class WhenLoadingTheMetaDataTimesOut {
+            @Test
+            void throwsSqlTimeoutException() {
+                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv.metadata", Duration.ofSeconds(1));
+                Exception e = assertThrows(SQLTimeoutException.class, () -> result.getMetaData());
+                assertEquals(TimeoutException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
+        class WhenInterruptedWhileLoadingTheMetaData {
+            @Test
+            void returnsNull() {
+                // PENDING: very hard to set up
+            }
+
+            @Test
+            void marksTheThreadAsInterrupted() {
+                // PENDING: very hard to set up
+            }
         }
     }
 
@@ -187,13 +253,45 @@ class S3ResultTest {
         }
 
         @Nested
-        class WhenS3ThrowsNoSuchKeyError {
-            // TODO
+        class WhenTheResultObjectIsNotFound {
+            @Test
+            void throwsAnException() {
+                getObjectHelper.removeObject("some-bucket", "the/prefix/Q1234.csv");
+                Exception e = assertThrows(SQLException.class, () -> result.next());
+                assertEquals(NoSuchKeyException.class, e.getCause().getClass());
+            }
         }
 
         @Nested
-        class WhenReadingTheDataThrowsIoException {
-            // TODO
+        class WhenLoadingTheResultThrowsAnException {
+            @Test
+            void wrapsItInSqlException() {
+                getObjectHelper.setObjectException("some-bucket", "the/prefix/Q1234.csv", new ArrayIndexOutOfBoundsException("b0rk"));
+                Exception e = assertThrows(SQLException.class, () -> result.next());
+                assertEquals("b0rk", e.getCause().getMessage());
+                assertEquals(ArrayIndexOutOfBoundsException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
+        class WhenLoadingTheResultTimesOut {
+            @Test
+            void throwsSqlTimeoutException() {
+                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv", Duration.ofSeconds(1));
+                Exception e = assertThrows(SQLTimeoutException.class, () -> result.next());
+                assertEquals(TimeoutException.class, e.getCause().getClass());
+            }
+        }
+
+        @Nested
+        class WhenInterruptedWhileLoadingTheResult {
+            void returnsFalse() {
+                // PENDING: very hard to set up
+            }
+
+            void marksTheThreadAsInterrupted() {
+                // PENDING: very hard to set up
+            }
         }
     }
 

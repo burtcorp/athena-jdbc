@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.athena.model.ColumnNullable;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -17,12 +18,15 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +37,7 @@ public class S3Result implements Result {
     private final S3AsyncClient s3Client;
     private final String bucketName;
     private final String key;
+    private final Duration timeout;
 
     private AthenaResultSetMetaData resultSetMetaData;
     private Iterator<String[]> csvParser;
@@ -42,14 +47,18 @@ public class S3Result implements Result {
     public S3Result(S3AsyncClient s3Client, QueryExecution queryExecution, Duration timeout) {
         this.s3Client = s3Client;
         this.queryExecution = queryExecution;
+        this.timeout = timeout;
         this.resultSetMetaData = null;
         this.csvParser = null;
         this.currentRow = null;
         this.rowNumber = 0;
         Matcher matcher = S3_URI_PATTERN.matcher(queryExecution.resultConfiguration().outputLocation());
-        matcher.matches();
-        this.bucketName = matcher.group(1);
-        this.key = matcher.group(2);
+        if (matcher.matches()) {
+            this.bucketName = matcher.group(1);
+            this.key = matcher.group(2);
+        } else {
+            throw new IllegalArgumentException(String.format("The output location \"%s\" is malformed", queryExecution.resultConfiguration().outputLocation()));
+        }
     }
 
     @Override
@@ -61,14 +70,14 @@ public class S3Result implements Result {
     public void setFetchSize(int newFetchSize) {
     }
 
-    private void start() throws ExecutionException, InterruptedException {
+    private void start() throws ExecutionException, TimeoutException, InterruptedException {
         CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(this::parseResultSetMetadata);
         CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
         CompletableFuture<Iterator<String[]>> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new VeryBasicCsvParser(new BufferedReader(new InputStreamReader(responseStream)), metaData.getColumnCount()));
-        csvParser = combinedFuture.get();
+        csvParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         csvParser.next();
         rowNumber = 0;
-        resultSetMetaData = metadataFuture.get();
+        resultSetMetaData = metadataFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -81,6 +90,10 @@ public class S3Result implements Result {
                 return null;
             } catch (ExecutionException e) {
                 throw new SQLException(e.getCause());
+            } catch (TimeoutException e) {
+                throw new SQLTimeoutException(e);
+            } catch (NoSuchKeyException e) {
+                throw new SQLException(e);
             }
         }
         return resultSetMetaData;
@@ -164,6 +177,10 @@ public class S3Result implements Result {
                 return false;
             } catch (ExecutionException e) {
                 throw new SQLException(e.getCause());
+            } catch (TimeoutException e) {
+                throw new SQLTimeoutException(e);
+            } catch (NoSuchKeyException e) {
+                throw new SQLException(e);
             }
         }
         currentRow = csvParser.next();

@@ -12,11 +12,13 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,15 +26,35 @@ import java.util.function.Consumer;
 
 public class GetObjectHelper implements S3AsyncClient {
     private final Map<String, byte[]> objects;
+    private final Map<String, Exception> exceptions;
+    private final Map<String, Duration> delays;
     private final List<GetObjectRequest> getObjectRequests;
 
     public GetObjectHelper() {
         this.objects = new HashMap<>();
+        this.exceptions = new HashMap<>();
+        this.delays = new HashMap<>();
         this.getObjectRequests = new LinkedList<>();
     }
 
+    private String uri(String bucket, String key) {
+        return String.format("s3://%s/%s", bucket, key);
+    }
+
     public void setObject(String bucket, String key, byte[] contents) {
-        objects.put(String.format("s3://%s/%s", bucket, key), contents);
+        objects.put(uri(bucket, key), contents);
+    }
+
+    public void setObjectException(String bucket, String key, Exception e) {
+        exceptions.put(uri(bucket, key), e);
+    }
+
+    public void removeObject(String bucket, String key) {
+        objects.remove(uri(bucket, key));
+    }
+
+    public void delayObject(String bucket, String key, Duration duration) {
+        delays.put(uri(bucket, key), duration);
     }
 
     public List<GetObjectRequest> getObjectRequests() {
@@ -93,16 +115,36 @@ public class GetObjectHelper implements S3AsyncClient {
         GetObjectRequest request = requestBuilder.build();
         getObjectRequests.add(request);
         String uri = String.format("s3://%s/%s", request.bucket(), request.key());
-        if (objects.containsKey(uri)) {
+        CompletableFuture<T> future = null;
+        if (exceptions.containsKey(uri)) {
+            future = new CompletableFuture<>();
+            future.completeExceptionally(exceptions.get(uri));
+        } else if (objects.containsKey(uri)) {
             byte[] object = objects.get(uri);
             GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();
-            CompletableFuture<T> future = requestTransformer.prepare();
+            future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.onStream(new GetObjectPublisher(object));
-            return future;
         } else {
             throw NoSuchKeyException.builder().build();
         }
+        if (delays.containsKey(uri)) {
+            Duration delay = delays.get(uri);
+            final CompletableFuture<T> actualFuture = future;
+            final CompletableFuture<T> newFuture = new CompletableFuture<>();
+            future = newFuture;
+            new Thread(() -> {
+                try {
+                    Thread.sleep(delay.toMillis());
+                    T value = actualFuture.get();
+                    newFuture.complete(value);
+                } catch (InterruptedException ignored) {
+                } catch (ExecutionException e) {
+                    newFuture.completeExceptionally(e);
+                }
+            }).start();
+        }
+        return future;
     }
 
     @Override
