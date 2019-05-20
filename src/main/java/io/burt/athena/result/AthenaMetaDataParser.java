@@ -16,6 +16,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class AthenaMetaDataParser {
+    private static final int COLUMNS_FIELD = 4;
+    private static final int CATALOG_NAME_FIELD = 1;
+    private static final int NAME_FIELD = 4;
+    private static final int LABEL_FIELD = 5;
+    private static final int TYPE_FIELD = 6;
+    private static final int PRECISION_FIELD = 7;
+    private static final int SCALE_FIELD = 8;
+    private static final int NULLABLE_FIELD = 9;
+    private static final int CASE_SENSITIVE_FIELD = 10;
+
     private final QueryExecution queryExecution;
 
     public AthenaMetaDataParser(QueryExecution queryExecution) {
@@ -26,8 +36,8 @@ public class AthenaMetaDataParser {
         VeryBasicProtobufParser parser = new VeryBasicProtobufParser();
         List<Field> fields = parser.parse(buffer);
         List<ColumnInfo> columns = new LinkedList<>();
-            if (field.getNumber() == 4) {
         for (Field field : fields) {
+            if (field.getNumber() == COLUMNS_FIELD) {
                 byte[] contents = ((BinaryField) field).getContents();
                 List<Field> parse = parser.parse(contents);
                 ColumnInfo columnInfo = fieldsToColumn(parse);
@@ -49,25 +59,25 @@ public class AthenaMetaDataParser {
         ColumnInfo.Builder builder = ColumnInfo.builder();
         for (Field field : fields) {
             switch (field.getNumber()) {
-                case 1:
+                case CATALOG_NAME_FIELD:
                     builder.catalogName(fieldToString(field));
                     break;
-                case 4:
+                case NAME_FIELD:
                     builder.name(fieldToString(field));
                     break;
-                case 5:
+                case LABEL_FIELD:
                     builder.label(fieldToString(field));
                     break;
-                case 6:
+                case TYPE_FIELD:
                     builder.type(fieldToString(field));
                     break;
-                case 7:
+                case PRECISION_FIELD:
                     builder.precision(fieldToInt(field));
                     break;
-                case 8:
+                case SCALE_FIELD:
                     builder.scale(fieldToInt(field));
                     break;
-                case 9:
+                case NULLABLE_FIELD:
                     int v = fieldToInt(field);
                     if (v == 1) {
                         builder.nullable(ColumnNullable.NOT_NULL);
@@ -77,7 +87,7 @@ public class AthenaMetaDataParser {
                         builder.nullable(ColumnNullable.UNKNOWN);
                     }
                     break;
-                case 10:
+                case CASE_SENSITIVE_FIELD:
                     builder.caseSensitive(fieldToInt(field) == 1);
                     break;
             }
