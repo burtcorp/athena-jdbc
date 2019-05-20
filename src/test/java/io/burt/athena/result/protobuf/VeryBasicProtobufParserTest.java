@@ -35,12 +35,12 @@ class VeryBasicProtobufParserTest {
         class WithNoRepetitions {
             @Test
             void returnsAListOfFields() throws Exception {
-                List<VeryBasicProtobufParser.Field> fields = parser.parse(smallInput());
+                List<Field> fields = parser.parse(smallInput());
                 assertEquals(2, fields.size());
                 assertEquals(1, fields.get(0).getNumber());
                 assertEquals(4, fields.get(1).getNumber());
-                assertEquals(new VeryBasicProtobufParser.BinaryField(1, "20190423_125128_00001_ehtur".getBytes()), fields.get(0));
-                assertEquals(25, ((VeryBasicProtobufParser.BinaryField) fields.get(1)).getContents().length);
+                assertEquals(new BinaryField(1, "20190423_125128_00001_ehtur".getBytes()), fields.get(0));
+                assertEquals(25, ((BinaryField) fields.get(1)).getContents().length);
             }
         }
 
@@ -48,16 +48,16 @@ class VeryBasicProtobufParserTest {
         class WithRepetitions {
             @Test
             void returnsAListOfFieldsContainingRepeatedFields() throws Exception {
-                List<VeryBasicProtobufParser.Field> fields = parser.parse(mediumInput());
+                List<Field> fields = parser.parse(mediumInput());
                 assertEquals(4, fields.size());
                 assertEquals(1, fields.get(0).getNumber());
                 assertEquals(4, fields.get(1).getNumber());
                 assertEquals(4, fields.get(1).getNumber());
                 assertEquals(4, fields.get(1).getNumber());
-                assertEquals(new VeryBasicProtobufParser.BinaryField(1, "20190513_152236_00114_n7swu".getBytes()), fields.get(0));
-                assertEquals(37, ((VeryBasicProtobufParser.BinaryField) fields.get(1)).getContents().length);
-                assertEquals(37, ((VeryBasicProtobufParser.BinaryField) fields.get(2)).getContents().length);
-                assertEquals(37, ((VeryBasicProtobufParser.BinaryField) fields.get(3)).getContents().length);
+                assertEquals(new BinaryField(1, "20190513_152236_00114_n7swu".getBytes()), fields.get(0));
+                assertEquals(37, ((BinaryField) fields.get(1)).getContents().length);
+                assertEquals(37, ((BinaryField) fields.get(2)).getContents().length);
+                assertEquals(37, ((BinaryField) fields.get(3)).getContents().length);
             }
         }
 
@@ -65,8 +65,8 @@ class VeryBasicProtobufParserTest {
         class WithDifferentTypes {
             @Test
             void returnsAListOfFieldsOfDifferentTypes() throws Exception {
-                List<VeryBasicProtobufParser.Field> outerFields = parser.parse(mediumInput());
-                List<VeryBasicProtobufParser.Field> innerFields = parser.parse(((VeryBasicProtobufParser.BinaryField) outerFields.get(1)).getContents());
+                List<Field> outerFields = parser.parse(mediumInput());
+                List<Field> innerFields = parser.parse(((BinaryField) outerFields.get(1)).getContents());
                 assertEquals(8, innerFields.size());
                 assertEquals(1, innerFields.get(0).getNumber());
                 assertEquals(4, innerFields.get(1).getNumber());
@@ -76,14 +76,14 @@ class VeryBasicProtobufParserTest {
                 assertEquals(8, innerFields.get(5).getNumber());
                 assertEquals(9, innerFields.get(6).getNumber());
                 assertEquals(10, innerFields.get(7).getNumber());
-                assertArrayEquals("hive".getBytes(), ((VeryBasicProtobufParser.BinaryField) innerFields.get(0)).getContents());
-                assertArrayEquals("_col0".getBytes(), ((VeryBasicProtobufParser.BinaryField) innerFields.get(1)).getContents());
-                assertArrayEquals("_col0".getBytes(), ((VeryBasicProtobufParser.BinaryField) innerFields.get(2)).getContents());
-                assertArrayEquals("integer".getBytes(), ((VeryBasicProtobufParser.BinaryField) innerFields.get(3)).getContents());
-                assertEquals(10, ((VeryBasicProtobufParser.IntegerField) innerFields.get(4)).getValue());
-                assertEquals(0, ((VeryBasicProtobufParser.IntegerField) innerFields.get(5)).getValue());
-                assertEquals(3, ((VeryBasicProtobufParser.IntegerField) innerFields.get(6)).getValue());
-                assertEquals(0, ((VeryBasicProtobufParser.IntegerField) innerFields.get(7)).getValue());
+                assertArrayEquals("hive".getBytes(), ((BinaryField) innerFields.get(0)).getContents());
+                assertArrayEquals("_col0".getBytes(), ((BinaryField) innerFields.get(1)).getContents());
+                assertArrayEquals("_col0".getBytes(), ((BinaryField) innerFields.get(2)).getContents());
+                assertArrayEquals("integer".getBytes(), ((BinaryField) innerFields.get(3)).getContents());
+                assertEquals(10, ((IntegerField) innerFields.get(4)).getValue());
+                assertEquals(0, ((IntegerField) innerFields.get(5)).getValue());
+                assertEquals(3, ((IntegerField) innerFields.get(6)).getValue());
+                assertEquals(0, ((IntegerField) innerFields.get(7)).getValue());
             }
         }
     }

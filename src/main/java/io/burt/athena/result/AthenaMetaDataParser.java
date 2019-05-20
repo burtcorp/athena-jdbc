@@ -1,6 +1,9 @@
 package io.burt.athena.result;
 
 import io.burt.athena.AthenaResultSetMetaData;
+import io.burt.athena.result.protobuf.BinaryField;
+import io.burt.athena.result.protobuf.Field;
+import io.burt.athena.result.protobuf.IntegerField;
 import io.burt.athena.result.protobuf.VeryBasicProtobufParser;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.ColumnNullable;
@@ -21,12 +24,12 @@ public class AthenaMetaDataParser {
 
     public AthenaResultSetMetaData parse(ByteBuffer buffer) {
         VeryBasicProtobufParser parser = new VeryBasicProtobufParser();
-        List<VeryBasicProtobufParser.Field> fields = parser.parse(buffer);
+        List<Field> fields = parser.parse(buffer);
         List<ColumnInfo> columns = new LinkedList<>();
-        for (VeryBasicProtobufParser.Field field : fields) {
             if (field.getNumber() == 4) {
-                byte[] contents = ((VeryBasicProtobufParser.BinaryField) field).getContents();
-                List<VeryBasicProtobufParser.Field> parse = parser.parse(contents);
+        for (Field field : fields) {
+                byte[] contents = ((BinaryField) field).getContents();
+                List<Field> parse = parser.parse(contents);
                 ColumnInfo columnInfo = fieldsToColumn(parse);
                 columns.add(columnInfo);
             }
@@ -34,17 +37,17 @@ public class AthenaMetaDataParser {
         return new AthenaResultSetMetaData(queryExecution, ResultSetMetadata.builder().columnInfo(columns).build());
     }
 
-    private String fieldToString(VeryBasicProtobufParser.Field field) {
-        return new String(((VeryBasicProtobufParser.BinaryField) field).getContents(), StandardCharsets.UTF_8);
+    private String fieldToString(Field field) {
+        return new String(((BinaryField) field).getContents(), StandardCharsets.UTF_8);
     }
 
-    private int fieldToInt(VeryBasicProtobufParser.Field field) {
-        return (int) ((VeryBasicProtobufParser.IntegerField) field).getValue();
+    private int fieldToInt(Field field) {
+        return (int) ((IntegerField) field).getValue();
     }
 
-    private ColumnInfo fieldsToColumn(List<VeryBasicProtobufParser.Field> fields) {
+    private ColumnInfo fieldsToColumn(List<Field> fields) {
         ColumnInfo.Builder builder = ColumnInfo.builder();
-        for (VeryBasicProtobufParser.Field field : fields) {
+        for (Field field : fields) {
             switch (field.getNumber()) {
                 case 1:
                     builder.catalogName(fieldToString(field));

@@ -5,10 +5,8 @@ import software.amazon.awssdk.utils.IoUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 public class VeryBasicProtobufParser {
     public List<Field> parse(InputStream input) throws IOException {
@@ -60,86 +58,5 @@ public class VeryBasicProtobufParser {
             i++;
         }
         return n;
-    }
-
-    public static class Field {
-        private final int number;
-
-        public Field(int number) {
-            this.number = number;
-        }
-
-        public int getNumber() {
-            return number;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Field field = (Field) o;
-            return number == field.number;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(number);
-        }
-    }
-
-    public static class BinaryField extends Field {
-        private final byte[] contents;
-
-        public BinaryField(int number, byte[] contents) {
-            super(number);
-            this.contents = contents;
-        }
-
-        public byte[] getContents() {
-            return contents;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
-            BinaryField that = (BinaryField) o;
-            return Arrays.equals(contents, that.contents);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = super.hashCode();
-            result = 31 * result + Arrays.hashCode(contents);
-            return result;
-        }
-    }
-
-    public static class IntegerField extends Field {
-        private final long value;
-
-        public IntegerField(int number, long value) {
-            super(number);
-            this.value = value;
-        }
-
-        public long getValue() {
-            return value;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
-            IntegerField that = (IntegerField) o;
-            return value == that.value;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(super.hashCode(), value);
-        }
     }
 }
