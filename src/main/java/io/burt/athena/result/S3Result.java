@@ -2,27 +2,19 @@ package io.burt.athena.result;
 
 import io.burt.athena.AthenaResultSetMetaData;
 import io.burt.athena.result.csv.VeryBasicCsvParser;
-import io.burt.athena.result.protobuf.VeryBasicProtobufParser;
 import io.burt.athena.result.s3.ByteBufferResponseTransformer;
 import io.burt.athena.result.s3.InputStreamResponseTransformer;
-import software.amazon.awssdk.services.athena.model.ColumnInfo;
-import software.amazon.awssdk.services.athena.model.ColumnNullable;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
-import software.amazon.awssdk.services.athena.model.ResultSetMetadata;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.time.Duration;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +63,8 @@ public class S3Result implements Result {
     }
 
     private void start() throws ExecutionException, TimeoutException, InterruptedException {
-        CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(this::parseResultSetMetadata);
+        AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
+        CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
         CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
         CompletableFuture<Iterator<String[]>> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new VeryBasicCsvParser(new BufferedReader(new InputStreamReader(responseStream)), metaData.getColumnCount()));
         csvParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -97,69 +90,6 @@ public class S3Result implements Result {
             }
         }
         return resultSetMetaData;
-    }
-
-    private AthenaResultSetMetaData parseResultSetMetadata(ByteBuffer buffer) {
-        VeryBasicProtobufParser parser = new VeryBasicProtobufParser();
-        List<VeryBasicProtobufParser.Field> fields = parser.parse(buffer);
-        List<ColumnInfo> columns = new LinkedList<>();
-        for (VeryBasicProtobufParser.Field field : fields) {
-            if (field.getNumber() == 4) {
-                byte[] contents = ((VeryBasicProtobufParser.BinaryField) field).getContents();
-                List<VeryBasicProtobufParser.Field> parse = parser.parse(contents);
-                ColumnInfo columnInfo = fieldsToColumn(parse);
-                columns.add(columnInfo);
-            }
-        }
-        return new AthenaResultSetMetaData(queryExecution, ResultSetMetadata.builder().columnInfo(columns).build());
-    }
-
-    private String fieldToString(VeryBasicProtobufParser.Field field) {
-        return new String(((VeryBasicProtobufParser.BinaryField) field).getContents(), StandardCharsets.UTF_8);
-    }
-
-    private int fieldToInt(VeryBasicProtobufParser.Field field) {
-        return (int) ((VeryBasicProtobufParser.IntegerField) field).getValue();
-    }
-
-    private ColumnInfo fieldsToColumn(List<VeryBasicProtobufParser.Field> fields) {
-        ColumnInfo.Builder builder = ColumnInfo.builder();
-        for (VeryBasicProtobufParser.Field field : fields) {
-            switch (field.getNumber()) {
-                case 1:
-                    builder.catalogName(fieldToString(field));
-                    break;
-                case 4:
-                    builder.name(fieldToString(field));
-                    break;
-                case 5:
-                    builder.label(fieldToString(field));
-                    break;
-                case 6:
-                    builder.type(fieldToString(field));
-                    break;
-                case 7:
-                    builder.precision(fieldToInt(field));
-                    break;
-                case 8:
-                    builder.scale(fieldToInt(field));
-                    break;
-                case 9:
-                    int v = fieldToInt(field);
-                    if (v == 1) {
-                        builder.nullable(ColumnNullable.NOT_NULL);
-                    } else if (v == 2) {
-                        builder.nullable(ColumnNullable.NULLABLE);
-                    } else {
-                        builder.nullable(ColumnNullable.UNKNOWN);
-                    }
-                    break;
-                case 10:
-                    builder.caseSensitive(fieldToInt(field) == 1);
-                    break;
-            }
-        }
-        return builder.build();
     }
 
     @Override
