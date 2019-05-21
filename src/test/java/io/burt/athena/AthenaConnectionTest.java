@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
@@ -60,16 +61,19 @@ class AthenaConnectionTest {
             return requests.get(requests.size() - 1);
         }
 
+        private ConnectionConfiguration cloneAndStubConfiguration(InvocationOnMock invocation) throws Throwable {
+            ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+            cc = spy(cc);
+            lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+            return cc;
+        }
+
         @BeforeEach
         void setUp() {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
-            lenient().when(connectionConfiguration.withDatabaseName(any())).then(invocation -> {
-                ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
-                cc = spy(cc);
-                when(cc.athenaClient()).thenReturn(queryExecutionHelper);
-                return cc;
-            });
+            lenient().when(connectionConfiguration.withDatabaseName(any())).then(this::cloneAndStubConfiguration);
+            lenient().when(connectionConfiguration.withTimeout(any())).then(this::cloneAndStubConfiguration);
         }
     }
 
