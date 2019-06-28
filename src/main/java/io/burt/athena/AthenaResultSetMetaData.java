@@ -157,7 +157,7 @@ public class AthenaResultSetMetaData implements ResultSetMetaData {
         switch (getColumn(column).nullable()) {
             case NULLABLE: return ResultSetMetaData.columnNullable;
             case NOT_NULL: return ResultSetMetaData.columnNoNulls;
-            case UNKNOWN: return ResultSetMetaData.columnNullableUnknown;
+            case UNKNOWN:
             default: return ResultSetMetaData.columnNullableUnknown;
         }
     }
