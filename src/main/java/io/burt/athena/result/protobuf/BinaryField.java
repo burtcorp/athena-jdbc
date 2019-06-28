@@ -5,7 +5,7 @@ import java.util.Arrays;
 public class BinaryField extends Field {
     private final byte[] contents;
 
-    public BinaryField(int number, byte[] contents) {
+    BinaryField(int number, byte[] contents) {
         super(number);
         this.contents = contents;
     }

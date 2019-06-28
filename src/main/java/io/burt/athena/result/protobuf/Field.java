@@ -5,7 +5,7 @@ import java.util.Objects;
 public class Field {
     private final int number;
 
-    public Field(int number) {
+    Field(int number) {
         this.number = number;
     }
 

@@ -5,7 +5,7 @@ import java.util.Objects;
 public class IntegerField extends Field {
     private final long value;
 
-    public IntegerField(int number, long value) {
+    IntegerField(int number, long value) {
         super(number);
         this.value = value;
     }
