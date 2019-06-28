@@ -39,7 +39,7 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDriverVersion() throws SQLException {
-        return "0.1.0-SNAPSHOT";
+        return "0.1.0";
     }
 
     @Override
