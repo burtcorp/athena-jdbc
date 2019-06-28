@@ -105,7 +105,7 @@ public class AthenaDriver implements Driver {
 
     @Override
     public int getMinorVersion() {
-        return 1;
+        return 2;
     }
 
     @Override
