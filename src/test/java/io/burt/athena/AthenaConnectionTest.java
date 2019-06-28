@@ -5,9 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 
@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,23 +33,27 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaConnectionTest {
+    private ConnectionConfiguration connectionConfiguration;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
-        connection = new AthenaConnection(queryExecutionHelper, configuration);
+        connectionConfiguration = spy(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(1), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
+        when(connectionConfiguration.athenaClient()).thenReturn(queryExecutionHelper);
+        connection = new AthenaConnection(connectionConfiguration);
     }
 
     class SharedQuerySetup {
-        @Captor ArgumentCaptor<Consumer<StartQueryExecutionRequest.Builder>> startQueryExecutionCaptor;
-
         protected StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
@@ -58,10 +61,19 @@ class AthenaConnectionTest {
             return requests.get(requests.size() - 1);
         }
 
+        private ConnectionConfiguration cloneAndStubConfiguration(InvocationOnMock invocation) throws Throwable {
+            ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+            cc = spy(cc);
+            lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+            return cc;
+        }
+
         @BeforeEach
         void setUp() {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
+            lenient().when(connectionConfiguration.withDatabaseName(any())).then(this::cloneAndStubConfiguration);
+            lenient().when(connectionConfiguration.withTimeout(any())).then(this::cloneAndStubConfiguration);
         }
     }
 
@@ -558,14 +570,6 @@ class AthenaConnectionTest {
             queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
             connection.setNetworkTimeout(ForkJoinPool.commonPool(), 0);
             assertThrows(SQLTimeoutException.class, this::execute);
-        }
-
-        @Test
-        void setsTheTimeoutUsedForApiCalls3() throws Exception {
-            queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
-            connection.setNetworkTimeout(ForkJoinPool.commonPool(), 0);
-            ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
-            assertThrows(SQLTimeoutException.class, rs::next);
         }
 
         @Test

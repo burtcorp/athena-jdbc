@@ -665,8 +665,16 @@ class AthenaResultSetMetaDataTest {
     @Nested
     class GetQueryExecutionId {
         @Test
-        void returnsTheQueryExecutionIdFromTheQueryExecutionResult() throws Exception {
+        void returnsTheQueryExecutionIdFromTheQueryExecution() throws Exception {
             assertEquals("Q1234", metaData.unwrap(AthenaResultSetMetaData.class).getQueryExecutionId());
+        }
+    }
+
+    @Nested
+    class GetOutputLocation {
+        @Test
+        void returnsTheOutputLocationFromTheQueryExecution() throws Exception {
+            assertEquals("s3://some/location.csv", metaData.unwrap(AthenaResultSetMetaData.class).getOutputLocation());
         }
     }
 }

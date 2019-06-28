@@ -1,14 +1,16 @@
 package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.result.Result;
 import io.burt.athena.support.QueryExecutionHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
-import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
 import software.amazon.awssdk.services.athena.model.InternalServerException;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
@@ -24,7 +26,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,18 +34,25 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AthenaStatementTest {
-    private Supplier<PollingStrategy> pollingStrategyFactory;
+    @Mock private Result result;
+
+    private ConnectionConfiguration connectionConfiguration;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaStatement statement;
+    private PollingStrategy pollingStrategy;
 
     @BeforeEach
     void setUpPollingStrategy() {
-        PollingStrategy pollingStrategy = callback -> {
+        pollingStrategy = callback -> {
             while (true) {
                 Optional<ResultSet> rs = callback.poll();
                 if (rs.isPresent()) {
@@ -52,18 +60,24 @@ class AthenaStatementTest {
                 }
             }
         };
-        pollingStrategyFactory = spy(new Supplier<PollingStrategy>() {
-            @Override public PollingStrategy get() {
-                return pollingStrategy;
-            }
-        });
+    }
+
+    @BeforeEach
+    void setUpConfiguration() {
     }
 
     @BeforeEach
     void setUpStatement() {
-        ConnectionConfiguration configuration = new ConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMinutes(1));
         queryExecutionHelper = new QueryExecutionHelper();
-        statement = new AthenaStatement(queryExecutionHelper, configuration, pollingStrategyFactory);
+        connectionConfiguration = configureConfiguration(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(60), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
+        statement = new AthenaStatement(connectionConfiguration);
+    }
+
+    private ConnectionConfiguration configureConfiguration(ConnectionConfiguration connectionConfiguration) {
+        ConnectionConfiguration cc = spy(connectionConfiguration);
+        lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
+        lenient().when(cc.createResult(any())).thenReturn(result);
+        return cc;
     }
 
     class SharedExecuteSetup {
@@ -191,8 +205,8 @@ class AthenaStatementTest {
             private AtomicReference<Boolean> interruptedState;
 
             @BeforeEach
-            void setUp() throws Exception {
-                when(pollingStrategyFactory.get()).thenReturn(callback -> {
+            void setUp() {
+                when(connectionConfiguration.pollingStrategy()).thenReturn(callback -> {
                     throw new InterruptedException();
                 });
                 executeResult = new AtomicReference<>(null);
@@ -249,19 +263,24 @@ class AthenaStatementTest {
         @Nested
         class WhenTheResultSetIsUsed {
             @Test
-            void queriesForResultMetadata() throws Exception {
+            void createsAResultFromTheQueryExecution() throws Exception {
                 ResultSet rs = execute();
                 rs.next();
-                List<GetQueryResultsRequest> requests = queryExecutionHelper.getQueryResultsRequests();
-                assertEquals("Q1234", requests.get(0).queryExecutionId());
+                verify(connectionConfiguration).createResult(argThat(argument -> argument != null && argument.queryExecutionId().equals("Q1234")));
             }
 
             @Test
-            void usesTheConfiguredTimeout() throws Exception {
-                statement.setQueryTimeout(0);
-                queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
+            void proxiesToTheResultInstance1() throws Exception {
                 ResultSet rs = execute();
-                assertThrows(SQLTimeoutException.class, rs::next);
+                rs.next();
+                verify(result).next();
+            }
+
+            @Test
+            void proxiesToTheResultInstance2() throws Exception {
+                ResultSet rs = execute();
+                rs.getMetaData();
+                verify(result).getMetaData();
             }
         }
     }
@@ -365,6 +384,16 @@ class AthenaStatementTest {
 
     @Nested
     class GetQueryTimeout {
+        @BeforeEach
+        void setUp() {
+            lenient().when(connectionConfiguration.withTimeout(any())).then(invocation -> {
+                ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
+                cc = configureConfiguration(cc);
+                lenient().when(cc.pollingStrategy()).thenReturn(pollingStrategy);
+                return cc;
+            });
+        }
+
         @Test
         void returnsTheConfiguredTimeoutInSeconds() throws Exception {
             assertEquals(60, statement.getQueryTimeout());
@@ -397,14 +426,6 @@ class AthenaStatementTest {
             queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
-        }
-
-        @Test
-        void setsTheTimeoutUsedForApiCalls3() throws Exception {
-            queryExecutionHelper.delayGetQueryResultsResponses(Duration.ofMillis(10));
-            statement.setQueryTimeout(0);
-            ResultSet rs = statement.executeQuery("SELECT 1");
-            assertThrows(SQLTimeoutException.class, rs::next);
         }
     }
 

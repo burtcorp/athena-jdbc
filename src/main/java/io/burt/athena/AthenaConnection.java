@@ -1,6 +1,5 @@
 package io.burt.athena;
 
-import io.burt.athena.polling.PollingStrategies;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 
 import java.sql.Array;
@@ -32,9 +31,9 @@ public class AthenaConnection implements Connection {
     private DatabaseMetaData metaData;
     private boolean open;
 
-    AthenaConnection(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration) {
-        this.athenaClient = athenaClient;
+    AthenaConnection(ConnectionConfiguration configuration) {
         this.configuration = configuration;
+        this.athenaClient = configuration.athenaClient();
         this.metaData = null;
         this.open = true;
     }
@@ -48,7 +47,7 @@ public class AthenaConnection implements Connection {
     @Override
     public Statement createStatement() throws SQLException {
         checkClosed();
-        return new AthenaStatement(athenaClient, configuration, () -> PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5)));
+        return new AthenaStatement(configuration);
     }
 
     @Override

@@ -2,7 +2,6 @@ package io.burt.athena;
 
 import io.burt.athena.result.Result;
 import io.burt.athena.result.ResultPosition;
-import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -46,7 +45,7 @@ public class AthenaResultSet implements ResultSet {
     private Result result;
     private boolean lastWasNull;
 
-    AthenaResultSet(AthenaAsyncClient athenaClient, ConnectionConfiguration configuration, Result result, AthenaStatement statement) {
+    public AthenaResultSet(Result result, AthenaStatement statement) {
         this.statement = statement;
         this.open = true;
         this.result = result;

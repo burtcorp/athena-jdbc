@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.time.Duration;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -25,8 +24,7 @@ public class AthenaDriver implements Driver {
 
     private static final Pattern URL_PATTERN = Pattern.compile("^jdbc:" + JDBC_SUBPROTOCOL + "(?::([a-zA-Z]\\w*))?$");
 
-    private final AwsClientFactory clientFactory;
-    private final Map<String, String> env;
+    private final ConnectionConfigurationFactory connectionConfigurationFactory;
 
     static {
         try {
@@ -37,12 +35,11 @@ public class AthenaDriver implements Driver {
     }
 
     public AthenaDriver() {
-        this(new AwsClientFactory(), System.getenv());
+        this(new ConnectionConfigurationFactory());
     }
 
-    AthenaDriver(AwsClientFactory clientFactory, Map<String, String> env) {
-        this.clientFactory = clientFactory;
-        this.env = env;
+    AthenaDriver(ConnectionConfigurationFactory connectionConfigurationFactory) {
+        this.connectionConfigurationFactory = connectionConfigurationFactory;
     }
 
     public static String createURL(String databaseName) {
@@ -77,8 +74,15 @@ public class AthenaDriver implements Driver {
             Region region = connectionProperties.containsKey(REGION_PROPERTY_NAME) ? Region.of(connectionProperties.getProperty(REGION_PROPERTY_NAME)) : null;
             String workGroup = connectionProperties.getProperty(WORK_GROUP_PROPERTY_NAME);
             String outputLocation = connectionProperties.getProperty(OUTPUT_LOCATION_PROPERTY_NAME);
-            ConnectionConfiguration configuration = new ConnectionConfiguration(databaseName, workGroup, outputLocation, Duration.ofMinutes(1));
-            return new AthenaConnection(clientFactory.createAthenaClient(region), configuration);
+            ConnectionConfiguration configuration = connectionConfigurationFactory.createConnectionConfiguration(
+                    region,
+                    databaseName,
+                    workGroup,
+                    outputLocation,
+                    Duration.ofMinutes(1),
+                    ConnectionConfiguration.ResultLoadingStrategy.S3
+            );
+            return new AthenaConnection(configuration);
         } else {
             return null;
         }
