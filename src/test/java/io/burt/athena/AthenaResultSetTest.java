@@ -99,7 +99,7 @@ class AthenaResultSetTest {
     @Nested
     class GetStatement {
         @Test
-        void returnsTheParentStatement() throws Exception {
+        void returnsTheParentStatement() {
             assertSame(parentStatement, resultSet.getStatement());
         }
     }

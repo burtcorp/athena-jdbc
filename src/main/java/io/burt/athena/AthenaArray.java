@@ -16,17 +16,17 @@ public class AthenaArray implements Array {
     }
 
     @Override
-    public String getBaseTypeName() throws SQLException {
+    public String getBaseTypeName() {
         return "VARCHAR";
     }
 
     @Override
-    public int getBaseType() throws SQLException {
+    public int getBaseType() {
         return Types.VARCHAR;
     }
 
     @Override
-    public Object getArray() throws SQLException {
+    public Object getArray() {
         return elements;
     }
 
@@ -36,7 +36,7 @@ public class AthenaArray implements Array {
     }
 
     @Override
-    public Object getArray(long index, int count) throws SQLException {
+    public Object getArray(long index, int count) {
         return Arrays.copyOfRange(elements, (int) index, (int) index + count);
     }
 
@@ -66,7 +66,7 @@ public class AthenaArray implements Array {
     }
 
     @Override
-    public void free() throws SQLException {
+    public void free() {
     }
 
     @Override

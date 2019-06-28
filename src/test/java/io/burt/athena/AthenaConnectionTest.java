@@ -205,7 +205,7 @@ class AthenaConnectionTest {
     @Nested
     class Close {
         @Test
-        void closesTheAthenaClient() throws Exception {
+        void closesTheAthenaClient() {
             connection.close();
             assertTrue(queryExecutionHelper.isClosed());
         }
@@ -214,12 +214,12 @@ class AthenaConnectionTest {
     @Nested
     class IsClosed {
         @Test
-        void returnsFalseWhenOpen() throws Exception {
+        void returnsFalseWhenOpen() {
             assertFalse(connection.isClosed());
         }
 
         @Test
-        void returnsTrueWhenClosed() throws Exception {
+        void returnsTrueWhenClosed() {
             connection.close();
             assertTrue(connection.isClosed());
         }
@@ -228,12 +228,12 @@ class AthenaConnectionTest {
     @Nested
     class IsValid {
         @Test
-        void returnsTrueWhenOpen() throws Exception {
+        void returnsTrueWhenOpen() {
             assertTrue(connection.isValid(0));
         }
 
         @Test
-        void returnsFalseWhenClosed() throws Exception {
+        void returnsFalseWhenClosed() {
             connection.close();
             assertFalse(connection.isValid(0));
         }
@@ -242,17 +242,17 @@ class AthenaConnectionTest {
     @Nested
     class IsWrapperFor {
         @Test
-        void isWrapperForAthenaConnection() throws Exception {
+        void isWrapperForAthenaConnection() {
             assertTrue(connection.isWrapperFor(AthenaConnection.class));
         }
 
         @Test
-        void isWrapperForObject() throws Exception {
+        void isWrapperForObject() {
             assertTrue(connection.isWrapperFor(Object.class));
         }
 
         @Test
-        void isNotWrapperForOtherClasses() throws Exception {
+        void isNotWrapperForOtherClasses() {
             assertFalse(connection.isWrapperFor(String.class));
         }
     }
@@ -305,12 +305,12 @@ class AthenaConnectionTest {
     @Nested
     class GetSchema {
         @Test
-        void returnsConfiguredDatabaseByDefault() throws SQLException {
+        void returnsConfiguredDatabaseByDefault() {
             assertEquals("test_db", connection.getSchema());
         }
 
         @Test
-        void returnsTheValuePassedInSetSchema() throws Exception {
+        void returnsTheValuePassedInSetSchema() {
             connection.setSchema("some_database");
             assertEquals("some_database", connection.getSchema());
         }
@@ -327,7 +327,7 @@ class AthenaConnectionTest {
     @Nested
     class GetCatalog {
         @Test
-        void returnsAStaticValue() throws Exception {
+        void returnsAStaticValue() {
             assertEquals("AwsDataCatalog", connection.getCatalog());
         }
     }
@@ -576,7 +576,7 @@ class AthenaConnectionTest {
         }
 
         @Test
-        void ignoresTheExecutorArgument() throws Exception {
+        void ignoresTheExecutorArgument() {
             assertDoesNotThrow(() -> connection.setNetworkTimeout(null, 10));
         }
 
@@ -616,12 +616,12 @@ class AthenaConnectionTest {
     @Nested
     class GetMetaData {
         @Test
-        void returnsADatabaseMetaDataObject() throws Exception {
+        void returnsADatabaseMetaDataObject() {
             assertNotNull(connection.getMetaData());
         }
 
         @Test
-        void returnsTheSameMetaDataEveryTime() throws Exception {
+        void returnsTheSameMetaDataEveryTime() {
             DatabaseMetaData md1 = connection.getMetaData();
             DatabaseMetaData md2 = connection.getMetaData();
             assertSame(md1, md2);

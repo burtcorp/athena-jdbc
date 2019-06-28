@@ -67,7 +67,7 @@ public class AthenaDriver implements Driver {
     }
 
     @Override
-    public Connection connect(String url, Properties connectionProperties) throws SQLException {
+    public Connection connect(String url, Properties connectionProperties) {
         Matcher m = matchURL(url);
         if (m.matches()) {
             String databaseName = m.group(1) == null ? DEFAULT_DATABASE_NAME : m.group(1);
@@ -93,12 +93,12 @@ public class AthenaDriver implements Driver {
     }
 
     @Override
-    public boolean acceptsURL(String url) throws SQLException {
+    public boolean acceptsURL(String url) {
         return matchURL(url).matches();
     }
 
     @Override
-    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
         return new DriverPropertyInfo[0];
     }
 

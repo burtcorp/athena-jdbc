@@ -70,7 +70,7 @@ class AthenaDriverTest implements PomVersionLoader {
         }
 
         @Test
-        void returnsConnection() throws Exception {
+        void returnsConnection() {
             assertNotNull(driver.connect("jdbc:athena:test_db", defaultProperties));
         }
 
@@ -89,7 +89,7 @@ class AthenaDriverTest implements PomVersionLoader {
         }
 
         @Test
-        void usesTheAwsRegionFromTheProperties() throws Exception {
+        void usesTheAwsRegionFromTheProperties() {
             driver.connect("jdbc:athena", defaultProperties);
             verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.AP_SOUTHEAST_1), any(), any(), any(), any(), any());
         }
@@ -111,7 +111,7 @@ class AthenaDriverTest implements PomVersionLoader {
         @Nested
         class WhenGivenABadUrl {
             @Test
-            void returnsNull() throws Exception {
+            void returnsNull() {
                 assertNull(driver.connect("athena:jdbc://hello", new Properties()));
             }
         }
@@ -120,33 +120,33 @@ class AthenaDriverTest implements PomVersionLoader {
     @Nested
     class AcceptsUrl {
         @Test
-        void acceptsUrlWithDatabaseName() throws Exception {
+        void acceptsUrlWithDatabaseName() {
             assertTrue(driver.acceptsURL("jdbc:athena:test_db"));
         }
 
         @Test
-        void acceptsUrlWithoutDatabaseName() throws Exception {
+        void acceptsUrlWithoutDatabaseName() {
             assertTrue(driver.acceptsURL("jdbc:athena"));
         }
 
         @Test
-        void doesNotAcceptUrlWitEmptyDatabaseName() throws Exception {
+        void doesNotAcceptUrlWitEmptyDatabaseName() {
             assertFalse(driver.acceptsURL("jdbc:athena:"));
         }
 
         @Test
-        void doesNotAcceptUrlWithSlashes() throws Exception {
+        void doesNotAcceptUrlWithSlashes() {
             assertFalse(driver.acceptsURL("jdbc:athena://default"));
         }
 
         @Test
-        void doesNotAcceptUrlWithIllegalDatabaseName() throws Exception {
+        void doesNotAcceptUrlWithIllegalDatabaseName() {
             assertFalse(driver.acceptsURL("jdbc:athena:1llegal_name"));
             assertFalse(driver.acceptsURL("jdbc:athena:$hit_name"));
         }
 
         @Test
-        void doesNotAcceptNonAthenaUrl() throws Exception {
+        void doesNotAcceptNonAthenaUrl() {
             assertFalse(driver.acceptsURL("jdbc:postgres://localhost/db"));
         }
     }
@@ -154,7 +154,7 @@ class AthenaDriverTest implements PomVersionLoader {
     @Nested
     class JdbcUrl {
         @Test
-        void returnsAnAcceptableJdbcUrlForTheSpecifiedDatabase() throws Exception {
+        void returnsAnAcceptableJdbcUrlForTheSpecifiedDatabase() {
             assertTrue(driver.acceptsURL(AthenaDriver.createURL("test_db")));
             assertTrue(AthenaDriver.createURL("test_db").contains("test_db"));
             assertTrue(AthenaDriver.createURL("test_db").contains("jdbc:"));
@@ -165,7 +165,7 @@ class AthenaDriverTest implements PomVersionLoader {
     @Nested
     class PropertyInfo {
         @Test
-        void returnsEmptyPropertyInfo() throws Exception {
+        void returnsEmptyPropertyInfo() {
             assertEquals(0, driver.getPropertyInfo(AthenaDriver.createURL("test_db"), new Properties()).length);
         }
     }

@@ -99,7 +99,7 @@ class StandardResultTest {
         @Nested
         class WhenCalledWithTooLargeNumber {
             @Test
-            void throwsAnError() throws Exception {
+            void throwsAnError() {
                 assertThrows(SQLException.class, () -> result.setFetchSize(1001));
             }
         }

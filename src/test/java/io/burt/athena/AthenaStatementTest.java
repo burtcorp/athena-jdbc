@@ -335,7 +335,7 @@ class AthenaStatementTest {
     @Nested
     class GetResultSet extends SharedExecuteSetup {
         @Test
-        void returnsNullBeforeExecute() throws Exception {
+        void returnsNullBeforeExecute() {
             assertNull(statement.getResultSet());
         }
 
@@ -373,17 +373,17 @@ class AthenaStatementTest {
     @Nested
     class IsWrapperFor {
         @Test
-        void isWrapperForAthenaStatement() throws Exception {
+        void isWrapperForAthenaStatement() {
             assertTrue(statement.isWrapperFor(AthenaStatement.class));
         }
 
         @Test
-        void isWrapperForObject() throws Exception {
+        void isWrapperForObject() {
             assertTrue(statement.isWrapperFor(Object.class));
         }
 
         @Test
-        void isNotWrapperForOtherClasses() throws Exception {
+        void isNotWrapperForOtherClasses() {
             assertFalse(statement.isWrapperFor(String.class));
         }
     }
@@ -401,12 +401,12 @@ class AthenaStatementTest {
         }
 
         @Test
-        void returnsTheConfiguredTimeoutInSeconds() throws Exception {
+        void returnsTheConfiguredTimeoutInSeconds() {
             assertEquals(60, statement.getQueryTimeout());
         }
 
         @Test
-        void returnsTheValueSetWithSetQueryTimeout() throws Exception {
+        void returnsTheValueSetWithSetQueryTimeout() {
             statement.setQueryTimeout(99);
             assertEquals(99, statement.getQueryTimeout());
         }
@@ -421,14 +421,14 @@ class AthenaStatementTest {
         }
 
         @Test
-        void setsTheTimeoutUsedForApiCalls1() throws Exception {
+        void setsTheTimeoutUsedForApiCalls1() {
             queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
 
         @Test
-        void setsTheTimeoutUsedForApiCalls2() throws Exception {
+        void setsTheTimeoutUsedForApiCalls2() {
             queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));

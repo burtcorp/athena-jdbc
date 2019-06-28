@@ -67,19 +67,19 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public void close() throws SQLException {
+    public void close() {
         athenaClient.close();
         athenaClient = null;
         open = false;
     }
 
     @Override
-    public boolean isClosed() throws SQLException {
+    public boolean isClosed() {
         return !open;
     }
 
     @Override
-    public boolean isValid(int timeout) throws SQLException {
+    public boolean isValid(int timeout) {
         return open;
     }
 
@@ -93,7 +93,7 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    public boolean isWrapperFor(Class<?> iface) {
         return iface.isAssignableFrom(getClass());
     }
 
@@ -175,7 +175,7 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public DatabaseMetaData getMetaData() throws SQLException {
+    public DatabaseMetaData getMetaData() {
         if (metaData == null) {
             metaData = new AthenaDatabaseMetaData(this);
         }
@@ -194,12 +194,12 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public void setSchema(String schema) throws SQLException {
+    public void setSchema(String schema) {
         configuration = configuration.withDatabaseName(schema);
     }
 
     @Override
-    public String getSchema() throws SQLException {
+    public String getSchema() {
         return configuration.databaseName();
     }
 
@@ -209,7 +209,7 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public String getCatalog() throws SQLException {
+    public String getCatalog() {
         return "AwsDataCatalog";
     }
 
@@ -314,37 +314,37 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public Clob createClob() throws SQLException {
+    public Clob createClob() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Blob createBlob() throws SQLException {
+    public Blob createBlob() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public NClob createNClob() throws SQLException {
+    public NClob createNClob() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SQLXML createSQLXML() throws SQLException {
+    public SQLXML createSQLXML() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+    public Array createArrayOf(String typeName, Object[] elements) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+    public Struct createStruct(String typeName, Object[] attributes) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public void abort(Executor executor) throws SQLException {
+    public void abort(Executor executor) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

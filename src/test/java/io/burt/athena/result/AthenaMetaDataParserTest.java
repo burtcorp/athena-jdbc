@@ -12,7 +12,6 @@ import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.ColumnNullable;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSetMetaData;
@@ -76,7 +75,7 @@ class AthenaMetaDataParserTest {
         @Nested
         class WithNoColumns {
             @Test
-            void returnsNoColumns() throws IOException {
+            void returnsNoColumns() {
                 AthenaResultSetMetaData metaData = parser.parse(createMetaData());
                 assertEquals(0, metaData.getColumnCount());
             }

@@ -159,17 +159,17 @@ class AthenaDataSourceTest {
     @Nested
     class IsWrapperFor {
         @Test
-        void isWrapperForAthenaDataSource() throws Exception {
+        void isWrapperForAthenaDataSource() {
             assertTrue(dataSource.isWrapperFor(AthenaDataSource.class));
         }
 
         @Test
-        void isWrapperForObject() throws Exception {
+        void isWrapperForObject() {
             assertTrue(dataSource.isWrapperFor(Object.class));
         }
 
         @Test
-        void isNotWrapperForOtherClasses() throws Exception {
+        void isNotWrapperForOtherClasses() {
             assertFalse(dataSource.isWrapperFor(String.class));
         }
     }
@@ -191,7 +191,7 @@ class AthenaDataSourceTest {
     @Nested
     class GetLogWriter {
         @Test
-        void alwaysReturnsNull() throws Exception {
+        void alwaysReturnsNull() {
             assertNull(dataSource.getLogWriter());
         }
     }
@@ -199,7 +199,7 @@ class AthenaDataSourceTest {
     @Nested
     class SetLogWriter {
         @Test
-        void doesNothing() throws Exception {
+        void doesNothing() {
             dataSource.setLogWriter(new PrintWriter(System.err));
             assertNull(dataSource.getLogWriter());
         }
@@ -208,7 +208,7 @@ class AthenaDataSourceTest {
     @Nested
     class GetLoginTimeout {
         @Test
-        void alwaysReturnsZero() throws Exception {
+        void alwaysReturnsZero() {
             assertEquals(0, dataSource.getLoginTimeout());
         }
     }
@@ -216,7 +216,7 @@ class AthenaDataSourceTest {
     @Nested
     class SetLoginTimeout {
         @Test
-        void doesNothing() throws Exception {
+        void doesNothing() {
             dataSource.setLoginTimeout(99);
             assertEquals(0, dataSource.getLoginTimeout());
         }

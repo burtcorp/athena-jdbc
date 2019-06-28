@@ -53,7 +53,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public Statement getStatement() throws SQLException {
+    public Statement getStatement() {
         return statement;
     }
 
@@ -117,7 +117,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public boolean isClosed() throws SQLException {
+    public boolean isClosed() {
         return !open;
     }
 
@@ -219,7 +219,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    public boolean isWrapperFor(Class<?> iface) {
         return iface.isAssignableFrom(getClass());
     }
 
@@ -229,12 +229,12 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public SQLWarning getWarnings() throws SQLException {
+    public SQLWarning getWarnings() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public void clearWarnings() throws SQLException {
+    public void clearWarnings() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -244,7 +244,7 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public boolean wasNull() throws SQLException {
+    public boolean wasNull() {
         return lastWasNull;
     }
 
@@ -610,54 +610,54 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public InputStream getAsciiStream(int columnIndex) throws SQLException {
+    public InputStream getAsciiStream(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public InputStream getAsciiStream(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
-    @Deprecated
-    public InputStream getUnicodeStream(int columnIndex) throws SQLException {
+    public InputStream getAsciiStream(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     @Deprecated
-    public InputStream getUnicodeStream(String columnLabel) throws SQLException {
+    public InputStream getUnicodeStream(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public InputStream getBinaryStream(int columnIndex) throws SQLException {
+    @Deprecated
+    public InputStream getUnicodeStream(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public InputStream getBinaryStream(String columnLabel) throws SQLException {
+    public InputStream getBinaryStream(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Reader getCharacterStream(int columnIndex) throws SQLException {
+    public InputStream getBinaryStream(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Reader getCharacterStream(String columnLabel) throws SQLException {
+    public Reader getCharacterStream(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Reader getNCharacterStream(int columnIndex) throws SQLException {
+    public Reader getCharacterStream(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Reader getNCharacterStream(String columnLabel) throws SQLException {
+    public Reader getNCharacterStream(int columnIndex) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public Reader getNCharacterStream(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -734,32 +734,32 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public Ref getRef(int columnIndex) throws SQLException {
+    public Ref getRef(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Ref getRef(String columnLabel) throws SQLException {
+    public Ref getRef(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Blob getBlob(int columnIndex) throws SQLException {
+    public Blob getBlob(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Blob getBlob(String columnLabel) throws SQLException {
+    public Blob getBlob(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Clob getClob(int columnIndex) throws SQLException {
+    public Clob getClob(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public Clob getClob(String columnLabel) throws SQLException {
+    public Clob getClob(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -785,42 +785,42 @@ public class AthenaResultSet implements ResultSet {
     }
 
     @Override
-    public NClob getNClob(int columnIndex) throws SQLException {
+    public NClob getNClob(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public NClob getNClob(String columnLabel) throws SQLException {
+    public NClob getNClob(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public URL getURL(int columnIndex) throws SQLException {
+    public URL getURL(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public URL getURL(String columnLabel) throws SQLException {
+    public URL getURL(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SQLXML getSQLXML(int columnIndex) throws SQLException {
+    public SQLXML getSQLXML(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public SQLXML getSQLXML(String columnLabel) throws SQLException {
+    public SQLXML getSQLXML(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public RowId getRowId(int columnIndex) throws SQLException {
+    public RowId getRowId(int columnIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public RowId getRowId(String columnLabel) throws SQLException {
+    public RowId getRowId(String columnLabel) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
