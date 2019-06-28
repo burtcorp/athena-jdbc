@@ -102,7 +102,7 @@ class AthenaStatementTest {
     abstract class SharedExecuteTests<T> extends SharedExecuteSetup {
         protected abstract T execute() throws SQLException;
 
-        protected StartQueryExecutionRequest executionRequest() {
+        StartQueryExecutionRequest executionRequest() {
             List<StartQueryExecutionRequest> requests = queryExecutionHelper.startQueryRequests();
             return requests.get(requests.size() - 1);
         }

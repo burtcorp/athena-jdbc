@@ -57,7 +57,7 @@ class AthenaConnectionTest {
     }
 
     class SharedQuerySetup {
-        protected StartQueryExecutionRequest execute() throws Exception {
+        StartQueryExecutionRequest execute() throws Exception {
             Statement statement = connection.createStatement();
             statement.execute("SELECT 1");
             List<StartQueryExecutionRequest> requests = queryExecutionHelper.startQueryRequests();

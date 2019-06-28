@@ -81,7 +81,7 @@ public class GetObjectHelper implements S3AsyncClient {
         private Subscriber<? super ByteBuffer> subscriber;
         private AtomicBoolean complete;
 
-        public GetObjectPublisher(byte[] contents) {
+        GetObjectPublisher(byte[] contents) {
             this.objectContents = contents;
             this.offset = 0;
             this.complete = new AtomicBoolean(false);
@@ -126,7 +126,7 @@ public class GetObjectHelper implements S3AsyncClient {
 
         private Subscriber<? super ByteBuffer> subscriber;
 
-        public GetObjectExceptionPublisher(Exception e) {
+        GetObjectExceptionPublisher(Exception e) {
             this.e = e;
             this.executor = Executors.newSingleThreadExecutor();
         }

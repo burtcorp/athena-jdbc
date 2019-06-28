@@ -10,7 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import software.amazon.awssdk.core.async.SdkPublisher;
@@ -413,7 +412,7 @@ class S3ResultTest {
         }
 
         private class CancellablePublisher implements SdkPublisher<ByteBuffer> {
-            public CancellableSubscription subscription;
+            CancellableSubscription subscription;
 
             @Override
             public void subscribe(Subscriber<? super ByteBuffer> s) {
@@ -426,9 +425,9 @@ class S3ResultTest {
             private final Subscriber<? super ByteBuffer> subscriber;
             private final ExecutorService executor;
 
-            public boolean cancelled = false;
+            boolean cancelled = false;
 
-            public CancellableSubscription(Subscriber<? super ByteBuffer> subscriber) {
+            CancellableSubscription(Subscriber<? super ByteBuffer> subscriber) {
                 this.subscriber = subscriber;
                 this.executor = Executors.newSingleThreadExecutor();
             }
