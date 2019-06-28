@@ -154,7 +154,7 @@ public class GetObjectHelper implements S3AsyncClient {
         GetObjectRequest request = requestBuilder.build();
         getObjectRequests.add(request);
         String uri = String.format("s3://%s/%s", request.bucket(), request.key());
-        CompletableFuture<T> future = null;
+        CompletableFuture<T> future;
         if (exceptions.containsKey(uri)) {
             future = new CompletableFuture<>();
             future.completeExceptionally(exceptions.get(uri));

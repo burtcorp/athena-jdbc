@@ -191,9 +191,7 @@ class AthenaDriverTest implements PomVersionLoader {
     class ParentLogger {
         @Test
         void isNotSupported() {
-            assertThrows(SQLFeatureNotSupportedException.class, () -> {
-                driver.getParentLogger();
-            });
+            assertThrows(SQLFeatureNotSupportedException.class, () -> driver.getParentLogger());
         }
     }
 
