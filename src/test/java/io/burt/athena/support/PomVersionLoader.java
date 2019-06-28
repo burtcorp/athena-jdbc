@@ -23,7 +23,7 @@ public interface PomVersionLoader {
     }
 
     default Optional<int[]> pomVersionComponents() throws IOException {
-        Pattern versionComponentsPattern = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(?:-\\w+)");
+        Pattern versionComponentsPattern = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(?:-\\w+)?");
         return pomVersion().flatMap(versionString -> {
             Matcher matcher = versionComponentsPattern.matcher(versionString);
             if (matcher.matches()) {
