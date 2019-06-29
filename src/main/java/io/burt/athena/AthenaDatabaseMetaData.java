@@ -109,137 +109,137 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean allProceduresAreCallable() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean allTablesAreSelectable() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean nullsAreSortedHigh() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean nullsAreSortedLow() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean nullsAreSortedAtStart() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean nullsAreSortedAtEnd() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsMixedCaseIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean storesUpperCaseIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean storesLowerCaseIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean storesMixedCaseIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsMixedCaseQuotedIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean storesUpperCaseQuotedIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean storesLowerCaseQuotedIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean storesMixedCaseQuotedIdentifiers() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public String getIdentifierQuoteString() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "\"";
     }
 
     @Override
     public String getSQLKeywords() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getNumericFunctions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getStringFunctions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getSystemFunctions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getTimeDateFunctions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getSearchStringEscape() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "\\";
     }
 
     @Override
     public String getExtraNameCharacters() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public boolean supportsAlterTableWithAddColumn() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsAlterTableWithDropColumn() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsColumnAliasing() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean nullPlusNonNullIsNull() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsConvert() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
@@ -249,397 +249,397 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsTableCorrelationNames() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsDifferentTableCorrelationNames() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsExpressionsInOrderBy() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsOrderByUnrelated() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsGroupBy() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsGroupByUnrelated() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsGroupByBeyondSelect() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsLikeEscapeClause() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsMultipleResultSets() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsMultipleTransactions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsNonNullableColumns() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsMinimumSQLGrammar() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsCoreSQLGrammar() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsExtendedSQLGrammar() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsANSI92EntryLevelSQL() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsANSI92IntermediateSQL() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsANSI92FullSQL() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsIntegrityEnhancementFacility() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsOuterJoins() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsFullOuterJoins() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsLimitedOuterJoins() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public String getSchemaTerm() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "schema";
     }
 
     @Override
     public String getProcedureTerm() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "";
     }
 
     @Override
     public String getCatalogTerm() {
-        throw new UnsupportedOperationException("Not implemented");
+        return "catalog";
     }
 
     @Override
     public boolean isCatalogAtStart() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public String getCatalogSeparator() {
-        throw new UnsupportedOperationException("Not implemented");
+        return ".";
     }
 
     @Override
     public boolean supportsSchemasInDataManipulation() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsSchemasInProcedureCalls() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsSchemasInTableDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsSchemasInIndexDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsSchemasInPrivilegeDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsCatalogsInDataManipulation() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsCatalogsInProcedureCalls() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsCatalogsInTableDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsCatalogsInIndexDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsCatalogsInPrivilegeDefinitions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsPositionedDelete() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsPositionedUpdate() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsSelectForUpdate() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsStoredProcedures() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsSubqueriesInComparisons() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsSubqueriesInExists() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsSubqueriesInIns() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsSubqueriesInQuantifieds() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsCorrelatedSubqueries() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsUnion() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsUnionAll() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsOpenCursorsAcrossCommit() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsOpenCursorsAcrossRollback() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsOpenStatementsAcrossCommit() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public boolean supportsOpenStatementsAcrossRollback() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public int getMaxBinaryLiteralLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxCharLiteralLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxColumnNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 255;
     }
 
     @Override
     public int getMaxColumnsInGroupBy() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxColumnsInIndex() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxColumnsInOrderBy() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxColumnsInSelect() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxColumnsInTable() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxConnections() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxCursorNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxIndexLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxSchemaNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 255;
     }
 
     @Override
     public int getMaxProcedureNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxCatalogNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxRowSize() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public boolean doesMaxRowSizeIncludeBlobs() {
-        throw new UnsupportedOperationException("Not implemented");
+        return true;
     }
 
     @Override
     public int getMaxStatementLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 262144;
     }
 
     @Override
     public int getMaxStatements() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxTableNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 255;
     }
 
     @Override
     public int getMaxTablesInSelect() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getMaxUserNameLength() {
-        throw new UnsupportedOperationException("Not implemented");
+        return 0;
     }
 
     @Override
     public int getDefaultTransactionIsolation() {
-        throw new UnsupportedOperationException("Not implemented");
+        return Connection.TRANSACTION_NONE;
     }
 
     @Override
     public boolean supportsTransactions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsTransactionIsolationLevel(int level) {
-        throw new UnsupportedOperationException("Not implemented");
+        return level == Connection.TRANSACTION_NONE;
     }
 
     @Override
     public boolean supportsDataDefinitionAndDataManipulationTransactions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsDataManipulationTransactionsOnly() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean dataDefinitionCausesTransactionCommit() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean dataDefinitionIgnoredInTransactions() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
@@ -713,7 +713,7 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable, String foreignCatalog, String foreignSchema, String foreignTable)  {
+    public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable, String foreignCatalog, String foreignSchema, String foreignTable) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -729,62 +729,62 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsResultSetType(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return type == ResultSet.TYPE_FORWARD_ONLY;
     }
 
     @Override
     public boolean supportsResultSetConcurrency(int type, int concurrency) {
-        throw new UnsupportedOperationException("Not implemented");
+        return type == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY;
     }
 
     @Override
     public boolean ownUpdatesAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean ownDeletesAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean ownInsertsAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean othersUpdatesAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean othersDeletesAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean othersInsertsAreVisible(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean updatesAreDetected(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean deletesAreDetected(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean insertsAreDetected(int type) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsBatchUpdates() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
@@ -794,22 +794,22 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSavepoints() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsNamedParameters() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsMultipleOpenResults() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsGetGeneratedKeys() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
@@ -829,7 +829,7 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsResultSetHoldability(int holdability) {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
@@ -839,22 +839,22 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getSQLStateType() {
-        throw new UnsupportedOperationException("Not implemented");
+        return sqlStateSQL;
     }
 
     @Override
     public boolean locatorsUpdateCopy() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean supportsStatementPooling() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public RowIdLifetime getRowIdLifetime() {
-        throw new UnsupportedOperationException("Not implemented");
+        return RowIdLifetime.ROWID_UNSUPPORTED;
     }
 
     @Override
@@ -864,12 +864,12 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsStoredFunctionsUsingCallSyntax() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
     public boolean autoCommitFailureClosesAllResultSets() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 
     @Override
@@ -894,6 +894,6 @@ class AthenaDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean generatedKeyAlwaysReturned() {
-        throw new UnsupportedOperationException("Not implemented");
+        return false;
     }
 }
