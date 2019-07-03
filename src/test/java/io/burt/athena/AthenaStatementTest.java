@@ -590,4 +590,34 @@ class AthenaStatementTest {
             }
         }
     }
+
+    @Nested
+    class GetFetchDirection {
+        @Test
+        void returnsForwardOnly() {
+            assertEquals(ResultSet.FETCH_FORWARD, statement.getFetchDirection());
+        }
+    }
+
+    @Nested
+    class SetFetchDirection {
+        @Nested
+        class WhenGivenForward {
+            @Test
+            void doesNothing() throws Exception {
+                statement.setFetchDirection(ResultSet.FETCH_FORWARD);
+                assertEquals(ResultSet.FETCH_FORWARD, statement.getFetchDirection());
+            }
+        }
+
+        @Nested
+        class WhenGivenAnyOtherSetting {
+            @Test
+            void throwsException() {
+                assertThrows(SQLFeatureNotSupportedException.class, () -> statement.setFetchDirection(ResultSet.FETCH_REVERSE));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> statement.setFetchDirection(ResultSet.FETCH_UNKNOWN));
+                assertThrows(SQLFeatureNotSupportedException.class, () -> statement.setFetchDirection(9999));
+            }
+        }
+    }
 }

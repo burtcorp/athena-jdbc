@@ -302,13 +302,15 @@ public class AthenaStatement implements Statement {
     }
 
     @Override
-    public void setFetchDirection(int direction) {
-        throw new UnsupportedOperationException("Not implemented");
+    public void setFetchDirection(int direction) throws SQLException {
+        if (direction != ResultSet.FETCH_FORWARD) {
+            throw new SQLFeatureNotSupportedException("Result set movements other than forward are not supported");
+        }
     }
 
     @Override
     public int getFetchDirection() {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResultSet.FETCH_FORWARD;
     }
 
     @Override
