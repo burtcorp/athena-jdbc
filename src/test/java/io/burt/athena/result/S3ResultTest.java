@@ -2,13 +2,12 @@ package io.burt.athena.result;
 
 import io.burt.athena.support.GetObjectHelper;
 import io.burt.athena.support.TestNameGenerator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -40,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
-@Execution(ExecutionMode.SAME_THREAD)
 class S3ResultTest {
     private GetObjectHelper getObjectHelper;
     private S3Result result;
@@ -54,6 +52,11 @@ class S3ResultTest {
                 .build();
         getObjectHelper = new GetObjectHelper();
         result = new S3Result(getObjectHelper, queryExecution, Duration.ofMillis(10));
+    }
+
+    @AfterEach
+    void tearDown() {
+        getObjectHelper.close();
     }
 
     private ByteBuffer createMetadata(List<ColumnInfo> columns) {
@@ -411,7 +414,7 @@ class S3ResultTest {
             createData();
         }
 
-        private class CancellablePublisher implements SdkPublisher<ByteBuffer> {
+        private class CancellablePublisher implements SdkPublisher<ByteBuffer>, AutoCloseable {
             CancellableSubscription subscription;
 
             @Override
@@ -419,9 +422,14 @@ class S3ResultTest {
                 subscription = new CancellableSubscription(s);
                 s.onSubscribe(subscription);
             }
+
+            @Override
+            public void close() throws Exception {
+                subscription.close();
+            }
         }
 
-        private class CancellableSubscription implements Subscription {
+        private class CancellableSubscription implements Subscription, AutoCloseable {
             private final Subscriber<? super ByteBuffer> subscriber;
             private final ExecutorService executor;
 
@@ -441,15 +449,21 @@ class S3ResultTest {
             public void cancel() {
                 cancelled = true;
             }
+
+            @Override
+            public void close() {
+                executor.shutdown();
+            }
         }
 
         @Test
         void abortsTheDownloadByCancellingTheSubscription() throws Exception {
-            CancellablePublisher publisher = new CancellablePublisher();
-            getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", publisher);
-            result.next();
-            result.close();
-            assertTrue(publisher.subscription.cancelled);
+            try (CancellablePublisher publisher = new CancellablePublisher()) {
+                getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", publisher);
+                result.next();
+                result.close();
+                assertTrue(publisher.subscription.cancelled);
+            }
         }
     }
 }

@@ -24,13 +24,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-public class GetObjectHelper implements S3AsyncClient {
+public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
     private final Map<String, byte[]> objects;
     private final Map<String, SdkPublisher<ByteBuffer>> publishers;
     private final Map<String, Exception> exceptions;
     private final Map<String, Exception> lateExceptions;
     private final Map<String, Duration> delays;
     private final List<GetObjectRequest> getObjectRequests;
+    private final List<AutoCloseable> closeables;
 
     public GetObjectHelper() {
         this.objects = new HashMap<>();
@@ -39,6 +40,7 @@ public class GetObjectHelper implements S3AsyncClient {
         this.lateExceptions = new HashMap<>();
         this.delays = new HashMap<>();
         this.getObjectRequests = new LinkedList<>();
+        this.closeables = new LinkedList<>();
     }
 
     private String uri(String bucket, String key) {
@@ -73,7 +75,7 @@ public class GetObjectHelper implements S3AsyncClient {
         return getObjectRequests;
     }
 
-    private static class GetObjectPublisher implements SdkPublisher<ByteBuffer>, Subscription {
+    private static class GetObjectPublisher implements SdkPublisher<ByteBuffer>, Subscription, AutoCloseable {
         private final byte[] objectContents;
         private final ExecutorService executor;
 
@@ -118,9 +120,14 @@ public class GetObjectHelper implements S3AsyncClient {
         @Override
         public void cancel() {
         }
+
+        @Override
+        public void close() {
+            executor.shutdown();
+        }
     }
 
-    private static class GetObjectExceptionPublisher implements SdkPublisher<ByteBuffer>, Subscription {
+    private static class GetObjectExceptionPublisher implements SdkPublisher<ByteBuffer>, Subscription, AutoCloseable {
         private final Exception e;
         private final ExecutorService executor;
 
@@ -145,6 +152,11 @@ public class GetObjectHelper implements S3AsyncClient {
         @Override
         public void cancel() {
         }
+
+        @Override
+        public void close() {
+            executor.shutdown();
+        }
     }
 
     @Override
@@ -162,7 +174,9 @@ public class GetObjectHelper implements S3AsyncClient {
             GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
-            requestTransformer.onStream(new GetObjectExceptionPublisher(lateExceptions.get(uri)));
+            GetObjectExceptionPublisher publisher = new GetObjectExceptionPublisher(lateExceptions.get(uri));
+            requestTransformer.onStream(publisher);
+            closeables.add(publisher);
         } else if (publishers.containsKey(uri)) {
             GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
             future = requestTransformer.prepare();
@@ -173,7 +187,9 @@ public class GetObjectHelper implements S3AsyncClient {
             GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
-            requestTransformer.onStream(new GetObjectPublisher(object));
+            GetObjectPublisher publisher = new GetObjectPublisher(object);
+            requestTransformer.onStream(publisher);
+            closeables.add(publisher);
         } else {
             throw NoSuchKeyException.builder().build();
         }
@@ -203,5 +219,10 @@ public class GetObjectHelper implements S3AsyncClient {
 
     @Override
     public void close() {
+        for (AutoCloseable closeable : closeables) {
+            try {
+                closeable.close();
+            } catch (Exception e) { }
+        }
     }
 }
