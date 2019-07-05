@@ -3,6 +3,7 @@ package io.burt.athena;
 import io.burt.athena.result.PreloadingStandardResult;
 import io.burt.athena.result.Result;
 import io.burt.athena.result.StandardResult;
+import io.burt.athena.support.ConfigurableConnectionConfiguration;
 import io.burt.athena.support.GetQueryResultsHelper;
 import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
@@ -60,18 +60,19 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class AthenaResultSetTest {
-    @Mock private AthenaStatement parentStatement;
-
+    private AthenaStatement parentStatement;
     private ConnectionConfiguration connectionConfiguration;
     private AthenaResultSet resultSet;
     private GetQueryResultsHelper queryResultsHelper;
 
     @BeforeEach
     void setUpResultSet() {
+        parentStatement = mock(AthenaStatement.class);
         connectionConfiguration = new ConfigurableConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMillis(10), () -> null, () -> null, () -> null, (q) -> null);
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();

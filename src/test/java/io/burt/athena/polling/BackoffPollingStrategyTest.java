@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.ResultSet;
@@ -30,12 +29,12 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class BackoffPollingStrategyTest {
-    @Mock private Sleeper sleeper;
-
+    private Sleeper sleeper;
     private PollingStrategy pollingStrategy;
 
     @BeforeEach
     void setUp() {
+        sleeper = mock(Sleeper.class);
         pollingStrategy = new BackoffPollingStrategy(Duration.ofMillis(3), Duration.ofSeconds(1), sleeper);
     }
 

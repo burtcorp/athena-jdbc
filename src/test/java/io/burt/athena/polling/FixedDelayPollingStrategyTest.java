@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.ResultSet;
@@ -27,12 +26,12 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class FixedDelayPollingStrategyTest {
-    @Mock private Sleeper sleeper;
-
+    private Sleeper sleeper;
     private PollingStrategy pollingStrategy;
 
     @BeforeEach
     void setUp() {
+        sleeper = mock(Sleeper.class);
         pollingStrategy = new FixedDelayPollingStrategy(Duration.ofSeconds(3), sleeper);
     }
 
