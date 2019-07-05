@@ -113,7 +113,7 @@
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <localCheckout>true</localCheckout>
           <pushChanges>false</pushChanges>
-          <tagNameFormat>@{project.version}</tagNameFormat>
+          <tagNameFormat>athena-jdbc-@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
       <plugin>
