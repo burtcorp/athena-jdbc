@@ -8,6 +8,7 @@
   <version>0.1.0</version>
   <name>Athena JDBC</name>
   <description>Athena JDBC driver</description>
+  <url>https://github.com/burtcorp/athena-jdbc</url>
 
   <licenses>
     <license>
