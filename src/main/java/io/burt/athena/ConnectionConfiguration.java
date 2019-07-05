@@ -13,12 +13,34 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import java.time.Duration;
 
-class ConnectionConfiguration {
+public interface ConnectionConfiguration {
     enum ResultLoadingStrategy {
         GET_EXECUTION_RESULTS,
         S3
     }
 
+    String databaseName();
+
+    String workGroupName();
+
+    String outputLocation();
+
+    Duration apiCallTimeout();
+
+    AthenaAsyncClient athenaClient();
+
+    S3AsyncClient s3Client();
+
+    PollingStrategy pollingStrategy();
+
+    ConnectionConfiguration withDatabaseName(String databaseName);
+
+    ConnectionConfiguration withTimeout(Duration timeout);
+
+    Result createResult(QueryExecution queryExecution);
+}
+
+class ConcreteConnectionConfiguration implements ConnectionConfiguration {
     private final Region awsRegion;
     private final String databaseName;
     private final String workGroupName;
@@ -30,7 +52,7 @@ class ConnectionConfiguration {
     private S3AsyncClient s3Client;
     private PollingStrategy pollingStrategy;
 
-    ConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy) {
+    ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy) {
         this.awsRegion = awsRegion;
         this.databaseName = databaseName;
         this.workGroupName = workGroupName;
@@ -39,59 +61,69 @@ class ConnectionConfiguration {
         this.resultLoadingStrategy = resultLoadingStrategy;
     }
 
-    private ConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3AsyncClient s3Client, PollingStrategy pollingStrategy) {
+    private ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3AsyncClient s3Client, PollingStrategy pollingStrategy) {
         this(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
         this.athenaClient = athenaClient;
         this.s3Client = s3Client;
         this.pollingStrategy = pollingStrategy;
     }
 
-    String databaseName() {
+    @Override
+    public String databaseName() {
         return databaseName;
     }
 
-    String workGroupName() {
+    @Override
+    public String workGroupName() {
         return workGroupName;
     }
 
-    String outputLocation() {
+    @Override
+    public String outputLocation() {
         return outputLocation;
     }
 
-    Duration apiCallTimeout() {
+    @Override
+    public Duration apiCallTimeout() {
         return timeout;
     }
 
-    AthenaAsyncClient athenaClient() {
+    @Override
+    public AthenaAsyncClient athenaClient() {
         if (athenaClient == null) {
             athenaClient = AthenaAsyncClient.builder().region(awsRegion).build();
         }
         return athenaClient;
     }
 
-    S3AsyncClient s3Client() {
+    @Override
+    public S3AsyncClient s3Client() {
         if (s3Client == null) {
             s3Client = S3AsyncClient.builder().region(awsRegion).build();
         }
         return s3Client;
     }
 
-    PollingStrategy pollingStrategy() {
+    @Override
+    public PollingStrategy pollingStrategy() {
         if (pollingStrategy == null) {
             pollingStrategy = PollingStrategies.backoff(Duration.ofMillis(10), Duration.ofSeconds(5));
         }
         return pollingStrategy;
     }
 
-    ConnectionConfiguration withDatabaseName(String databaseName) {
-        return new ConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
+    @Override
+    public ConnectionConfiguration withDatabaseName(String databaseName) {
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
     }
 
-    ConnectionConfiguration withTimeout(Duration timeout) {
-        return new ConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
+    @Override
+    public ConnectionConfiguration withTimeout(Duration timeout) {
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
     }
 
-    Result createResult(QueryExecution queryExecution) {
+    @Override
+    public Result createResult(QueryExecution queryExecution) {
         if (resultLoadingStrategy == ResultLoadingStrategy.GET_EXECUTION_RESULTS) {
             return new PreloadingStandardResult(athenaClient(), queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(10));
         } else if (resultLoadingStrategy == ResultLoadingStrategy.S3) {
@@ -104,6 +136,6 @@ class ConnectionConfiguration {
 
 class ConnectionConfigurationFactory {
     ConnectionConfiguration createConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ConnectionConfiguration.ResultLoadingStrategy resultLoadingStrategy) {
-        return new ConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
     }
 }

@@ -2,6 +2,7 @@ package io.burt.athena;
 
 import io.burt.athena.polling.PollingStrategy;
 import io.burt.athena.result.Result;
+import io.burt.athena.support.ConfigurableConnectionConfiguration;
 import io.burt.athena.support.QueryExecutionHelper;
 import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,13 +10,10 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.InternalServerException;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StopQueryExecutionRequest;
@@ -38,26 +36,28 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class AthenaStatementTest {
-    @Mock private Result result;
-
-    private ConnectionConfiguration connectionConfiguration;
+    private Result result;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaStatement statement;
     private PollingStrategy pollingStrategy;
+    private QueryExecution resultFactoryQueryExecution;
 
     @BeforeEach
-    void setUpPollingStrategy() {
-        pollingStrategy = callback -> {
+    void setUpStatement() {
+        result = mock(Result.class);
+        pollingStrategy = createPollingStrategy();
+        queryExecutionHelper = new QueryExecutionHelper();
+        statement = new AthenaStatement(createConfiguration());
+    }
+
+    PollingStrategy createPollingStrategy() {
+        return callback -> {
             while (true) {
                 Optional<ResultSet> rs = callback.poll();
                 if (rs.isPresent()) {
@@ -67,22 +67,20 @@ class AthenaStatementTest {
         };
     }
 
-    @BeforeEach
-    void setUpConfiguration() {
-    }
-
-    @BeforeEach
-    void setUpStatement() {
-        queryExecutionHelper = new QueryExecutionHelper();
-        connectionConfiguration = configureConfiguration(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(60), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
-        statement = new AthenaStatement(connectionConfiguration);
-    }
-
-    private ConnectionConfiguration configureConfiguration(ConnectionConfiguration connectionConfiguration) {
-        ConnectionConfiguration cc = spy(connectionConfiguration);
-        lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
-        lenient().when(cc.createResult(any())).thenReturn(result);
-        return cc;
+    ConnectionConfiguration createConfiguration() {
+        return new ConfigurableConnectionConfiguration(
+                "test_db",
+                "test_wg",
+                "s3://test/location",
+                Duration.ofSeconds(60),
+                () -> queryExecutionHelper,
+                () -> null,
+                () -> pollingStrategy,
+                (q) -> {
+                    resultFactoryQueryExecution = q;
+                    return result;
+                }
+        );
     }
 
     class SharedExecuteSetup {
@@ -211,9 +209,9 @@ class AthenaStatementTest {
 
             @BeforeEach
             void setUp() {
-                when(connectionConfiguration.pollingStrategy()).thenReturn(callback -> {
+                pollingStrategy = callback -> {
                     throw new InterruptedException();
-                });
+                };
                 executeResult = new AtomicReference<>(null);
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
@@ -266,13 +264,12 @@ class AthenaStatementTest {
         }
 
         @Nested
-        @Execution(ExecutionMode.SAME_THREAD)
         class WhenTheResultSetIsUsed {
             @Test
             void createsAResultFromTheQueryExecution() throws Exception {
                 ResultSet rs = execute();
                 rs.next();
-                verify(connectionConfiguration).createResult(argThat(argument -> argument != null && argument.queryExecutionId().equals("Q1234")));
+                assertEquals("Q1234", resultFactoryQueryExecution.queryExecutionId());
             }
 
             @Test
@@ -454,16 +451,6 @@ class AthenaStatementTest {
 
     @Nested
     class GetQueryTimeout {
-        @BeforeEach
-        void setUp() {
-            lenient().when(connectionConfiguration.withTimeout(any())).then(invocation -> {
-                ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
-                cc = configureConfiguration(cc);
-                lenient().when(cc.pollingStrategy()).thenReturn(pollingStrategy);
-                return cc;
-            });
-        }
-
         @Test
         void returnsTheConfiguredTimeoutInSeconds() {
             assertEquals(60, statement.getQueryTimeout());

@@ -1,5 +1,7 @@
 package io.burt.athena;
 
+import io.burt.athena.polling.PollingStrategy;
+import io.burt.athena.support.ConfigurableConnectionConfiguration;
 import io.burt.athena.support.QueryExecutionHelper;
 import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,9 +9,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 
@@ -24,6 +24,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ForkJoinPool;
 
@@ -35,25 +36,44 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class AthenaConnectionTest {
-    private ConnectionConfiguration connectionConfiguration;
+    private PollingStrategy pollingStrategy;
     private QueryExecutionHelper queryExecutionHelper;
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
+        pollingStrategy = createPollingStrategy();
         queryExecutionHelper = new QueryExecutionHelper();
-        connectionConfiguration = spy(new ConnectionConfiguration(Region.CA_CENTRAL_1, "test_db", "test_wg", "s3://test/location", Duration.ofSeconds(1), ConnectionConfiguration.ResultLoadingStrategy.GET_EXECUTION_RESULTS));
-        when(connectionConfiguration.athenaClient()).thenReturn(queryExecutionHelper);
-        connection = new AthenaConnection(connectionConfiguration);
+        connection = new AthenaConnection(createConfiguration());
+    }
+
+    PollingStrategy createPollingStrategy() {
+        return callback -> {
+            while (true) {
+                Optional<ResultSet> rs = callback.poll();
+                if (rs.isPresent()) {
+                    return rs.get();
+                }
+            }
+        };
+    }
+
+    private ConnectionConfiguration createConfiguration() {
+        return new ConfigurableConnectionConfiguration(
+                "test_db",
+                "test_wg",
+                "s3://test/location",
+                Duration.ofSeconds(1),
+                () -> queryExecutionHelper,
+                () -> null,
+                () -> pollingStrategy,
+                (q) -> null
+        );
     }
 
     class SharedQuerySetup {
@@ -64,19 +84,10 @@ class AthenaConnectionTest {
             return requests.get(requests.size() - 1);
         }
 
-        private ConnectionConfiguration cloneAndStubConfiguration(InvocationOnMock invocation) throws Throwable {
-            ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
-            cc = spy(cc);
-            lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
-            return cc;
-        }
-
         @BeforeEach
         void setUp() {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
             queryExecutionHelper.queueGetQueryExecutionResponse(b -> b.queryExecution(bb -> bb.status(bbb -> bbb.state(QueryExecutionState.SUCCEEDED))));
-            lenient().when(connectionConfiguration.withDatabaseName(any())).then(this::cloneAndStubConfiguration);
-            lenient().when(connectionConfiguration.withTimeout(any())).then(this::cloneAndStubConfiguration);
         }
     }
 
