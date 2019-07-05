@@ -56,6 +56,9 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     public void exceptionOccurred(Throwable t) {
         error = t;
         future.completeExceptionally(t);
+        try {
+            close();
+        } catch (Exception e) { }
     }
 
     @Override
