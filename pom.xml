@@ -104,6 +104,9 @@
           <localCheckout>true</localCheckout>
           <pushChanges>false</pushChanges>
           <tagNameFormat>athena-jdbc-@{project.version}</tagNameFormat>
+          <useReleaseProfile>false</useReleaseProfile>
+          <releaseProfiles>release</releaseProfiles>
+          <goals>deploy</goals>
         </configuration>
       </plugin>
       <plugin>
