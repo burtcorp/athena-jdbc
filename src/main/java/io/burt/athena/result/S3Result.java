@@ -59,14 +59,32 @@ public class S3Result implements Result {
     public void setFetchSize(int newFetchSize) {
     }
 
-    private void start() throws ExecutionException, TimeoutException, InterruptedException {
-        AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
-        CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
-        CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
-        CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
-        responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        responseParser.next();
-        rowNumber = 0;
+    private void start() throws SQLException, InterruptedException {
+        try {
+            AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
+            CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
+            CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
+            CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
+            responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            responseParser.next();
+            rowNumber = 0;
+        } catch (ExecutionException e) {
+            SQLException ee = new SQLException(e.getCause());
+            ee.addSuppressed(e);
+            throw ee;
+        } catch (TimeoutException e) {
+            throw new SQLTimeoutException(e);
+        } catch (NoSuchKeyException e) {
+            throw new SQLException(e);
+        } catch (RuntimeException e) {
+            if (!(e.getCause() instanceof RuntimeException)) {
+                SQLException ee = new SQLException(e.getCause());
+                ee.addSuppressed(e);
+                throw ee;
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
@@ -77,22 +95,6 @@ public class S3Result implements Result {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return null;
-            } catch (ExecutionException e) {
-                SQLException ee = new SQLException(e.getCause());
-                ee.addSuppressed(e);
-                throw ee;
-            } catch (TimeoutException e) {
-                throw new SQLTimeoutException(e);
-            } catch (NoSuchKeyException e) {
-                throw new SQLException(e);
-            } catch (RuntimeException e) {
-                if (!(e.getCause() instanceof RuntimeException)) {
-                    SQLException ee = new SQLException(e.getCause());
-                    ee.addSuppressed(e);
-                    throw ee;
-                } else {
-                    throw e;
-                }
             }
         }
         return responseParser.getMetaData();
@@ -111,22 +113,6 @@ public class S3Result implements Result {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
-            } catch (ExecutionException e) {
-                SQLException ee = new SQLException(e.getCause());
-                ee.addSuppressed(e);
-                throw ee;
-            } catch (TimeoutException e) {
-                throw new SQLTimeoutException(e);
-            } catch (NoSuchKeyException e) {
-                throw new SQLException(e);
-            } catch (RuntimeException e) {
-                if (!(e.getCause() instanceof RuntimeException)) {
-                    SQLException ee = new SQLException(e.getCause());
-                    ee.addSuppressed(e);
-                    throw ee;
-                } else {
-                    throw e;
-                }
             }
         }
         currentRow = responseParser.next();
