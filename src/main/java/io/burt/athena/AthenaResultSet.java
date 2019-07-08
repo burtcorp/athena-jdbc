@@ -1,5 +1,6 @@
 package io.burt.athena;
 
+import io.burt.athena.result.AthenaArray;
 import io.burt.athena.result.Result;
 import io.burt.athena.result.ResultPosition;
 

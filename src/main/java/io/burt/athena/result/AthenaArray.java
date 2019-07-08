@@ -1,4 +1,4 @@
-package io.burt.athena;
+package io.burt.athena.result;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -11,7 +11,7 @@ import java.util.Map;
 public class AthenaArray implements Array {
     private final String[] elements;
 
-    AthenaArray(String[] elements) {
+    public AthenaArray(String[] elements) {
         this.elements = elements;
     }
 
