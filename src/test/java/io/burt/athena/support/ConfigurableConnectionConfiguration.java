@@ -81,4 +81,8 @@ public class ConfigurableConnectionConfiguration implements ConnectionConfigurat
     public Result createResult(QueryExecution queryExecution) {
         return resultFactory.apply(queryExecution);
     }
+
+    @Override
+    public void close() {
+    }
 }

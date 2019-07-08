@@ -105,4 +105,16 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
             throw new IllegalStateException(String.format("No such result loading strategy: %s", queryExecution));
         }
     }
+
+    @Override
+    public void close() {
+        if (athenaClient != null) {
+            athenaClient.close();
+            athenaClient = null;
+        }
+        if (s3Client != null) {
+            s3Client.close();
+            s3Client = null;
+        }
+    }
 }

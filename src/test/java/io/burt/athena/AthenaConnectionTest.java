@@ -38,19 +38,23 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(TestNameGenerator.class)
 class AthenaConnectionTest {
     private PollingStrategy pollingStrategy;
     private QueryExecutionHelper queryExecutionHelper;
+    private ConnectionConfiguration connectionConfiguration;
     private AthenaConnection connection;
 
     @BeforeEach
     void setUpConnection() {
         pollingStrategy = createPollingStrategy();
         queryExecutionHelper = new QueryExecutionHelper();
-        connection = new AthenaConnection(createConfiguration());
+        connectionConfiguration = spy(createConfiguration());
+        connection = new AthenaConnection(connectionConfiguration);
     }
 
     PollingStrategy createPollingStrategy() {
@@ -217,10 +221,12 @@ class AthenaConnectionTest {
     @Nested
     class Close {
         @Test
-        void closesTheAthenaClient() {
+        void closesTheConfiguration() throws Exception {
             connection.close();
-            assertTrue(queryExecutionHelper.isClosed());
+            verify(connectionConfiguration).close();
         }
+
+
     }
 
     @Nested
@@ -231,7 +237,7 @@ class AthenaConnectionTest {
         }
 
         @Test
-        void returnsTrueWhenClosed() {
+        void returnsTrueWhenClosed() throws Exception {
             connection.close();
             assertTrue(connection.isClosed());
         }
@@ -245,7 +251,7 @@ class AthenaConnectionTest {
         }
 
         @Test
-        void returnsFalseWhenClosed() {
+        void returnsFalseWhenClosed() throws Exception {
             connection.close();
             assertFalse(connection.isValid(0));
         }

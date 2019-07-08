@@ -8,7 +8,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import java.time.Duration;
 
-public interface ConnectionConfiguration {
+public interface ConnectionConfiguration extends AutoCloseable {
     String databaseName();
 
     String workGroupName();

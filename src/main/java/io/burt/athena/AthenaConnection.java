@@ -1,7 +1,6 @@
 package io.burt.athena;
 
 import io.burt.athena.configuration.ConnectionConfiguration;
-import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -28,13 +27,11 @@ import java.util.concurrent.Executor;
 
 public class AthenaConnection implements Connection {
     private ConnectionConfiguration configuration;
-    private AthenaAsyncClient athenaClient;
     private DatabaseMetaData metaData;
     private boolean open;
 
     AthenaConnection(ConnectionConfiguration configuration) {
         this.configuration = configuration;
-        this.athenaClient = configuration.athenaClient();
         this.metaData = null;
         this.open = true;
     }
@@ -68,10 +65,13 @@ public class AthenaConnection implements Connection {
     }
 
     @Override
-    public void close() {
-        athenaClient.close();
-        athenaClient = null;
-        open = false;
+    public void close() throws SQLException {
+        try {
+            open = false;
+            configuration.close();
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
     }
 
     @Override
