@@ -1,5 +1,7 @@
 package io.burt.athena;
 
+import io.burt.athena.configuration.ConnectionConfiguration;
+import io.burt.athena.configuration.ConnectionConfigurationFactory;
 import software.amazon.awssdk.regions.Region;
 
 import java.sql.Connection;

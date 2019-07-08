@@ -1,5 +1,6 @@
 package io.burt.athena;
 
+import io.burt.athena.configuration.ConnectionConfiguration;
 import io.burt.athena.result.PreloadingStandardResult;
 import io.burt.athena.result.Result;
 import io.burt.athena.result.StandardResult;

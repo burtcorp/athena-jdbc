@@ -1,5 +1,7 @@
 package io.burt.athena;
 
+import io.burt.athena.configuration.ConnectionConfiguration;
+import io.burt.athena.configuration.ConnectionConfigurationFactory;
 import io.burt.athena.support.QueryExecutionHelper;
 import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;

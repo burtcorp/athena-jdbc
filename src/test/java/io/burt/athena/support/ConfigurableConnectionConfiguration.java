@@ -1,6 +1,6 @@
 package io.burt.athena.support;
 
-import io.burt.athena.ConnectionConfiguration;
+import io.burt.athena.configuration.ConnectionConfiguration;
 import io.burt.athena.polling.PollingStrategy;
 import io.burt.athena.result.Result;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;

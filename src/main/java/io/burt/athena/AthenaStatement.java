@@ -1,5 +1,6 @@
 package io.burt.athena;
 
+import io.burt.athena.configuration.ConnectionConfiguration;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 

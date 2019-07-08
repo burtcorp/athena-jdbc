@@ -1,5 +1,7 @@
 package io.burt.athena;
 
+import io.burt.athena.configuration.ConnectionConfigurationFactory;
+
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;

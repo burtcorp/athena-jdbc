@@ -1,4 +1,4 @@
-package io.burt.athena;
+package io.burt.athena.configuration;
 
 import io.burt.athena.polling.PollingStrategies;
 import io.burt.athena.polling.PollingStrategy;
@@ -12,33 +12,6 @@ import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 import java.time.Duration;
-
-public interface ConnectionConfiguration {
-    enum ResultLoadingStrategy {
-        GET_EXECUTION_RESULTS,
-        S3
-    }
-
-    String databaseName();
-
-    String workGroupName();
-
-    String outputLocation();
-
-    Duration apiCallTimeout();
-
-    AthenaAsyncClient athenaClient();
-
-    S3AsyncClient s3Client();
-
-    PollingStrategy pollingStrategy();
-
-    ConnectionConfiguration withDatabaseName(String databaseName);
-
-    ConnectionConfiguration withTimeout(Duration timeout);
-
-    Result createResult(QueryExecution queryExecution);
-}
 
 class ConcreteConnectionConfiguration implements ConnectionConfiguration {
     private final Region awsRegion;
@@ -131,11 +104,5 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
         } else {
             throw new IllegalStateException(String.format("No such result loading strategy: %s", queryExecution));
         }
-    }
-}
-
-class ConnectionConfigurationFactory {
-    ConnectionConfiguration createConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ConnectionConfiguration.ResultLoadingStrategy resultLoadingStrategy) {
-        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
     }
 }
