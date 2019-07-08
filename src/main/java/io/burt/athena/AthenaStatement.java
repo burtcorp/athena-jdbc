@@ -36,7 +36,7 @@ public class AthenaStatement implements Statement {
     }
 
     /**
-     * Set a client request token provider for this statement.
+     * Sets a client request token provider for this statement.
      *
      * If query executions have the same client request token Athena can
      * immediately return the results instead of executing the request again and

@@ -206,10 +206,26 @@ public class AthenaResultSetMetaData implements ResultSetMetaData {
         return iface.isAssignableFrom(getClass());
     }
 
+    /**
+     * Returns the query execution ID of the corresponding result set.
+     *
+     * The query execution ID can be used with the AWS SDK to get information
+     * about the query, for example run time statistics.
+     *
+     * @return the query execution ID
+     */
     public String getQueryExecutionId() {
         return queryExecution.queryExecutionId();
     }
 
+    /**
+     * Returns the S3 URI of the result
+     *
+     * This URI can be used to access the results directly, and separately from
+     * this driver.
+     *
+     * @return the location of the result on S3
+     */
     public String getOutputLocation() {
         return queryExecution.resultConfiguration().outputLocation();
     }
