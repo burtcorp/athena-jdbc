@@ -72,10 +72,8 @@ public class S3Result implements Result {
             SQLException ee = new SQLException(e.getCause());
             ee.addSuppressed(e);
             throw ee;
-        } catch (TimeoutException e) {
+        } catch (TimeoutException | NoSuchKeyException e) {
             throw new SQLTimeoutException(e);
-        } catch (NoSuchKeyException e) {
-            throw new SQLException(e);
         } catch (RuntimeException e) {
             if (!(e.getCause() instanceof RuntimeException)) {
                 SQLException ee = new SQLException(e.getCause());
