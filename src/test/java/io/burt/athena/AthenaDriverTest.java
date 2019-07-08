@@ -10,6 +10,8 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
@@ -210,17 +212,16 @@ class AthenaDriverTest implements PomVersionLoader {
     }
 
     @Nested
-    class Register extends SharedDriverManagerContext {
+    @Execution(ExecutionMode.SAME_THREAD)
+    class RegisterAndDeregister extends SharedDriverManagerContext {
         @Test
         void registersItselfWithTheGlobalDriverManager() throws Exception {
+            AthenaDriver.deregister();
             AthenaDriver.register();
             assertTrue(findDriver().isPresent());
             assertNotNull(DriverManager.getDriver(AthenaDriver.createURL("default")));
         }
-    }
 
-    @Nested
-    class Deregister extends SharedDriverManagerContext {
         @Test
         void deregistersItselfFromTheGlobalDriverManager() throws Exception {
             AthenaDriver.register();
