@@ -2,6 +2,7 @@ package io.burt.athena;
 
 import io.burt.athena.configuration.ConnectionConfiguration;
 import io.burt.athena.configuration.ConnectionConfigurationFactory;
+import io.burt.athena.configuration.ResultLoadingStrategy;
 import software.amazon.awssdk.regions.Region;
 
 import java.sql.Connection;
@@ -132,7 +133,7 @@ public class AthenaDriver implements Driver {
                     workGroup,
                     outputLocation,
                     Duration.ofMinutes(1),
-                    ConnectionConfiguration.ResultLoadingStrategy.S3
+                    ResultLoadingStrategy.S3
             );
             return new AthenaConnection(configuration);
         } else {

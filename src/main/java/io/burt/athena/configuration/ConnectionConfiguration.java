@@ -9,11 +9,6 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import java.time.Duration;
 
 public interface ConnectionConfiguration {
-    enum ResultLoadingStrategy {
-        GET_EXECUTION_RESULTS,
-        S3
-    }
-
     String databaseName();
 
     String workGroupName();
