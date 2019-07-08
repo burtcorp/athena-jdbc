@@ -15,7 +15,6 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -32,18 +31,14 @@ public class S3Result implements Result {
     private final String key;
     private final Duration timeout;
 
-    private AthenaResultSetMetaData resultSetMetaData;
-    private Iterator<String[]> csvParser;
+    private ResponseParser responseParser;
     private String[] currentRow;
     private int rowNumber;
-    private InputStream responseStream;
 
     public S3Result(S3AsyncClient s3Client, QueryExecution queryExecution, Duration timeout) {
         this.s3Client = s3Client;
         this.queryExecution = queryExecution;
         this.timeout = timeout;
-        this.resultSetMetaData = null;
-        this.csvParser = null;
         this.currentRow = null;
         this.rowNumber = 0;
         Matcher matcher = S3_URI_PATTERN.matcher(queryExecution.resultConfiguration().outputLocation());
@@ -68,17 +63,15 @@ public class S3Result implements Result {
         AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
         CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
         CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
-        CompletableFuture<Iterator<String[]>> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new VeryBasicCsvParser(new BufferedReader(new InputStreamReader(responseStream)), metaData.getColumnCount()));
-        csvParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        csvParser.next();
+        CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
+        responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        responseParser.next();
         rowNumber = 0;
-        responseStream = responseStreamFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        resultSetMetaData = metadataFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public AthenaResultSetMetaData getMetaData() throws SQLException {
-        if (resultSetMetaData == null) {
+        if (responseParser == null) {
             try {
                 start();
             } catch (InterruptedException e) {
@@ -102,7 +95,7 @@ public class S3Result implements Result {
                 }
             }
         }
-        return resultSetMetaData;
+        return responseParser.getMetaData();
     }
 
     @Override
@@ -112,7 +105,7 @@ public class S3Result implements Result {
 
     @Override
     public boolean next() throws SQLException {
-        if (resultSetMetaData == null) {
+        if (responseParser == null) {
             try {
                 start();
             } catch (InterruptedException e) {
@@ -136,7 +129,7 @@ public class S3Result implements Result {
                 }
             }
         }
-        currentRow = csvParser.next();
+        currentRow = responseParser.next();
         if (currentRow == null) {
             return false;
         } else {
@@ -156,7 +149,7 @@ public class S3Result implements Result {
             return ResultPosition.BEFORE_FIRST;
         } else if (getRowNumber() == 1) {
             return ResultPosition.FIRST;
-        } else if (csvParser.hasNext()) {
+        } else if (responseParser.hasNext()) {
             return ResultPosition.MIDDLE;
         } else if (currentRow == null) {
             return ResultPosition.AFTER_LAST;
@@ -168,9 +161,29 @@ public class S3Result implements Result {
     @Override
     public void close() throws SQLException {
         try {
-            responseStream.close();
+            responseParser.close();
         } catch (IOException e) {
             throw new SQLException(e);
+        }
+    }
+
+    private static class ResponseParser extends VeryBasicCsvParser implements AutoCloseable {
+        private final InputStream responseStream;
+        private final AthenaResultSetMetaData metaData;
+
+        ResponseParser(InputStream responseStream, AthenaResultSetMetaData metaData) {
+            super(new BufferedReader(new InputStreamReader(responseStream)), metaData.getColumnCount());
+            this.responseStream = responseStream;
+            this.metaData = metaData;
+        }
+
+        AthenaResultSetMetaData getMetaData() {
+            return metaData;
+        }
+
+        @Override
+        public void close() throws IOException {
+            responseStream.close();
         }
     }
 }
