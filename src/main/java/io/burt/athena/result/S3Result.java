@@ -85,14 +85,20 @@ public class S3Result implements Result {
                 Thread.currentThread().interrupt();
                 return null;
             } catch (ExecutionException e) {
-                throw new SQLException(e.getCause());
+                SQLException ee = new SQLException(e.getCause());
+                ee.addSuppressed(e);
+                throw ee;
             } catch (TimeoutException e) {
                 throw new SQLTimeoutException(e);
             } catch (NoSuchKeyException e) {
                 throw new SQLException(e);
             } catch (RuntimeException e) {
                 if (!(e.getCause() instanceof RuntimeException)) {
-                    throw new SQLException(e.getCause());
+                    SQLException ee = new SQLException(e.getCause());
+                    ee.addSuppressed(e);
+                    throw ee;
+                } else {
+                    throw e;
                 }
             }
         }
@@ -113,14 +119,18 @@ public class S3Result implements Result {
                 Thread.currentThread().interrupt();
                 return false;
             } catch (ExecutionException e) {
-                throw new SQLException(e.getCause());
+                SQLException ee = new SQLException(e.getCause());
+                ee.addSuppressed(e);
+                throw ee;
             } catch (TimeoutException e) {
                 throw new SQLTimeoutException(e);
             } catch (NoSuchKeyException e) {
                 throw new SQLException(e);
             } catch (RuntimeException e) {
                 if (!(e.getCause() instanceof RuntimeException)) {
-                    throw new SQLException(e.getCause());
+                    SQLException ee = new SQLException(e.getCause());
+                    ee.addSuppressed(e);
+                    throw ee;
                 } else {
                     throw e;
                 }
