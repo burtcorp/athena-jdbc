@@ -148,14 +148,14 @@ class AthenaStatementTest {
         void throwsWhenStartQueryExecutionThrows() {
             queryExecutionHelper.queueStartQueryExecutionException(InternalServerException.builder().message("b0rk").build());
             Exception e = assertThrows(SQLException.class, this::execute);
-            assertTrue(e.getCause().getCause() instanceof InternalServerException);
+            assertTrue(e.getCause() instanceof InternalServerException);
         }
 
         @Test
         void throwsWhenGetQueryExecutionThrows() {
             queryExecutionHelper.queueStartQueryExecutionException(TooManyRequestsException.builder().message("b0rk").build());
             Exception e = assertThrows(SQLException.class, this::execute);
-            assertTrue(e.getCause().getCause() instanceof TooManyRequestsException);
+            assertTrue(e.getCause() instanceof TooManyRequestsException);
         }
 
         @Test

@@ -56,7 +56,9 @@ public class StandardResult implements Result {
             } catch (TimeoutException ie) {
                 throw new SQLTimeoutException(ie);
             } catch (ExecutionException ee) {
-                throw new SQLException(ee.getCause());
+                SQLException eee = new SQLException(ee.getCause());
+                eee.addSuppressed(ee);
+                throw eee;
             }
         }
     }

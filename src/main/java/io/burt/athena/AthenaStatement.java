@@ -82,7 +82,9 @@ public class AthenaStatement implements Statement {
         } catch (TimeoutException ie) {
             throw new SQLTimeoutException(ie);
         } catch (ExecutionException ee) {
-            throw new SQLException(ee);
+            SQLException eee = new SQLException(ee.getCause());
+            eee.addSuppressed(ee);
+            throw eee;
         }
     }
 
