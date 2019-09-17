@@ -74,6 +74,7 @@ class AthenaStatementTest {
                 "test_wg",
                 "s3://test/location",
                 Duration.ofSeconds(60),
+                Duration.ofSeconds(60),
                 () -> queryExecutionHelper,
                 () -> null,
                 () -> pollingStrategy,
@@ -187,6 +188,30 @@ class AthenaStatementTest {
             ResultSet rs2 = statement.getResultSet();
             assertTrue(rs1.isClosed());
             assertFalse(rs2.isClosed());
+        }
+
+        @Nested
+        class WhenInterruptedWhileSleeping {
+            @BeforeEach
+            void setUp() {
+                statement = new AthenaStatement(createConfiguration().withNetworkTimeout(Duration.ofMillis(10)));
+            }
+
+            @Test
+            void throwsWhenStartQueryExecutionDurationExceedsNetworkTimeout() {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(100));
+                assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+            }
+
+            @Test
+            void throwsWhenGetQueryExecutionDurationExceedsNetworkTimeout() {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(100));
+                assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+            }
         }
     }
 

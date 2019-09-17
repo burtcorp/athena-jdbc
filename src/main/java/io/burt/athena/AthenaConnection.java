@@ -305,13 +305,13 @@ public class AthenaConnection implements Connection {
     @Override
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
         checkClosed();
-        configuration = configuration.withTimeout(Duration.ofMillis(milliseconds));
+        configuration = configuration.withNetworkTimeout(Duration.ofMillis(milliseconds));
     }
 
     @Override
     public int getNetworkTimeout() throws SQLException {
         checkClosed();
-        return (int) configuration.apiCallTimeout().toMillis();
+        return (int) configuration.networkTimeout().toMillis();
     }
 
     @Override

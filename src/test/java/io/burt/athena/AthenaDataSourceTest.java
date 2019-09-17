@@ -43,7 +43,7 @@ class AthenaDataSourceTest {
     @BeforeEach
     void setUp() {
         connectionConfigurationFactory = spy(new ConnectionConfigurationFactory());
-        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any(), any())).then(invocation -> {
+        lenient().when(connectionConfigurationFactory.createConnectionConfiguration(any(), any(), any(), any(), any(), any(), any())).then(invocation -> {
             ConnectionConfiguration cc = (ConnectionConfiguration) invocation.callRealMethod();
             cc = spy(cc);
             lenient().when(cc.athenaClient()).thenReturn(queryExecutionHelper);
@@ -72,7 +72,7 @@ class AthenaDataSourceTest {
         void createsAnAthenaClientForTheConfiguredRegion() throws Exception {
             dataSource.setRegion("sa-east-1");
             dataSource.getConnection();
-            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.SA_EAST_1), any(), any(), any(), any(), any());
+            verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.SA_EAST_1), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -105,7 +105,7 @@ class AthenaDataSourceTest {
             void setsTheRegionOfTheAthenaClient() throws Exception {
                 dataSource.setRegion("ca-central-1");
                 dataSource.getConnection();
-                verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.CA_CENTRAL_1), any(), any(), any(), any(), any());
+                verify(connectionConfigurationFactory).createConnectionConfiguration(eq(Region.CA_CENTRAL_1), any(), any(), any(), any(), any(), any());
             }
         }
     }

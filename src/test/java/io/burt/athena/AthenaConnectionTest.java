@@ -74,6 +74,7 @@ class AthenaConnectionTest {
                 "test_wg",
                 "s3://test/location",
                 Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
                 () -> queryExecutionHelper,
                 () -> null,
                 () -> pollingStrategy,

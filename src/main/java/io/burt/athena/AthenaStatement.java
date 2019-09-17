@@ -98,14 +98,14 @@ public class AthenaStatement implements Statement {
                     b.resultConfiguration(bb -> bb.outputLocation(configuration.outputLocation()));
                     clientRequestTokenProvider.apply(sql).ifPresent(b::clientRequestToken);
                 })
-                .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .get(networkTimeoutMillis(), TimeUnit.MILLISECONDS)
                 .queryExecutionId();
     }
 
     private Optional<ResultSet> poll() throws SQLException, InterruptedException, ExecutionException, TimeoutException {
         QueryExecution queryExecution = athenaClient
                 .getQueryExecution(b -> b.queryExecutionId(queryExecutionId))
-                .get(configuration.apiCallTimeout().toMillis(), TimeUnit.MILLISECONDS)
+                .get(networkTimeoutMillis(), TimeUnit.MILLISECONDS)
                 .queryExecution();
         switch (queryExecution.status().state()) {
             case SUCCEEDED:
@@ -116,6 +116,10 @@ public class AthenaStatement implements Statement {
             default:
                 return Optional.empty();
         }
+    }
+
+    private long networkTimeoutMillis() {
+        return Math.min(configuration.networkTimeout().toMillis(), configuration.queryTimeout().toMillis());
     }
 
     private ResultSet createResultSet(QueryExecution queryExecution) {
@@ -271,12 +275,12 @@ public class AthenaStatement implements Statement {
 
     @Override
     public int getQueryTimeout() {
-        return (int) configuration.apiCallTimeout().toMillis() / 1000;
+        return (int) configuration.queryTimeout().toMillis() / 1000;
     }
 
     @Override
     public void setQueryTimeout(int seconds) {
-        configuration = configuration.withTimeout(Duration.ofSeconds(seconds));
+        configuration = configuration.withQueryTimeout(Duration.ofSeconds(seconds));
     }
 
     @Override

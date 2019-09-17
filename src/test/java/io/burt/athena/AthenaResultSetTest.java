@@ -74,7 +74,7 @@ class AthenaResultSetTest {
     @BeforeEach
     void setUpResultSet() {
         parentStatement = mock(AthenaStatement.class);
-        connectionConfiguration = new ConfigurableConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMillis(10), () -> null, () -> null, () -> null, (q) -> null);
+        connectionConfiguration = new ConfigurableConnectionConfiguration("test_db", "test_wg", "s3://test/location", Duration.ofMillis(10), Duration.ofMillis(10), () -> null, () -> null, () -> null, (q) -> null);
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
         queryResultsHelper = new GetQueryResultsHelper();
         Result result = new PreloadingStandardResult(queryResultsHelper, queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(1));

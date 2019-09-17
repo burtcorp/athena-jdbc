@@ -133,6 +133,7 @@ public class AthenaDriver implements Driver {
                     workGroup,
                     outputLocation,
                     Duration.ofMinutes(1),
+                    Duration.ofMinutes(30),
                     ResultLoadingStrategy.S3
             );
             return new AthenaConnection(configuration);

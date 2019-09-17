@@ -15,7 +15,9 @@ public interface ConnectionConfiguration extends AutoCloseable {
 
     String outputLocation();
 
-    Duration apiCallTimeout();
+    Duration networkTimeout();
+
+    Duration queryTimeout();
 
     AthenaAsyncClient athenaClient();
 
@@ -25,7 +27,9 @@ public interface ConnectionConfiguration extends AutoCloseable {
 
     ConnectionConfiguration withDatabaseName(String databaseName);
 
-    ConnectionConfiguration withTimeout(Duration timeout);
+    ConnectionConfiguration withNetworkTimeout(Duration timeout);
+
+    ConnectionConfiguration withQueryTimeout(Duration timeout);
 
     Result createResult(QueryExecution queryExecution);
 }
