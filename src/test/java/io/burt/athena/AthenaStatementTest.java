@@ -517,9 +517,9 @@ class AthenaStatementTest {
 
         @Test
         void setsTheTimeoutUsedForQuerySpanningMultipleOperations() {
-            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(400));
-            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(400));
-            statement.setQueryTimeout(1);
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(40));
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(40));
+            statement.setQueryTimeout(Duration.ofMillis(100));
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
     }

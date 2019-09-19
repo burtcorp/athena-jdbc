@@ -278,6 +278,10 @@ public class AthenaStatement implements Statement {
         throw new UnsupportedOperationException("Not implemented");
     }
 
+    public void setQueryTimeout(Duration timeout) {
+        configuration = configuration.withQueryTimeout(timeout);
+    }
+
     @Override
     public int getQueryTimeout() {
         return (int) configuration.queryTimeout().toMillis() / 1000;
@@ -285,7 +289,7 @@ public class AthenaStatement implements Statement {
 
     @Override
     public void setQueryTimeout(int seconds) {
-        configuration = configuration.withQueryTimeout(Duration.ofSeconds(seconds));
+        setQueryTimeout(Duration.ofSeconds(seconds));
     }
 
     @Override
