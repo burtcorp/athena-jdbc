@@ -58,9 +58,9 @@ class AthenaConnectionTest {
     }
 
     PollingStrategy createPollingStrategy() {
-        return callback -> {
+        return (callback, deadline) -> {
             while (true) {
-                Optional<ResultSet> rs = callback.poll();
+                Optional<ResultSet> rs = callback.poll(deadline);
                 if (rs.isPresent()) {
                     return rs.get();
                 }

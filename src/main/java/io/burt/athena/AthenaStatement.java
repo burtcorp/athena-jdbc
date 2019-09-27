@@ -80,7 +80,7 @@ public class AthenaStatement implements Statement {
         try {
             Instant deadline = clock.instant().plus(configuration.queryTimeout());
             queryExecutionId = startQueryExecution(sql, deadline);
-            currentResultSet = configuration.pollingStrategy().pollUntilCompleted(() -> poll(deadline));
+            currentResultSet = configuration.pollingStrategy().pollUntilCompleted(this::poll, deadline);
             return currentResultSet != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();

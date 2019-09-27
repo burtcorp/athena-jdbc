@@ -61,9 +61,9 @@ class AthenaStatementTest {
     }
 
     PollingStrategy createPollingStrategy() {
-        return callback -> {
+        return (callback, deadline) -> {
             while (true) {
-                Optional<ResultSet> rs = callback.poll();
+                Optional<ResultSet> rs = callback.poll(deadline);
                 if (rs.isPresent()) {
                     return rs.get();
                 }
@@ -238,7 +238,7 @@ class AthenaStatementTest {
 
             @BeforeEach
             void setUp() {
-                pollingStrategy = callback -> {
+                pollingStrategy = (callback, deadline) -> {
                     throw new InterruptedException();
                 };
                 executeResult = new AtomicReference<>(null);
