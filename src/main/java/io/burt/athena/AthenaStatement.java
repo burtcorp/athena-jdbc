@@ -11,7 +11,9 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +22,7 @@ import java.util.function.Function;
 
 public class AthenaStatement implements Statement {
     private final AthenaAsyncClient athenaClient;
+    private Clock clock;
 
     private ConnectionConfiguration configuration;
     private String queryExecutionId;
@@ -27,9 +30,10 @@ public class AthenaStatement implements Statement {
     private Function<String, Optional<String>> clientRequestTokenProvider;
     private boolean open;
 
-    AthenaStatement(ConnectionConfiguration configuration) {
+    AthenaStatement(ConnectionConfiguration configuration, Clock clock) {
         this.configuration = configuration;
         this.athenaClient = configuration.athenaClient();
+        this.clock = clock;
         this.queryExecutionId = null;
         this.currentResultSet = null;
         this.clientRequestTokenProvider = sql -> Optional.empty();
@@ -74,8 +78,9 @@ public class AthenaStatement implements Statement {
             currentResultSet = null;
         }
         try {
-            queryExecutionId = startQueryExecution(sql);
-            currentResultSet = configuration.pollingStrategy().pollUntilCompleted(this::poll);
+            Instant deadline = clock.instant().plus(configuration.queryTimeout());
+            queryExecutionId = startQueryExecution(sql, deadline);
+            currentResultSet = configuration.pollingStrategy().pollUntilCompleted(() -> poll(deadline));
             return currentResultSet != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -89,7 +94,7 @@ public class AthenaStatement implements Statement {
         }
     }
 
-    private String startQueryExecution(String sql) throws InterruptedException, ExecutionException, TimeoutException {
+    private String startQueryExecution(String sql, Instant deadline) throws InterruptedException, ExecutionException, TimeoutException {
         return athenaClient
                 .startQueryExecution(b -> {
                     b.queryString(sql);
@@ -98,14 +103,14 @@ public class AthenaStatement implements Statement {
                     b.resultConfiguration(bb -> bb.outputLocation(configuration.outputLocation()));
                     clientRequestTokenProvider.apply(sql).ifPresent(b::clientRequestToken);
                 })
-                .get(networkTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .get(networkTimeoutMillis(deadline), TimeUnit.MILLISECONDS)
                 .queryExecutionId();
     }
 
-    private Optional<ResultSet> poll() throws SQLException, InterruptedException, ExecutionException, TimeoutException {
+    private Optional<ResultSet> poll(Instant deadline) throws SQLException, InterruptedException, ExecutionException, TimeoutException {
         QueryExecution queryExecution = athenaClient
                 .getQueryExecution(b -> b.queryExecutionId(queryExecutionId))
-                .get(networkTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .get(networkTimeoutMillis(deadline), TimeUnit.MILLISECONDS)
                 .queryExecution();
         switch (queryExecution.status().state()) {
             case SUCCEEDED:
@@ -118,8 +123,8 @@ public class AthenaStatement implements Statement {
         }
     }
 
-    private long networkTimeoutMillis() {
-        return Math.min(configuration.networkTimeout().toMillis(), configuration.queryTimeout().toMillis());
+    private long networkTimeoutMillis(Instant deadline) {
+        return Math.max(0, Math.min(configuration.networkTimeout().toMillis(), Duration.between(clock.instant(), deadline).toMillis()));
     }
 
     private ResultSet createResultSet(QueryExecution queryExecution) {

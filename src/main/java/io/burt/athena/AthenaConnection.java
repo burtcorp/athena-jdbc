@@ -19,6 +19,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class AthenaConnection implements Connection {
     @Override
     public Statement createStatement() throws SQLException {
         checkClosed();
-        return new AthenaStatement(configuration);
+        return new AthenaStatement(configuration, Clock.systemDefaultZone());
     }
 
     @Override
