@@ -522,6 +522,23 @@ class AthenaStatementTest {
             statement.setQueryTimeout(Duration.ofMillis(100));
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
+
+        @Test
+        void cancelsQueryAfterTimeout() throws Exception {
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
+            StopQueryExecutionRequest request = queryExecutionHelper.stopQueryExecutionRequests().get(0);
+            assertEquals("Q1234", request.queryExecutionId());
+        }
+
+        @Test
+        void doesNotCancelQueryThatDidNotStart() throws Exception {
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
+            assertEquals(0, queryExecutionHelper.stopQueryExecutionRequests().size());
+        }
     }
 
     @Nested

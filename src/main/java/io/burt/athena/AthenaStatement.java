@@ -85,8 +85,18 @@ public class AthenaStatement implements Statement {
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return false;
-        } catch (TimeoutException ie) {
-            throw new SQLTimeoutException(ie);
+        } catch (TimeoutException te) {
+            SQLTimeoutException ste = new SQLTimeoutException(te);
+            if (queryExecutionId != null) {
+                try {
+                    athenaClient.stopQueryExecution(b -> {
+                        b.queryExecutionId(queryExecutionId);
+                    });
+                } catch (Exception e) {
+                    ste.addSuppressed(e);
+                }
+            }
+            throw ste;
         } catch (ExecutionException ee) {
             SQLException eee = new SQLException(ee.getCause());
             eee.addSuppressed(ee);
