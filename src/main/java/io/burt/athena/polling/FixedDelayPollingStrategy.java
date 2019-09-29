@@ -32,15 +32,7 @@ public class FixedDelayPollingStrategy implements PollingStrategy {
             if (resultSet.isPresent()) {
                 return resultSet.get();
             } else {
-                Duration beforeDeadline = Duration.between(clock.instant(), deadline);
-                if (beforeDeadline.compareTo(delay) < 0) {
-                    if (beforeDeadline.isNegative()) {
-                        throw new TimeoutException();
-                    }
-                    sleeper.sleep(beforeDeadline);
-                } else {
-                    sleeper.sleep(delay);
-                }
+                sleeper.sleep(sleepDuration(delay, clock.instant(), deadline));
             }
         }
     }

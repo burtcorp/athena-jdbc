@@ -49,15 +49,7 @@ class BackoffPollingStrategy implements PollingStrategy {
             if (resultSet.isPresent()) {
                 return resultSet.get();
             } else {
-                Duration beforeDeadline = Duration.between(clock.instant(), deadline);
-                if (beforeDeadline.compareTo(nextDelay) < 0) {
-                    if (beforeDeadline.isNegative()) {
-                        throw new TimeoutException();
-                    }
-                    sleeper.sleep(beforeDeadline);
-                } else {
-                    sleeper.sleep(nextDelay);
-                }
+                sleeper.sleep(sleepDuration(nextDelay, clock.instant(), deadline));
                 nextDelay = nextDelay.multipliedBy(factor);
                 if (nextDelay.compareTo(maxDelay) > 0) {
                     nextDelay = maxDelay;
