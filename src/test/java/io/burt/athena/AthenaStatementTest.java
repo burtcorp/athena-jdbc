@@ -5,6 +5,7 @@ import io.burt.athena.polling.PollingStrategy;
 import io.burt.athena.result.Result;
 import io.burt.athena.support.ConfigurableConnectionConfiguration;
 import io.burt.athena.support.QueryExecutionHelper;
+import io.burt.athena.support.TestClock;
 import io.burt.athena.support.TestNameGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -48,19 +49,21 @@ class AthenaStatementTest {
     private AthenaStatement statement;
     private PollingStrategy pollingStrategy;
     private QueryExecution resultFactoryQueryExecution;
+    private TestClock clock;
 
     @BeforeEach
     void setUpStatement() {
         result = mock(Result.class);
         pollingStrategy = createPollingStrategy();
-        queryExecutionHelper = new QueryExecutionHelper();
-        statement = new AthenaStatement(createConfiguration());
+        clock = new TestClock();
+        queryExecutionHelper = new QueryExecutionHelper(clock);
+        statement = new AthenaStatement(createConfiguration(), clock);
     }
 
     PollingStrategy createPollingStrategy() {
-        return callback -> {
+        return (callback, deadline) -> {
             while (true) {
-                Optional<ResultSet> rs = callback.poll();
+                Optional<ResultSet> rs = callback.poll(deadline);
                 if (rs.isPresent()) {
                     return rs.get();
                 }
@@ -73,6 +76,7 @@ class AthenaStatementTest {
                 "test_db",
                 "test_wg",
                 "s3://test/location",
+                Duration.ofSeconds(60),
                 Duration.ofSeconds(60),
                 () -> queryExecutionHelper,
                 () -> null,
@@ -188,6 +192,30 @@ class AthenaStatementTest {
             assertTrue(rs1.isClosed());
             assertFalse(rs2.isClosed());
         }
+
+        @Nested
+        class WhenInterruptedWhileSleeping {
+            @BeforeEach
+            void setUp() {
+                statement = new AthenaStatement(createConfiguration().withNetworkTimeout(Duration.ofMillis(10)), clock);
+            }
+
+            @Test
+            void throwsWhenStartQueryExecutionDurationExceedsNetworkTimeout() {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(100));
+                assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+            }
+
+            @Test
+            void throwsWhenGetQueryExecutionDurationExceedsNetworkTimeout() {
+                queryExecutionHelper.queueStartQueryResponse("Q1234");
+                queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
+                queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(100));
+                assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+            }
+        }
     }
 
     @Nested
@@ -210,7 +238,7 @@ class AthenaStatementTest {
 
             @BeforeEach
             void setUp() {
-                pollingStrategy = callback -> {
+                pollingStrategy = (callback, deadline) -> {
                     throw new InterruptedException();
                 };
                 executeResult = new AtomicReference<>(null);
@@ -469,21 +497,47 @@ class AthenaStatementTest {
         @BeforeEach
         void setUp() {
             queryExecutionHelper.queueStartQueryResponse("Q1234");
+            queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.QUEUED);
             queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
         }
 
         @Test
-        void setsTheTimeoutUsedForApiCalls1() {
+        void setsTheTimeoutUsedForStartQueryExecution() throws SQLException {
             queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
 
         @Test
-        void setsTheTimeoutUsedForApiCalls2() {
+        void setsTheTimeoutUsedForGetQueryExecution() throws SQLException {
             queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+        }
+
+        @Test
+        void setsTheTimeoutUsedForQuerySpanningMultipleOperations() {
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(40));
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(40));
+            statement.setQueryTimeout(Duration.ofMillis(100));
+            assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
+        }
+
+        @Test
+        void cancelsQueryAfterTimeout() throws Exception {
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
+            StopQueryExecutionRequest request = queryExecutionHelper.stopQueryExecutionRequests().get(0);
+            assertEquals("Q1234", request.queryExecutionId());
+        }
+
+        @Test
+        void doesNotCancelQueryThatDidNotStart() throws Exception {
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            statement.setQueryTimeout(0);
+            try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
+            assertEquals(0, queryExecutionHelper.stopQueryExecutionRequests().size());
         }
     }
 

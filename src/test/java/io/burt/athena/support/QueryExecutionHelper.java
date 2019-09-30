@@ -40,8 +40,14 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
     private Duration getQueryResultsDelay;
     private Lock getQueryExecutionBlocker;
     private boolean open;
+    private TestClock clock;
 
     public QueryExecutionHelper() {
+        this(new TestClock());
+    }
+
+    public QueryExecutionHelper(TestClock clock) {
+        this.clock = clock;
         this.startQueryRequests = new LinkedList<>();
         this.getQueryExecutionRequests = new LinkedList<>();
         this.getQueryResultsRequests = new LinkedList<>();
@@ -147,6 +153,8 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
                             newFuture.completeExceptionally(e.getCause());
                         } catch (Exception e) {
                             newFuture.completeExceptionally(e);
+                        } finally {
+                            clock.tick(delay);
                         }
                     },
                     delay.toMillis(),

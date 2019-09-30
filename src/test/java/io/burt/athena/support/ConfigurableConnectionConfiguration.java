@@ -15,17 +15,19 @@ public class ConfigurableConnectionConfiguration implements ConnectionConfigurat
     private final String databaseName;
     private final String workGroupName;
     private final String outputLocation;
-    private final Duration timeout;
+    private final Duration networkTimeout;
+    private final Duration queryTimeout;
     private final Supplier<AthenaAsyncClient> athenaClientFactory;
     private final Supplier<S3AsyncClient> s3ClientFactory;
     private final Supplier<PollingStrategy> pollingStrategyFactory;
     private final Function<QueryExecution, Result> resultFactory;
 
-    public ConfigurableConnectionConfiguration(String databaseName, String workGroupName, String outputLocation, Duration timeout, Supplier<AthenaAsyncClient> athenaClientFactory, Supplier<S3AsyncClient> s3ClientFactory, Supplier<PollingStrategy> pollingStrategyFactory, Function<QueryExecution, Result> resultFactory) {
+    public ConfigurableConnectionConfiguration(String databaseName, String workGroupName, String outputLocation, Duration networkTimeout, Duration queryTimeout, Supplier<AthenaAsyncClient> athenaClientFactory, Supplier<S3AsyncClient> s3ClientFactory, Supplier<PollingStrategy> pollingStrategyFactory, Function<QueryExecution, Result> resultFactory) {
         this.databaseName = databaseName;
         this.workGroupName = workGroupName;
         this.outputLocation = outputLocation;
-        this.timeout = timeout;
+        this.networkTimeout = networkTimeout;
+        this.queryTimeout = queryTimeout;
         this.athenaClientFactory = athenaClientFactory;
         this.s3ClientFactory = s3ClientFactory;
         this.pollingStrategyFactory = pollingStrategyFactory;
@@ -48,9 +50,12 @@ public class ConfigurableConnectionConfiguration implements ConnectionConfigurat
     }
 
     @Override
-    public Duration apiCallTimeout() {
-        return timeout;
+    public Duration networkTimeout() {
+        return networkTimeout;
     }
+
+    @Override
+    public Duration queryTimeout() { return queryTimeout; }
 
     @Override
     public AthenaAsyncClient athenaClient() {
@@ -69,12 +74,17 @@ public class ConfigurableConnectionConfiguration implements ConnectionConfigurat
 
     @Override
     public ConnectionConfiguration withDatabaseName(String newDatabaseName) {
-        return new ConfigurableConnectionConfiguration(newDatabaseName, workGroupName, outputLocation, timeout, athenaClientFactory, s3ClientFactory, pollingStrategyFactory, resultFactory);
+        return new ConfigurableConnectionConfiguration(newDatabaseName, workGroupName, outputLocation, networkTimeout, queryTimeout, athenaClientFactory, s3ClientFactory, pollingStrategyFactory, resultFactory);
     }
 
     @Override
-    public ConnectionConfiguration withTimeout(Duration newTimeout) {
-        return new ConfigurableConnectionConfiguration(databaseName, workGroupName, outputLocation, newTimeout, athenaClientFactory, s3ClientFactory, pollingStrategyFactory, resultFactory);
+    public ConnectionConfiguration withNetworkTimeout(Duration newNetworkTimeout) {
+        return new ConfigurableConnectionConfiguration(databaseName, workGroupName, outputLocation, newNetworkTimeout, queryTimeout, athenaClientFactory, s3ClientFactory, pollingStrategyFactory, resultFactory);
+    }
+
+    @Override
+    public ConnectionConfiguration withQueryTimeout(Duration newQueryTimeout) {
+        return new ConfigurableConnectionConfiguration(databaseName, workGroupName, outputLocation, networkTimeout, newQueryTimeout, athenaClientFactory, s3ClientFactory, pollingStrategyFactory, resultFactory);
     }
 
     @Override

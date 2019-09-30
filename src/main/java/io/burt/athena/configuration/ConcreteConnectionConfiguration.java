@@ -18,24 +18,26 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
     private final String databaseName;
     private final String workGroupName;
     private final String outputLocation;
-    private final Duration timeout;
+    private final Duration networkTimeout;
+    private final Duration queryTimeout;
     private final ResultLoadingStrategy resultLoadingStrategy;
 
     private AthenaAsyncClient athenaClient;
     private S3AsyncClient s3Client;
     private PollingStrategy pollingStrategy;
 
-    ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy) {
+    ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration networkTimeout, Duration queryTimeout, ResultLoadingStrategy resultLoadingStrategy) {
         this.awsRegion = awsRegion;
         this.databaseName = databaseName;
         this.workGroupName = workGroupName;
         this.outputLocation = outputLocation;
-        this.timeout = timeout;
+        this.networkTimeout = networkTimeout;
+        this.queryTimeout = queryTimeout;
         this.resultLoadingStrategy = resultLoadingStrategy;
     }
 
-    private ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration timeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3AsyncClient s3Client, PollingStrategy pollingStrategy) {
-        this(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy);
+    private ConcreteConnectionConfiguration(Region awsRegion, String databaseName, String workGroupName, String outputLocation, Duration networkTimeout, Duration queryTimeout, ResultLoadingStrategy resultLoadingStrategy, AthenaAsyncClient athenaClient, S3AsyncClient s3Client, PollingStrategy pollingStrategy) {
+        this(awsRegion, databaseName, workGroupName, outputLocation, networkTimeout, queryTimeout, resultLoadingStrategy);
         this.athenaClient = athenaClient;
         this.s3Client = s3Client;
         this.pollingStrategy = pollingStrategy;
@@ -57,9 +59,12 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
     }
 
     @Override
-    public Duration apiCallTimeout() {
-        return timeout;
+    public Duration networkTimeout() {
+        return networkTimeout;
     }
+
+    @Override
+    public Duration queryTimeout() { return queryTimeout; }
 
     @Override
     public AthenaAsyncClient athenaClient() {
@@ -87,12 +92,17 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
 
     @Override
     public ConnectionConfiguration withDatabaseName(String databaseName) {
-        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, networkTimeout, queryTimeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
     }
 
     @Override
-    public ConnectionConfiguration withTimeout(Duration timeout) {
-        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, timeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
+    public ConnectionConfiguration withNetworkTimeout(Duration networkTimeout) {
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, networkTimeout, queryTimeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
+    }
+
+    @Override
+    public ConnectionConfiguration withQueryTimeout(Duration queryTimeout) {
+        return new ConcreteConnectionConfiguration(awsRegion, databaseName, workGroupName, outputLocation, networkTimeout, queryTimeout, resultLoadingStrategy, athenaClient, s3Client, pollingStrategy);
     }
 
     @Override
