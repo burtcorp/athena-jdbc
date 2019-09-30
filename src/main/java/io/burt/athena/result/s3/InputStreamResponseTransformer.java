@@ -124,7 +124,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return false;
+                throw new IOException(e);
             }
         }
         return true;

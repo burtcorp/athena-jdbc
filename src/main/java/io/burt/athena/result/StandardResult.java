@@ -104,7 +104,7 @@ public class StandardResult implements Result {
                 ensureResults();
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-                return null;
+                throw new SQLException(ie);
             }
         }
         return resultSetMetaData;
@@ -128,7 +128,7 @@ public class StandardResult implements Result {
             return currentRow != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            return false;
+            throw new SQLException(ie);
         }
     }
 

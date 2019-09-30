@@ -234,6 +234,7 @@ class AthenaStatementTest {
         class WhenInterruptedWhileSleeping {
             private Thread runner;
             private AtomicReference<Boolean> executeResult;
+            private AtomicReference<Throwable> executeThrowable;
             private AtomicReference<Boolean> interruptedState;
 
             @BeforeEach
@@ -242,13 +243,15 @@ class AthenaStatementTest {
                     throw new InterruptedException();
                 };
                 executeResult = new AtomicReference<>(null);
+                executeThrowable = new AtomicReference<>(null);
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
                     try {
                         executeResult.set(execute());
+                    } catch (Throwable t) {
+                        executeThrowable.set(t);
+                    } finally {
                         interruptedState.set(Thread.currentThread().isInterrupted());
-                    } catch (SQLException sqle) {
-                        throw new RuntimeException(sqle);
                     }
                 });
             }
@@ -261,10 +264,11 @@ class AthenaStatementTest {
             }
 
             @Test
-            void returnsFalse() throws Exception {
+            void throwsAnSQLException() throws Exception {
                 runner.start();
                 runner.join();
-                assertFalse(executeResult.get());
+                assertNull(executeResult.get());
+                assertTrue(SQLException.class.isAssignableFrom(executeThrowable.get().getClass()));
             }
         }
     }
