@@ -145,7 +145,9 @@ public class S3Result implements Result {
     @Override
     public void close() throws SQLException {
         try {
-            responseParser.close();
+            if (responseParser != null) {
+                responseParser.close();
+            }
         } catch (IOException e) {
             throw new SQLException(e);
         }
