@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -142,19 +143,22 @@ class StandardResultTest {
         @Nested
         class WhenLoadingIsInterrupted {
             private Thread runner;
-            private AtomicReference<ResultSetMetaData> executeResult;
+            private AtomicReference<Optional<ResultSetMetaData>> executeResult;
+            private AtomicReference<Throwable> executeThrowable;
             private AtomicReference<Boolean> interruptedState;
 
             @BeforeEach
             void setUp() {
                 executeResult = new AtomicReference<>(null);
+                executeThrowable = new AtomicReference<>(null);
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
                     try {
-                        executeResult.set(result.getMetaData());
+                        executeResult.set(Optional.ofNullable(result.getMetaData()));
+                    } catch (Throwable t) {
+                        executeThrowable.set(t);
+                    } finally {
                         interruptedState.set(Thread.currentThread().isInterrupted());
-                    } catch (SQLException sqle) {
-                        throw new RuntimeException(sqle);
                     }
                 });
                 queryResultsHelper.interruptLoading(true);
@@ -168,10 +172,11 @@ class StandardResultTest {
             }
 
             @Test
-            void returnsNull() throws Exception {
+            void throwsAnSQLException() throws Exception {
                 runner.start();
                 runner.join();
                 assertNull(executeResult.get());
+                assertTrue(SQLException.class.isAssignableFrom(executeThrowable.get().getClass()));
             }
         }
     }
@@ -302,18 +307,21 @@ class StandardResultTest {
         class WhenLoadingIsInterrupted {
             private Thread runner;
             private AtomicReference<Boolean> executeResult;
+            private AtomicReference<Throwable> executeThrowable;
             private AtomicReference<Boolean> interruptedState;
 
             @BeforeEach
             void setUp() {
                 executeResult = new AtomicReference<>(null);
+                executeThrowable = new AtomicReference<>(null);
                 interruptedState = new AtomicReference<>(null);
                 runner = new Thread(() -> {
                     try {
                         executeResult.set(result.next());
+                    } catch (Throwable t) {
+                        executeThrowable.set(t);
+                    } finally {
                         interruptedState.set(Thread.currentThread().isInterrupted());
-                    } catch (SQLException sqle) {
-                        throw new RuntimeException(sqle);
                     }
                 });
                 queryResultsHelper.interruptLoading(true);
@@ -327,10 +335,11 @@ class StandardResultTest {
             }
 
             @Test
-            void returnsFalse() throws Exception {
+            void throwsAnSQLException() throws Exception {
                 runner.start();
                 runner.join();
-                assertFalse(executeResult.get());
+                assertNull(executeResult.get());
+                assertTrue(SQLException.class.isAssignableFrom(executeThrowable.get().getClass()));
             }
         }
 

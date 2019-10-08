@@ -92,7 +92,7 @@ public class S3Result implements Result {
                 start();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return null;
+                throw new SQLException(e);
             }
         }
         return responseParser.getMetaData();
@@ -110,7 +110,7 @@ public class S3Result implements Result {
                 start();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return false;
+                throw new SQLException(e);
             }
         }
         currentRow = responseParser.next();

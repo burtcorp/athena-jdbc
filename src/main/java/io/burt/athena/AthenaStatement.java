@@ -84,7 +84,7 @@ public class AthenaStatement implements Statement {
             return currentResultSet != null;
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            return false;
+            throw new SQLException(ie);
         } catch (TimeoutException te) {
             SQLTimeoutException ste = new SQLTimeoutException(te);
             if (queryExecutionId != null) {
