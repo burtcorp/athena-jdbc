@@ -462,5 +462,12 @@ class S3ResultTest {
                 assertTrue(publisher.subscription.cancelled);
             }
         }
+
+        @Test
+        void canBeCalledAfterAFailedOpen() throws Exception {
+            getObjectHelper.removeObject("some-bucket", "the/prefix/Q1234.csv");
+            try { result.next(); } catch(SQLException e) { /* expected */ }
+            result.close();
+        }
     }
 }
