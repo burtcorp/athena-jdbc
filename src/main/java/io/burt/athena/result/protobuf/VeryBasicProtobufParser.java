@@ -42,7 +42,7 @@ public class VeryBasicProtobufParser {
     }
 
     private byte[] readLengthDelimited(ByteBuffer buffer) {
-        int size = Byte.toUnsignedInt(buffer.get());
+        int size = Math.toIntExact(readVarint(buffer));
         byte[] contents = new byte[size];
         buffer.get(contents);
         return contents;

@@ -89,5 +89,21 @@ class VeryBasicProtobufParserTest {
                 assertEquals(0, ((IntegerField) innerFields.get(7)).getValue());
             }
         }
+
+        @Nested
+        class WithMultiByteBinaryFieldLengths {
+            @Test
+            void returnsLongBinaryFields() throws Exception {
+                byte[] contents = new byte[514];
+                contents[0] = 2;
+                contents[1] = (byte)(0xff);
+                contents[2] = (byte)(0x03);
+                contents[0xff+2] = 2;
+                contents[0xff+3] = (byte)(0x1ff-0xff-1);
+                List<Field> fields = parser.parse(contents);
+                assertEquals(1, fields.size());
+                assertEquals(0x1ff, ((BinaryField)fields.get(0)).getContents().length);
+            }
+        }
     }
 }
