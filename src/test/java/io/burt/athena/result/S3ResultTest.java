@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -327,6 +328,58 @@ class S3ResultTest {
 
             void marksTheThreadAsInterrupted() {
                 // PENDING: very hard to set up
+            }
+        }
+
+        @Nested
+        class WhenAnEmptyByteBufferIsPublished {
+            private class EmptyPublisher implements SdkPublisher<ByteBuffer>, AutoCloseable {
+                EmptySubscription subscription;
+
+                @Override
+                public void subscribe(Subscriber<? super ByteBuffer> s) {
+                    subscription = new EmptySubscription(s);
+                    s.onSubscribe(subscription);
+                }
+
+                @Override
+                public void close() throws Exception {
+                    subscription.close();
+                }
+            }
+
+            private class EmptySubscription implements Subscription, AutoCloseable {
+                private final Subscriber<? super ByteBuffer> subscriber;
+                private final ExecutorService executor;
+
+                EmptySubscription(Subscriber<? super ByteBuffer> subscriber) {
+                    this.subscriber = subscriber;
+                    this.executor = Executors.newSingleThreadExecutor();
+                }
+
+                @Override
+                public void request(long n) {
+                    executor.submit(() -> {
+                        subscriber.onNext(ByteBuffer.allocate(0));
+                        subscriber.onComplete();
+                    });
+                }
+
+                @Override
+                public void cancel() { }
+
+                @Override
+                public void close() {
+                    executor.shutdown();
+                }
+            }
+
+            @Test
+            void returnsFalse() throws Exception {
+                try (EmptyPublisher publisher = new EmptyPublisher()) {
+                    getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", publisher);
+                    assertFalse(result.next());
+                }
             }
         }
     }

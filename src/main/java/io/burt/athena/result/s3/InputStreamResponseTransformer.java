@@ -73,7 +73,9 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void onNext(ByteBuffer byteBuffer) {
-        chunks.offer(byteBuffer);
+        if(byteBuffer.hasRemaining()) {
+            chunks.offer(byteBuffer);
+        }
         int size = approximateBufferSize.addAndGet(byteBuffer.remaining());
         maybeRequestMore(size);
     }
