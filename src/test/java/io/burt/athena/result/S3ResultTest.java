@@ -23,8 +23,10 @@ import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.text.ParseException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
@@ -351,16 +353,22 @@ class S3ResultTest {
             private class EmptySubscription implements Subscription, AutoCloseable {
                 private final Subscriber<? super ByteBuffer> subscriber;
                 private final ExecutorService executor;
+                private final Queue<ByteBuffer> buffers = new ArrayDeque<>();
 
                 EmptySubscription(Subscriber<? super ByteBuffer> subscriber) {
                     this.subscriber = subscriber;
                     this.executor = Executors.newSingleThreadExecutor();
+                    buffers.add(ByteBuffer.wrap("\"col1\",\"col2\"\n\"one\",\"1\"\n".getBytes(StandardCharsets.UTF_8)));
+                    buffers.add(ByteBuffer.allocate(0));
                 }
 
                 @Override
                 public void request(long n) {
                     executor.submit(() -> {
-                        subscriber.onNext(ByteBuffer.allocate(0));
+                        ByteBuffer buffer;
+                        while((buffer = buffers.poll()) != null) {
+                            subscriber.onNext(buffer);
+                        }
                         subscriber.onComplete();
                     });
                 }
@@ -375,9 +383,10 @@ class S3ResultTest {
             }
 
             @Test
-            void returnsFalse() throws Exception {
+            void ignoresTheEmptyBuffer() throws Exception {
                 try (EmptyPublisher publisher = new EmptyPublisher()) {
                     getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", publisher);
+                    assertTrue(result.next());
                     assertFalse(result.next());
                 }
             }
