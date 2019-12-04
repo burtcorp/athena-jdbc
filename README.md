@@ -136,7 +136,7 @@ try (
 ) {
   ResultSetMetaData metaData = resultSet.getMetaData();
   if (metaData.isWrapperFor(AthenaResultSetMetaData.class)) {
-    AthenaResultSetMetaData unwrappedMetaData = resultSetMetaData.unwrap(AthenaResultSetMetaData.class);
+    AthenaResultSetMetaData unwrappedMetaData = metaData.unwrap(AthenaResultSetMetaData.class);
     String queryExecutionId = unwrappedMetaData.getQueryExecutionId();
     System.out.println(queryExecutionId);
   }
