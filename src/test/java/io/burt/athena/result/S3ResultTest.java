@@ -42,9 +42,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class S3ResultTest {
     private GetObjectHelper getObjectHelper;
     private S3Result result;
+    private String previousFileEncoding;
 
     @BeforeEach
     void setUp() {
+        previousFileEncoding = System.getProperty("file.encoding");
+        System.setProperty("file.encoding", "ascii");
         QueryExecution queryExecution = QueryExecution
                 .builder()
                 .queryExecutionId("Q1234")
@@ -57,6 +60,7 @@ class S3ResultTest {
     @AfterEach
     void tearDown() {
         getObjectHelper.close();
+        System.setProperty("file.encoding", previousFileEncoding);
     }
 
     private ByteBuffer createMetadata(List<ColumnInfo> columns) {
@@ -102,7 +106,7 @@ class S3ResultTest {
         contents.append("\"col1\",\"col2\"\n");
         contents.append("\"row1\",\"1\"\n");
         contents.append("\"row2\",\"2\"\n");
-        contents.append("\"row3\",\"3\"\n");
+        contents.append("\"row\u2603\",\"3\"\n");
         getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv", contents.toString().getBytes(StandardCharsets.UTF_8));
 
     }
@@ -275,7 +279,7 @@ class S3ResultTest {
             assertEquals("row2", result.getString(1));
             assertEquals("2", result.getString(2));
             result.next();
-            assertEquals("row3", result.getString(1));
+            assertEquals("row\u2603", result.getString(1));
             assertEquals("3", result.getString(2));
         }
 

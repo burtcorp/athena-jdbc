@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.time.Duration;
@@ -158,7 +159,7 @@ public class S3Result implements Result {
         private final AthenaResultSetMetaData metaData;
 
         ResponseParser(InputStream responseStream, AthenaResultSetMetaData metaData) {
-            super(new BufferedReader(new InputStreamReader(responseStream)), metaData.getColumnCount());
+            super(new BufferedReader(new InputStreamReader(responseStream, StandardCharsets.UTF_8)), metaData.getColumnCount());
             this.responseStream = responseStream;
             this.metaData = metaData;
         }
