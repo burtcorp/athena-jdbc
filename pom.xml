@@ -124,7 +124,7 @@
           <pushChanges>false</pushChanges>
           <tagNameFormat>athena-jdbc-@{project.version}</tagNameFormat>
           <useReleaseProfile>false</useReleaseProfile>
-          <releaseProfiles>release</releaseProfiles>
+          <releaseProfiles>athena-jdbc-release</releaseProfiles>
           <goals>deploy</goals>
         </configuration>
       </plugin>
@@ -170,7 +170,7 @@
 
   <profiles>
     <profile>
-      <id>release</id>
+      <id>athena-jdbc-release</id>
       <build>
         <plugins>
           <plugin>
