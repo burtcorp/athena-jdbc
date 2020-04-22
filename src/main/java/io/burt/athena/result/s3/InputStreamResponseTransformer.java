@@ -82,7 +82,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     private void maybeRequestMore(int currentSize) {
         if (currentSize < TARGET_BUFFER_SIZE) {
-            subscription.request(10L);
+            subscription.request(1L);
         }
     }
 
