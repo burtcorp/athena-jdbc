@@ -36,7 +36,7 @@
   </developers>
 
   <properties>
-    <aws-sdk.version>2.5.37</aws-sdk.version>
+    <aws-sdk.version>2.13.1</aws-sdk.version>
     <slf4j.version>1.7.26</slf4j.version>
     <junit.version>5.4.2</junit.version>
     <mockito.version>2.27.0</mockito.version>
