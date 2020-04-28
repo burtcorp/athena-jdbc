@@ -17,9 +17,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class InputStreamResponseTransformer extends InputStream implements AsyncResponseTransformer<GetObjectResponse, InputStream>, Subscriber<ByteBuffer> {
     private static final ByteBuffer END_MARKER = ByteBuffer.allocate(0);
-    private static int TARGET_BUFFER_SIZE = 1 << 25;
-    private static int CHUNKS_REQUEST_LIMIT = 1000;
-    private static float CHUNK_SIZE_EXPONENTIAL_WEIGHT = 0.2f;
+    private static final int TARGET_BUFFER_SIZE = 1 << 25;
+    private static final int CHUNKS_REQUEST_LIMIT = 1000;
+    private static final float CHUNK_SIZE_EXPONENTIAL_WEIGHT = 0.2f;
+    private static final float CHUNK_SIZE_INITIAL_ESTIMATE = 8192f;
 
     private final CompletableFuture<InputStream> future;
     private final BlockingQueue<ByteBuffer> chunks;
@@ -39,6 +40,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
         this.complete = new AtomicBoolean(false);
         this.approximateBufferSize = new AtomicInteger(0);
         this.requests = new AtomicInteger(0);
+        this.approximateChunkSize = CHUNK_SIZE_INITIAL_ESTIMATE;
     }
 
     @Override
@@ -80,13 +82,13 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void onNext(ByteBuffer byteBuffer) {
-        int remaining = byteBuffer.remaining();
-        if (remaining > 0) {
+        int chunkSize = byteBuffer.remaining();
+        if (chunkSize > 0) {
             chunks.offer(byteBuffer);
-            approximateChunkSize += CHUNK_SIZE_EXPONENTIAL_WEIGHT * (remaining - approximateChunkSize);
+            approximateChunkSize += CHUNK_SIZE_EXPONENTIAL_WEIGHT * (chunkSize - approximateChunkSize);
         }
         requests.decrementAndGet();
-        int size = approximateBufferSize.addAndGet(remaining);
+        int size = approximateBufferSize.addAndGet(chunkSize);
         maybeRequestMore(size);
     }
 
