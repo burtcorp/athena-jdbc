@@ -158,12 +158,12 @@ public class AthenaDriver implements Driver {
 
     @Override
     public int getMajorVersion() {
-        return 0;
+        return AthenaDriverInfo.getDriverMajorVersion();
     }
 
     @Override
     public int getMinorVersion() {
-        return 2;
+        return AthenaDriverInfo.getDriverMinorVersion();
     }
 
     @Override
