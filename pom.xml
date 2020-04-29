@@ -28,9 +28,13 @@
 
   <developers>
     <developer>
-      <name>Theo Hultberg</name>
-      <email>theo@burtcorp.com</email>
-      <organization>Burt</organization>
+      <name>Theo Hultberg Tolv</name>
+      <email>theo@iconara.net</email>
+    </developer>
+    <developer>
+      <name>Gustav Munkby</name>
+      <email>munkby@burtcorp.com</email>
+      <organization>Burt Intelligence</organization>
       <organizationUrl>http://burt.ai/</organizationUrl>
     </developer>
   </developers>
@@ -185,9 +189,6 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
             <version>1.6</version>
-            <configuration>
-              <keyname>9ED21C6E</keyname>
-            </configuration>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
