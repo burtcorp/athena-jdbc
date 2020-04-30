@@ -5,7 +5,7 @@
 
   <groupId>io.burt</groupId>
   <artifactId>athena-jdbc</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.3.0</version>
   <name>Athena JDBC</name>
   <description>Athena JDBC driver</description>
   <url>https://github.com/burtcorp/athena-jdbc</url>
@@ -23,7 +23,7 @@
     <connection>scm:git:ssh://git@github.com/burtcorp/athena-jdbc.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/burtcorp/athena-jdbc.git</developerConnection>
     <url>https://github.com/burtcorp/athena-jdbc.git</url>
-    <tag>athena-jdbc-${project.version}</tag>
+    <tag>athena-jdbc-0.3.0</tag>
   </scm>
 
   <developers>
