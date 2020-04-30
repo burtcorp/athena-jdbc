@@ -1,5 +1,7 @@
 package io.burt.athena.support;
 
+import org.mockito.AdditionalAnswers;
+import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
@@ -19,12 +21,15 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 public class QueryExecutionHelper implements AthenaAsyncClient {
     private final List<StartQueryExecutionRequest> startQueryRequests;
@@ -143,26 +148,22 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         if (delay.isZero()) {
             return future;
         } else {
-            CompletableFuture<T> newFuture = new CompletableFuture<>();
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            scheduler.schedule(
-                    () -> {
-                        try {
-                            newFuture.complete(future.get());
-                        } catch (ExecutionException e) {
-                            newFuture.completeExceptionally(e.getCause());
-                        } catch (Exception e) {
-                            newFuture.completeExceptionally(e);
-                        } finally {
-                            clock.tick(delay);
-                        }
-                    },
-                    delay.toMillis(),
-                    TimeUnit.MILLISECONDS
-            );
-            scheduler.shutdown();
-            return newFuture;
+            TestDelayedCompletableFuture<T> testFuture = new TestDelayedCompletableFuture<>(future, delay, clock);
+            CompletableFuture<T> restrictedFuture = mockCompletableFuture(invocation -> {
+                throw new UnsupportedOperationException(invocation.getMethod().toString());
+            });
+            try {
+                doAnswer(AdditionalAnswers.delegatesTo(testFuture)).when(restrictedFuture).get(anyLong(), any());
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                e.printStackTrace();
+            }
+            return restrictedFuture;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> CompletableFuture<T> mockCompletableFuture(Answer defaultAnswer) {
+        return mock(CompletableFuture.class, defaultAnswer);
     }
 
     private <T> CompletableFuture<T> maybeFailResponse(CompletableFuture<T> future, Queue<Exception> exceptions) {
