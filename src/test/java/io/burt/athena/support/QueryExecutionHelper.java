@@ -1,7 +1,6 @@
 package io.burt.athena.support;
 
 import org.mockito.AdditionalAnswers;
-import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
@@ -149,21 +148,16 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
             return future;
         } else {
             TestDelayedCompletableFuture<T> testFuture = new TestDelayedCompletableFuture<>(future, delay, clock);
-            CompletableFuture<T> restrictedFuture = mockCompletableFuture(invocation -> {
+            @SuppressWarnings("unchecked") CompletableFuture<T> restrictedFuture = mock(CompletableFuture.class, invocation -> {
                 throw new UnsupportedOperationException(invocation.getMethod().toString());
             });
             try {
                 doAnswer(AdditionalAnswers.delegatesTo(testFuture)).when(restrictedFuture).get(anyLong(), any());
             } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             return restrictedFuture;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> CompletableFuture<T> mockCompletableFuture(Answer defaultAnswer) {
-        return mock(CompletableFuture.class, defaultAnswer);
     }
 
     private <T> CompletableFuture<T> maybeFailResponse(CompletableFuture<T> future, Queue<Exception> exceptions) {
