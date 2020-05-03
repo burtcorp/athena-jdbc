@@ -1,6 +1,5 @@
 package io.burt.athena.support;
 
-import org.mockito.AdditionalAnswers;
 import software.amazon.awssdk.services.athena.AthenaAsyncClient;
 import software.amazon.awssdk.services.athena.model.ColumnInfo;
 import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
@@ -19,16 +18,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 
 public class QueryExecutionHelper implements AthenaAsyncClient {
     private final List<StartQueryExecutionRequest> startQueryRequests;
@@ -147,16 +139,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         if (delay.isZero()) {
             return future;
         } else {
-            TestDelayedCompletableFuture<T> testFuture = new TestDelayedCompletableFuture<>(future, delay, clock);
-            @SuppressWarnings("unchecked") CompletableFuture<T> restrictedFuture = mock(CompletableFuture.class, invocation -> {
-                throw new UnsupportedOperationException(invocation.getMethod().toString());
-            });
-            try {
-                doAnswer(AdditionalAnswers.delegatesTo(testFuture)).when(restrictedFuture).get(anyLong(), any());
-            } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                throw new RuntimeException(e);
-            }
-            return restrictedFuture;
+            return TestDelayedCompletableFuture.create(future, delay, clock);
         }
     }
 
