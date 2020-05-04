@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 public class TestDelayedCompletableFuture<T> extends CompletableFuture<T> {
     private static final Executor EXECUTOR = Executors.newCachedThreadPool();
@@ -26,12 +27,16 @@ public class TestDelayedCompletableFuture<T> extends CompletableFuture<T> {
     private CompletableFuture<T> wrappedFuture;
     private TestClock clock;
 
-
     public static <T> CompletableFuture<T> wrap(CompletableFuture<T> future, TestClock clock) {
         TestDelayedCompletableFuture<T> testFuture = new TestDelayedCompletableFuture<>(future, clock);
-        @SuppressWarnings("unchecked") TestDelayedCompletableFuture<T> restrictedFuture = mock(TestDelayedCompletableFuture.class, invocation -> {
-            throw new UnsupportedOperationException(invocation.getMethod().toString());
-        });
+        @SuppressWarnings("unchecked") TestDelayedCompletableFuture<T> restrictedFuture = mock(
+            TestDelayedCompletableFuture.class,
+            withSettings()
+              .stubOnly()
+              .defaultAnswer(invocation -> {
+                throw new UnsupportedOperationException(invocation.getMethod().toString());
+            })
+        );
         try {
             Stubber stubber = lenient().doAnswer(AdditionalAnswers.delegatesTo(testFuture));
             stubber.when(restrictedFuture).getWrappedFuture();
