@@ -139,7 +139,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         if (delay.isZero()) {
             return future;
         } else {
-            return TestDelayedCompletableFuture.create(future, delay, clock);
+            return TestDelayedCompletableFuture.wrapWithDelay(future, delay, clock);
         }
     }
 
