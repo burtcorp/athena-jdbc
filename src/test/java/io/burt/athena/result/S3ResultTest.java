@@ -349,6 +349,22 @@ class S3ResultTest {
                 assertEquals(RuntimeException.class, e.getCause().getCause().getClass());
                 assertEquals("b0rk", e.getCause().getCause().getMessage());
             }
+
+            @Nested
+            class AndTheErrorHappensBeforeTheIsConsumed {
+                @Test
+                void stillReturnsReceivedDataBeforeFailing() {
+                    assertDoesNotThrow(() -> result.next());
+                    subscriber.onNext(ByteBuffer.wrap("\",\"f\"\n\"g".getBytes(StandardCharsets.UTF_8)));
+                    subscriber.onError(new RuntimeException("b1rk"));
+                    assertDoesNotThrow(() -> result.next());
+                    assertEquals("e", result.getString(1));
+                    Exception e = assertThrows(SQLException.class, () -> result.next());
+                    assertEquals(IOException.class, e.getCause().getClass());
+                    assertEquals(RuntimeException.class, e.getCause().getCause().getClass());
+                    assertEquals("b1rk", e.getCause().getCause().getMessage());
+                }
+            }
         }
 
         @Nested
