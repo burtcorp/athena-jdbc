@@ -12,6 +12,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -44,6 +45,7 @@ public class TestDelayedCompletableFuture<T> extends CompletableFuture<T> {
             stubber.when(restrictedFuture).thenApply(any());
             stubber.when(restrictedFuture).thenCombine(any(), any());
             stubber.when(restrictedFuture).toString();
+            stubber.when(restrictedFuture).whenComplete(any());
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -104,5 +106,10 @@ public class TestDelayedCompletableFuture<T> extends CompletableFuture<T> {
     @SuppressWarnings("unchecked")
     public <U, V> CompletableFuture<V> thenCombine(CompletionStage<? extends U> other, BiFunction<? super T, ? super U, ? extends V> fn) {
         return new TestDelayedCompletableFuture<>(unwrap(wrappedFuture.thenCombine(unwrap(other), fn)), clock);
+    }
+
+    @Override
+    public CompletableFuture<T> whenComplete(BiConsumer<? super T, ? super Throwable> action) {
+        return new TestDelayedCompletableFuture<>(unwrap(wrappedFuture.whenComplete(action)), clock);
     }
 }

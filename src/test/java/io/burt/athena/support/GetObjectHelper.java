@@ -27,6 +27,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
     private final Map<String, byte[]> objects;
     private final Map<String, SdkPublisher<ByteBuffer>> publishers;
     private final Map<String, Exception> exceptions;
+    private final Map<String, Exception> sendExceptions;
     private final Map<String, Exception> lateExceptions;
     private final Map<String, Duration> delays;
     private final List<GetObjectRequest> getObjectRequests;
@@ -37,6 +38,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         this.objects = new HashMap<>();
         this.publishers = new HashMap<>();
         this.exceptions = new HashMap<>();
+        this.sendExceptions = new HashMap<>();
         this.lateExceptions = new HashMap<>();
         this.delays = new HashMap<>();
         this.getObjectRequests = new LinkedList<>();
@@ -60,12 +62,20 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         exceptions.put(uri(bucket, key), e);
     }
 
+    public void setObjectSendException(String bucket, String key, Exception e) {
+        sendExceptions.put(uri(bucket, key), e);
+    }
+
     public void setObjectLateException(String bucket, String key, Exception e) {
         lateExceptions.put(uri(bucket, key), e);
     }
 
     public void removeObject(String bucket, String key) {
         objects.remove(uri(bucket, key));
+    }
+
+    public void removeObjectPublisher(String bucket, String key) {
+        publishers.remove(uri(bucket, key));
     }
 
     public void delayObject(String bucket, String key, Duration duration) {
@@ -168,8 +178,13 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         if (exceptions.containsKey(uri)) {
             future = new CompletableFuture<>();
             future.completeExceptionally(exceptions.get(uri));
+        } else if (sendExceptions.containsKey(uri)) {
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).eTag("tag-1").build();
+            future = new CompletableFuture<>();
+            requestTransformer.onResponse(response);
+            requestTransformer.exceptionOccurred(sendExceptions.get(uri));
         } else if (lateExceptions.containsKey(uri)) {
-            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.exceptionOccurred(lateExceptions.get(uri));
@@ -177,13 +192,13 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
             requestTransformer.onStream(publisher);
             closeables.add(publisher);
         } else if (publishers.containsKey(uri)) {
-            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.onStream(publishers.get(uri));
         } else if (objects.containsKey(uri)) {
             byte[] object = objects.get(uri);
-            GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             GetObjectPublisher publisher = new GetObjectPublisher(object);

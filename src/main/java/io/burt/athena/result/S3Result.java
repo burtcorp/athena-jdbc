@@ -2,6 +2,7 @@ package io.burt.athena.result;
 
 import io.burt.athena.AthenaResultSetMetaData;
 import io.burt.athena.result.csv.VeryBasicCsvParser;
+import io.burt.athena.result.s3.AsyncResumableGetObjectOperation;
 import io.burt.athena.result.s3.ByteBufferResponseTransformer;
 import io.burt.athena.result.s3.InputStreamResponseTransformer;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
@@ -64,7 +65,7 @@ public class S3Result implements Result {
         try {
             AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
             CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
-            CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
+            CompletableFuture<InputStream> responseStreamFuture = new AsyncResumableGetObjectOperation<>(s3Client, b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer(), 10).call();
             CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
             responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
             responseParser.next();
