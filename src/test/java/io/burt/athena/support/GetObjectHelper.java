@@ -161,10 +161,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
     }
 
     @Override
-    public <T> CompletableFuture<T> getObject(Consumer<GetObjectRequest.Builder> getObjectRequestConsumer, AsyncResponseTransformer<GetObjectResponse, T> requestTransformer) throws AwsServiceException, SdkClientException {
-        GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder();
-        getObjectRequestConsumer.accept(requestBuilder);
-        GetObjectRequest request = requestBuilder.build();
+    public <T> CompletableFuture<T> getObject(GetObjectRequest request, AsyncResponseTransformer<GetObjectResponse, T> requestTransformer) throws AwsServiceException, SdkClientException {
         getObjectRequests.add(request);
         String uri = String.format("s3://%s/%s", request.bucket(), request.key());
         CompletableFuture<T> future;
@@ -175,6 +172,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
             GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
+            requestTransformer.exceptionOccurred(lateExceptions.get(uri));
             GetObjectExceptionPublisher publisher = new GetObjectExceptionPublisher(lateExceptions.get(uri));
             requestTransformer.onStream(publisher);
             closeables.add(publisher);
@@ -192,7 +190,8 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
             requestTransformer.onStream(publisher);
             closeables.add(publisher);
         } else {
-            throw NoSuchKeyException.builder().build();
+            future = new CompletableFuture<>();
+            future.completeExceptionally(NoSuchKeyException.builder().build());
         }
         future = TestDelayedCompletableFuture.wrapWithDelay(future, delays.get(uri), clock);
         return future;
