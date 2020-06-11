@@ -110,7 +110,7 @@ class ConcreteConnectionConfiguration implements ConnectionConfiguration {
         if (resultLoadingStrategy == ResultLoadingStrategy.GET_EXECUTION_RESULTS) {
             return new PreloadingStandardResult(athenaClient(), queryExecution, StandardResult.MAX_FETCH_SIZE, Duration.ofSeconds(10));
         } else if (resultLoadingStrategy == ResultLoadingStrategy.S3) {
-            return new S3Result(s3Client(), queryExecution, Duration.ofSeconds(10));
+            return new S3Result(s3Client(), 10, queryExecution, Duration.ofSeconds(10));
         } else {
             throw new IllegalStateException(String.format("No such result loading strategy: %s", queryExecution));
         }

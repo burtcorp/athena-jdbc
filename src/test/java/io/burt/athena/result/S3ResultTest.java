@@ -55,7 +55,7 @@ class S3ResultTest {
                 .resultConfiguration(b -> b.outputLocation("s3://some-bucket/the/prefix/Q1234.csv"))
                 .build();
         getObjectHelper = new GetObjectHelper();
-        result = new S3Result(getObjectHelper, queryExecution, Duration.ofSeconds(10));
+        result = new S3Result(getObjectHelper, 1, queryExecution, Duration.ofSeconds(10));
     }
 
     @AfterEach
@@ -123,7 +123,7 @@ class S3ResultTest {
                         .queryExecutionId("Q1234")
                         .resultConfiguration(b -> b.outputLocation("://some-bucket/the/prefix/Q1234.csv"))
                         .build();
-                Exception e = assertThrows(IllegalArgumentException.class, () -> new S3Result(getObjectHelper, queryExecution, Duration.ofSeconds(10)));
+                Exception e = assertThrows(IllegalArgumentException.class, () -> new S3Result(getObjectHelper, 0, queryExecution, Duration.ofSeconds(10)));
                 assertTrue(e.getMessage().contains("\"://some-bucket/the/prefix/Q1234.csv\""));
                 assertTrue(e.getMessage().contains("malformed"));
             }

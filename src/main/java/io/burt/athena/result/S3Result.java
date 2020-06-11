@@ -29,6 +29,7 @@ public class S3Result implements Result {
 
     private final QueryExecution queryExecution;
     private final S3AsyncClient s3Client;
+    private final int streamingRetryLimit;
     private final String bucketName;
     private final String key;
     private final Duration timeout;
@@ -37,8 +38,9 @@ public class S3Result implements Result {
     private String[] currentRow;
     private int rowNumber;
 
-    public S3Result(S3AsyncClient s3Client, QueryExecution queryExecution, Duration timeout) {
+    public S3Result(S3AsyncClient s3Client, int streamingRetryLimit, QueryExecution queryExecution, Duration timeout) {
         this.s3Client = s3Client;
+        this.streamingRetryLimit = streamingRetryLimit;
         this.queryExecution = queryExecution;
         this.timeout = timeout;
         this.currentRow = null;
@@ -65,7 +67,7 @@ public class S3Result implements Result {
         try {
             AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
             CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
-            CompletableFuture<InputStream> responseStreamFuture = new AsyncResumableGetObjectOperation<>(s3Client, b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer(), 10).call();
+            CompletableFuture<InputStream> responseStreamFuture = new AsyncResumableGetObjectOperation<>(s3Client, b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer(), streamingRetryLimit).call();
             CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
             responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
             responseParser.next();
