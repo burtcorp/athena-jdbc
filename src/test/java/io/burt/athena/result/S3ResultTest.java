@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import static io.burt.athena.support.GetQueryResultsHelper.createColumn;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -317,6 +318,40 @@ class S3ResultTest {
         }
 
         @Nested
+        class WhenLoadingTheResultThrowsAnExceptionAfterReceivingData {
+            private Subscriber<? super ByteBuffer> subscriber;
+
+            @BeforeEach
+            void setUp() {
+                getObjectHelper.removeObject("some-bucket", "the/prefix/Q1234.csv");
+                getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", subscriber -> {
+                    this.subscriber = subscriber;
+                    subscriber.onSubscribe(new Subscription() {
+                        @Override
+                        public void request(long l) { }
+
+                        @Override
+                        public void cancel() { }
+                    });
+                    subscriber.onNext(ByteBuffer.wrap("\"col1\",\"col2\"\n".getBytes(StandardCharsets.UTF_8)));
+                    subscriber.onNext(ByteBuffer.wrap("\"a\",\"b\"\n".getBytes(StandardCharsets.UTF_8)));
+                    subscriber.onNext(ByteBuffer.wrap("\"e".getBytes(StandardCharsets.UTF_8)));
+                });
+            }
+
+            @Test
+            void wrapsIoExceptionInSqlException() {
+                assertDoesNotThrow(() -> result.next());
+                subscriber.onError(new RuntimeException("b0rk"));
+                assertEquals("a", result.getString(1));
+                Exception e = assertThrows(SQLException.class, () -> result.next());
+                assertEquals(IOException.class, e.getCause().getClass());
+                assertEquals(RuntimeException.class, e.getCause().getCause().getClass());
+                assertEquals("b0rk", e.getCause().getCause().getMessage());
+            }
+        }
+
+        @Nested
         class WhenLoadingTheResultTimesOut {
             @Test
             void throwsSqlTimeoutException() {
@@ -393,6 +428,20 @@ class S3ResultTest {
                     assertTrue(result.next());
                     assertFalse(result.next());
                 }
+            }
+        }
+
+        @Nested
+        class WhenInvalidCsvReturned {
+            @BeforeEach
+            void setUp() {
+                getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv", "\"col1\",\"col2\"\n\"a".getBytes(StandardCharsets.UTF_8));
+            }
+
+            @Test
+            void wrapsTheParseExceptionInSqlException() {
+                Exception e = assertThrows(SQLException.class, () -> result.next());
+                assertEquals(ParseException.class, e.getCause().getClass());
             }
         }
     }
