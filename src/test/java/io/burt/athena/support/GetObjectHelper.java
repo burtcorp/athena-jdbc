@@ -18,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,6 +31,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
     private final Map<String, Duration> delays;
     private final List<GetObjectRequest> getObjectRequests;
     private final List<AutoCloseable> closeables;
+    private final TestClock clock;
 
     public GetObjectHelper() {
         this.objects = new HashMap<>();
@@ -41,6 +41,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         this.delays = new HashMap<>();
         this.getObjectRequests = new LinkedList<>();
         this.closeables = new LinkedList<>();
+        this.clock = new TestClock();
     }
 
     private String uri(String bucket, String key) {
@@ -193,22 +194,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         } else {
             throw NoSuchKeyException.builder().build();
         }
-        if (delays.containsKey(uri)) {
-            Duration delay = delays.get(uri);
-            final CompletableFuture<T> actualFuture = future;
-            final CompletableFuture<T> newFuture = new CompletableFuture<>();
-            future = newFuture;
-            new Thread(() -> {
-                try {
-                    Thread.sleep(delay.toMillis());
-                    T value = actualFuture.get();
-                    newFuture.complete(value);
-                } catch (InterruptedException ignored) {
-                } catch (ExecutionException e) {
-                    newFuture.completeExceptionally(e);
-                }
-            }).start();
-        }
+        future = TestDelayedCompletableFuture.wrapWithDelay(future, delays.get(uri), clock);
         return future;
     }
 

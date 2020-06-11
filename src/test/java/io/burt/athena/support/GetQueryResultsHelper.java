@@ -29,6 +29,7 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
     private List<Row> remainingRows;
     private Duration responseDelay;
     private boolean interruptLoading;
+    private TestClock clock;
 
     public GetQueryResultsHelper() {
         this.resultRequests = new LinkedList<>();
@@ -37,6 +38,7 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
         this.remainingRows = null;
         this.responseDelay = Duration.ZERO;
         this.interruptLoading = false;
+        this.clock = new TestClock();
     }
 
     public static ColumnInfo createColumn(String label, String type) {
@@ -118,14 +120,7 @@ public class GetQueryResultsHelper implements AthenaAsyncClient {
             if (responseDelay.isZero()) {
                 future = CompletableFuture.completedFuture(response);
             } else {
-                future = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        Thread.sleep(responseDelay.toMillis());
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return response;
-                });
+                future = TestDelayedCompletableFuture.wrapWithDelay(CompletableFuture.completedFuture(response), responseDelay, clock);
             }
         } else {
             future = new CompletableFuture<>();

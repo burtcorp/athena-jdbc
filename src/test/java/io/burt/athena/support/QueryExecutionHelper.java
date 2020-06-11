@@ -18,10 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -143,25 +139,7 @@ public class QueryExecutionHelper implements AthenaAsyncClient {
         if (delay.isZero()) {
             return future;
         } else {
-            CompletableFuture<T> newFuture = new CompletableFuture<>();
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            scheduler.schedule(
-                    () -> {
-                        try {
-                            newFuture.complete(future.get());
-                        } catch (ExecutionException e) {
-                            newFuture.completeExceptionally(e.getCause());
-                        } catch (Exception e) {
-                            newFuture.completeExceptionally(e);
-                        } finally {
-                            clock.tick(delay);
-                        }
-                    },
-                    delay.toMillis(),
-                    TimeUnit.MILLISECONDS
-            );
-            scheduler.shutdown();
-            return newFuture;
+            return TestDelayedCompletableFuture.wrapWithDelay(future, delay, clock);
         }
     }
 

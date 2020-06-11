@@ -197,14 +197,14 @@ class AthenaStatementTest {
         class WhenInterruptedWhileSleeping {
             @BeforeEach
             void setUp() {
-                statement = new AthenaStatement(createConfiguration().withNetworkTimeout(Duration.ofMillis(10)), clock);
+                statement = new AthenaStatement(createConfiguration().withNetworkTimeout(Duration.ofSeconds(10)), clock);
             }
 
             @Test
             void throwsWhenStartQueryExecutionDurationExceedsNetworkTimeout() {
                 queryExecutionHelper.queueStartQueryResponse("Q1234");
                 queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-                queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(100));
+                queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofSeconds(100));
                 assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
             }
 
@@ -212,7 +212,7 @@ class AthenaStatementTest {
             void throwsWhenGetQueryExecutionDurationExceedsNetworkTimeout() {
                 queryExecutionHelper.queueStartQueryResponse("Q1234");
                 queryExecutionHelper.queueGetQueryExecutionResponse(QueryExecutionState.SUCCEEDED);
-                queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(100));
+                queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofSeconds(100));
                 assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
             }
         }
@@ -507,29 +507,29 @@ class AthenaStatementTest {
 
         @Test
         void setsTheTimeoutUsedForStartQueryExecution() throws SQLException {
-            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofSeconds(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
 
         @Test
         void setsTheTimeoutUsedForGetQueryExecution() throws SQLException {
-            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofSeconds(10));
             statement.setQueryTimeout(0);
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
 
         @Test
         void setsTheTimeoutUsedForQuerySpanningMultipleOperations() {
-            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(40));
-            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(40));
-            statement.setQueryTimeout(Duration.ofMillis(100));
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofSeconds(40));
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofSeconds(40));
+            statement.setQueryTimeout(Duration.ofSeconds(100));
             assertThrows(SQLTimeoutException.class, () -> statement.executeQuery("SELECT 1"));
         }
 
         @Test
         void cancelsQueryAfterTimeout() throws Exception {
-            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofMillis(10));
+            queryExecutionHelper.delayGetQueryExecutionResponses(Duration.ofSeconds(10));
             statement.setQueryTimeout(0);
             try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
             StopQueryExecutionRequest request = queryExecutionHelper.stopQueryExecutionRequests().get(0);
@@ -538,7 +538,7 @@ class AthenaStatementTest {
 
         @Test
         void doesNotCancelQueryThatDidNotStart() throws Exception {
-            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofMillis(10));
+            queryExecutionHelper.delayStartQueryExecutionResponses(Duration.ofSeconds(10));
             statement.setQueryTimeout(0);
             try { statement.executeQuery("SELECT 1"); } catch (SQLTimeoutException ste) { /* expected */ }
             assertEquals(0, queryExecutionHelper.stopQueryExecutionRequests().size());

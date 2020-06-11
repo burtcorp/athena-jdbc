@@ -45,7 +45,7 @@ class StandardResultTest {
 
     protected StandardResult createResult(AthenaAsyncClient athenaClient) {
         QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
-        return new StandardResult(queryResultsHelper, queryExecution, 123, Duration.ofMillis(10));
+        return new StandardResult(queryResultsHelper, queryExecution, 123, Duration.ofSeconds(10));
     }
 
     @BeforeEach
@@ -348,7 +348,7 @@ class StandardResultTest {
             @Test
             void throwsSQLTimeoutException() {
                 QueryExecution queryExecution = QueryExecution.builder().queryExecutionId("Q1234").build();
-                queryResultsHelper.delayResponses(Duration.ofMillis(10));
+                queryResultsHelper.delayResponses(Duration.ofSeconds(10));
                 result = new StandardResult(queryResultsHelper, queryExecution, 123, Duration.ZERO);
                 Exception e = assertThrows(Exception.class, () -> result.next());
                 assertEquals(SQLTimeoutException.class, e.getClass());

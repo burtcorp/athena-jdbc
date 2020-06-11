@@ -4,9 +4,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TestClock extends Clock {
-  private long millis;
+  private AtomicLong millis = new AtomicLong();
 
   @Override
   public ZoneId getZone() {
@@ -25,10 +26,10 @@ public class TestClock extends Clock {
 
   @Override
   public long millis() {
-    return this.millis;
+    return this.millis.get();
   }
 
   public void tick(Duration duration) {
-    this.millis += duration.toMillis();
+    this.millis.addAndGet(duration.toMillis());
   }
 }

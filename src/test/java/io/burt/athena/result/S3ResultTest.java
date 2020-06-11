@@ -54,7 +54,7 @@ class S3ResultTest {
                 .resultConfiguration(b -> b.outputLocation("s3://some-bucket/the/prefix/Q1234.csv"))
                 .build();
         getObjectHelper = new GetObjectHelper();
-        result = new S3Result(getObjectHelper, queryExecution, Duration.ofMillis(10));
+        result = new S3Result(getObjectHelper, queryExecution, Duration.ofSeconds(10));
     }
 
     @AfterEach
@@ -122,7 +122,7 @@ class S3ResultTest {
                         .queryExecutionId("Q1234")
                         .resultConfiguration(b -> b.outputLocation("://some-bucket/the/prefix/Q1234.csv"))
                         .build();
-                Exception e = assertThrows(IllegalArgumentException.class, () -> new S3Result(getObjectHelper, queryExecution, Duration.ofMillis(10)));
+                Exception e = assertThrows(IllegalArgumentException.class, () -> new S3Result(getObjectHelper, queryExecution, Duration.ofSeconds(10)));
                 assertTrue(e.getMessage().contains("\"://some-bucket/the/prefix/Q1234.csv\""));
                 assertTrue(e.getMessage().contains("malformed"));
             }
@@ -213,7 +213,7 @@ class S3ResultTest {
         class WhenLoadingTheMetaDataTimesOut {
             @Test
             void throwsSqlTimeoutException() {
-                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv.metadata", Duration.ofSeconds(1));
+                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv.metadata", Duration.ofSeconds(60));
                 Exception e = assertThrows(SQLTimeoutException.class, () -> result.getMetaData());
                 assertEquals(TimeoutException.class, e.getCause().getClass());
             }
@@ -320,7 +320,7 @@ class S3ResultTest {
         class WhenLoadingTheResultTimesOut {
             @Test
             void throwsSqlTimeoutException() {
-                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv", Duration.ofSeconds(1));
+                getObjectHelper.delayObject("some-bucket", "the/prefix/Q1234.csv", Duration.ofSeconds(60));
                 Exception e = assertThrows(SQLTimeoutException.class, () -> result.next());
                 assertEquals(TimeoutException.class, e.getCause().getClass());
             }
