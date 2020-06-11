@@ -114,7 +114,17 @@ public class S3Result implements Result {
                 throw new SQLException(e);
             }
         }
-        currentRow = responseParser.next();
+        try {
+            currentRow = responseParser.next();
+        } catch (RuntimeException e) {
+            if (!(e.getCause() instanceof RuntimeException)) {
+                SQLException ee = new SQLException(e.getCause());
+                ee.addSuppressed(e);
+                throw ee;
+            } else {
+                throw e;
+            }
+        }
         if (currentRow == null) {
             return false;
         } else {
