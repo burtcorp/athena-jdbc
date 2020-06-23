@@ -68,6 +68,10 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
         objects.remove(uri(bucket, key));
     }
 
+    public void removeObjectPublisher(String bucket, String key) {
+        publishers.remove(uri(bucket, key));
+    }
+
     public void delayObject(String bucket, String key, Duration duration) {
         delays.put(uri(bucket, key), duration);
     }
@@ -169,7 +173,7 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
             future = new CompletableFuture<>();
             future.completeExceptionally(exceptions.get(uri));
         } else if (lateExceptions.containsKey(uri)) {
-            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.exceptionOccurred(lateExceptions.get(uri));
@@ -177,13 +181,13 @@ public class GetObjectHelper implements S3AsyncClient, AutoCloseable {
             requestTransformer.onStream(publisher);
             closeables.add(publisher);
         } else if (publishers.containsKey(uri)) {
-            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength(0L).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             requestTransformer.onStream(publishers.get(uri));
         } else if (objects.containsKey(uri)) {
             byte[] object = objects.get(uri);
-            GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).build();
+            GetObjectResponse response = GetObjectResponse.builder().contentLength((long) object.length).eTag("tag-1").build();
             future = requestTransformer.prepare();
             requestTransformer.onResponse(response);
             GetObjectPublisher publisher = new GetObjectPublisher(object);

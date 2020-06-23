@@ -325,6 +325,7 @@ class S3ResultTest {
             void setUp() {
                 getObjectHelper.removeObject("some-bucket", "the/prefix/Q1234.csv");
                 getObjectHelper.setObjectPublisher("some-bucket", "the/prefix/Q1234.csv", subscriber -> {
+                    getObjectHelper.removeObjectPublisher("some-bucket", "the/prefix/Q1234.csv");
                     this.subscriber = subscriber;
                     subscriber.onSubscribe(new Subscription() {
                         @Override

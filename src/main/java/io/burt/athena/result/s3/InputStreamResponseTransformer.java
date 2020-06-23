@@ -24,12 +24,12 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     private static final float CHUNK_SIZE_INITIAL_ESTIMATE = 8192f;
 
     private final CompletableFuture<InputStream> future;
-    private final BlockingQueue<ByteBuffer> chunks;
+    protected final BlockingQueue<ByteBuffer> chunks;
 
     private GetObjectResponse response;
     private AtomicReference<Optional<Subscription>> subscription;
-    private ByteBuffer readChunk;
-    private Throwable error;
+    protected ByteBuffer readChunk;
+    protected Throwable error;
     private AtomicInteger approximateBufferSize;
     private AtomicInteger requests;
     private volatile float approximateChunkSize;
@@ -125,7 +125,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
         }
     }
 
-    private boolean ensureChunk() throws IOException {
+    protected boolean ensureChunk() throws IOException {
         if (readChunk == END_MARKER) {
             if (error != null) {
                 throw new IOException(error);
