@@ -9,10 +9,12 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,6 +27,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     private final CompletableFuture<InputStream> future;
     protected final BlockingQueue<ByteBuffer> chunks;
+    protected Duration timeout;
 
     private GetObjectResponse response;
     private AtomicReference<Optional<Subscription>> subscription;
@@ -34,13 +37,14 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     private AtomicInteger requests;
     private volatile float approximateChunkSize;
 
-    public InputStreamResponseTransformer() {
+    public InputStreamResponseTransformer(Duration timeout) {
         this.future = new CompletableFuture<>();
         this.chunks = new LinkedBlockingQueue<>();
         this.subscription = new AtomicReference<>(Optional.empty());
         this.approximateBufferSize = new AtomicInteger(0);
         this.requests = new AtomicInteger(0);
         this.approximateChunkSize = CHUNK_SIZE_INITIAL_ESTIMATE;
+        this.timeout = timeout;
     }
 
     @Override
@@ -133,12 +137,14 @@ public class InputStreamResponseTransformer extends InputStream implements Async
             return false;
         } else if (readChunk == null || !readChunk.hasRemaining()) {
             try {
-                readChunk = chunks.take();
+                readChunk = chunks.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 if (readChunk == END_MARKER) {
                     if (error != null) {
                         throw new IOException(error);
                     }
                     return false;
+                } else if (readChunk == null) {
+                    throw new IOException("read timeout");
                 } else {
                     int size = approximateBufferSize.addAndGet(-readChunk.remaining());
                     maybeRequestMore(size);

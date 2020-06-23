@@ -13,13 +13,12 @@ import java.util.concurrent.TimeoutException;
 public class GetObjectInputStreamTransformer extends InputStreamResponseTransformer {
     private final S3AsyncClient s3Client;
     private final GetObjectRequest.Builder requestBuilder;
-    private Duration timeout;
     private int bytesOffset = 0;
 
     public GetObjectInputStreamTransformer(S3AsyncClient s3Client, GetObjectRequest.Builder requestBuilder, Duration timeout) {
+        super(timeout);
         this.s3Client = s3Client;
         this.requestBuilder = requestBuilder;
-        this.timeout = timeout;
     }
 
     @Override
