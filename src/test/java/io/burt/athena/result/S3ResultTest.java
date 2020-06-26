@@ -352,7 +352,7 @@ class S3ResultTest {
             }
 
             @Nested
-            class AndTheErrorHappensBeforeTheIsConsumed {
+            class AndTheErrorHappensBeforeTheResultIsConsumed {
                 @Test
                 void stillReturnsReceivedDataBeforeFailing() {
                     assertDoesNotThrow(() -> result.next());
@@ -449,7 +449,7 @@ class S3ResultTest {
         }
 
         @Nested
-        class WhenInvalidCsvReturned {
+        class WhenInvalidCsvIsReturned {
             @BeforeEach
             void setUp() {
                 getObjectHelper.setObject("some-bucket", "the/prefix/Q1234.csv", "\"col1\",\"col2\"\n\"a".getBytes(StandardCharsets.UTF_8));

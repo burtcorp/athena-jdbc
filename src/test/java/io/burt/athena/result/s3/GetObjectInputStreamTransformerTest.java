@@ -74,13 +74,13 @@ public class GetObjectInputStreamTransformerTest {
         }
 
         @Nested
-        class WhenRequestFails {
+        class WhenTheRequestFails {
             @BeforeEach
             void setUp() {
                 getObjectHelper.setObjectException("example-bucket", "path/to/my-key", new UnsupportedOperationException("b0rk"));
             }
             @Test
-            void propagateTheFailure() {
+            void propagatesTheFailure() {
                 Exception e = assertThrows(ExecutionException.class, () -> call().get(1, TimeUnit.DAYS));
                 assertEquals(UnsupportedOperationException.class, e.getCause().getClass());
                 assertEquals("b0rk", e.getCause().getMessage());
@@ -88,7 +88,7 @@ public class GetObjectInputStreamTransformerTest {
         }
 
         @Nested
-        class WhenDownloadingBodyFails {
+        class WhenDownloadingTheBodyFails {
             @BeforeEach
             void setUp() {
                 getObjectHelper.setObjectPublisher("example-bucket","path/to/my-key", SdkPublisher.adapt(s -> {

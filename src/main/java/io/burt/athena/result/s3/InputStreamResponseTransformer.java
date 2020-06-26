@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,7 +29,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     protected Duration timeout;
 
     private GetObjectResponse response;
-    private AtomicReference<Optional<Subscription>> subscription;
+    private AtomicReference<Subscription> subscription;
     protected ByteBuffer readChunk;
     protected Throwable error;
     private AtomicInteger approximateBufferSize;
@@ -40,7 +39,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     public InputStreamResponseTransformer(Duration timeout) {
         this.future = new CompletableFuture<>();
         this.chunks = new LinkedBlockingQueue<>();
-        this.subscription = new AtomicReference<>(Optional.empty());
+        this.subscription = new AtomicReference<>();
         this.approximateBufferSize = new AtomicInteger(0);
         this.requests = new AtomicInteger(0);
         this.approximateChunkSize = CHUNK_SIZE_INITIAL_ESTIMATE;
@@ -71,7 +70,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void onSubscribe(Subscription s) {
-        subscription.set(Optional.of(s));
+        subscription.set(s);
         if (response.contentLength() < TARGET_BUFFER_SIZE) {
             requests.set(Integer.MAX_VALUE);
             s.request(Long.MAX_VALUE);
@@ -99,7 +98,10 @@ public class InputStreamResponseTransformer extends InputStream implements Async
             if (newRequests < CHUNKS_REQUEST_LIMIT) {
                 if (newRequests * approximateChunkSize + currentSize < TARGET_BUFFER_SIZE) {
                     requests.addAndGet(10);
-                    subscription.get().ifPresent(s -> s.request(10L));
+                    Subscription s = subscription.get();
+                    if (s != null) {
+                        s.request(10L);
+                    }
                 }
             }
         }
@@ -114,7 +116,7 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     @Override
     public void onComplete() {
         chunks.offer(END_MARKER);
-        subscription.getAndSet(Optional.empty()).ifPresent(Subscription::cancel);
+        subscription.set(null);
     }
 
     @Override
@@ -180,6 +182,10 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     @Override
     public void close() throws IOException {
         chunks.clear();
+        Subscription s = subscription.get();
+        if (s != null) {
+            s.cancel();
+        }
         onComplete();
         readChunk = END_MARKER;
         if (error == null) {
