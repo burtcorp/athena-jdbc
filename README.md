@@ -204,6 +204,7 @@ These are some specific limitations and known issues that you might run into:
 * Similarly to arrays, maps and structs don't have unambiguous serializations in the Athena output format, but there is also no support in the JDBC API for these types. Cast to JSON, and use `ResultSet#getString` and parse them in your own code.
 * `Connection#prepareStatement` is not supported. The official Athena driver tries to support prepared statements and interpolation on the client side (it's unclear if it even works), but it's not the goal of this alternative driver to do that. Athena itself does not support prepared statements or interpolation, and there is no performance gain to be had from preparing statements.
 * The current mechanism for loading results loads them from S3 directly, instead of using the `GetQueryResult` and undocumented `GetQueryResultsStream` API calls. This is slower for small, but significantly faster for large result sets. In the future an optimized implementation, or an implementation that uses the fastest mechanism for a given result will be used to ensure good performance for all result set sizes.
+* There is currently limited support for the [`DatabaseMetadata` JDBC API](https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html), which is used by some UI tools to list databases, tables, etc. This API could be implemented, but represents a significant effort. If you want to contribute to the driver this may be a good place to start.
 
 ## Contributing
 
