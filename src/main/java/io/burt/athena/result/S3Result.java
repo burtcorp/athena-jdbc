@@ -3,9 +3,10 @@ package io.burt.athena.result;
 import io.burt.athena.AthenaResultSetMetaData;
 import io.burt.athena.result.csv.VeryBasicCsvParser;
 import io.burt.athena.result.s3.ByteBufferResponseTransformer;
-import io.burt.athena.result.s3.InputStreamResponseTransformer;
+import io.burt.athena.result.s3.GetObjectInputStreamTransformer;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.BufferedReader;
@@ -64,7 +65,8 @@ public class S3Result implements Result {
         try {
             AthenaMetaDataParser metaDataParser = new AthenaMetaDataParser(queryExecution);
             CompletableFuture<AthenaResultSetMetaData> metadataFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key + ".metadata"), new ByteBufferResponseTransformer()).thenApply(metaDataParser::parse);
-            CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(b -> b.bucket(bucketName).key(key), new InputStreamResponseTransformer());
+            GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder().bucket(bucketName).key(key);
+            CompletableFuture<InputStream> responseStreamFuture = s3Client.getObject(requestBuilder.build(), new GetObjectInputStreamTransformer(s3Client,requestBuilder, timeout));
             CompletableFuture<ResponseParser> combinedFuture = metadataFuture.thenCombine(responseStreamFuture, (metaData, responseStream) -> new ResponseParser(responseStream, metaData));
             responseParser = combinedFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
             responseParser.next();
@@ -114,7 +116,17 @@ public class S3Result implements Result {
                 throw new SQLException(e);
             }
         }
-        currentRow = responseParser.next();
+        try {
+            currentRow = responseParser.next();
+        } catch (RuntimeException e) {
+            if (!(e.getCause() instanceof RuntimeException)) {
+                SQLException ee = new SQLException(e.getCause());
+                ee.addSuppressed(e);
+                throw ee;
+            } else {
+                throw e;
+            }
+        }
         if (currentRow == null) {
             return false;
         } else {

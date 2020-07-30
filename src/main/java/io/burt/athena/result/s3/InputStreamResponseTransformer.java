@@ -9,11 +9,13 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class InputStreamResponseTransformer extends InputStream implements AsyncResponseTransformer<GetObjectResponse, InputStream>, Subscriber<ByteBuffer> {
     private static final ByteBuffer END_MARKER = ByteBuffer.allocate(0);
@@ -23,24 +25,25 @@ public class InputStreamResponseTransformer extends InputStream implements Async
     private static final float CHUNK_SIZE_INITIAL_ESTIMATE = 8192f;
 
     private final CompletableFuture<InputStream> future;
-    private final BlockingQueue<ByteBuffer> chunks;
+    protected final BlockingQueue<ByteBuffer> chunks;
+    protected Duration timeout;
 
     private GetObjectResponse response;
-    private Subscription subscription;
-    private ByteBuffer readChunk;
-    private Throwable error;
-    private AtomicBoolean complete;
+    private AtomicReference<Subscription> subscription;
+    protected ByteBuffer readChunk;
+    protected Throwable error;
     private AtomicInteger approximateBufferSize;
     private AtomicInteger requests;
     private volatile float approximateChunkSize;
 
-    public InputStreamResponseTransformer() {
+    public InputStreamResponseTransformer(Duration timeout) {
         this.future = new CompletableFuture<>();
         this.chunks = new LinkedBlockingQueue<>();
-        this.complete = new AtomicBoolean(false);
+        this.subscription = new AtomicReference<>();
         this.approximateBufferSize = new AtomicInteger(0);
         this.requests = new AtomicInteger(0);
         this.approximateChunkSize = CHUNK_SIZE_INITIAL_ESTIMATE;
+        this.timeout = timeout;
     }
 
     @Override
@@ -61,22 +64,19 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void exceptionOccurred(Throwable t) {
-        error = t;
         future.completeExceptionally(t);
-        try {
-            close();
-        } catch (Exception e) { }
+        onError(t);
     }
 
     @Override
     public void onSubscribe(Subscription s) {
-        subscription = s;
+        subscription.set(s);
         if (response.contentLength() < TARGET_BUFFER_SIZE) {
             requests.set(Integer.MAX_VALUE);
-            subscription.request(Long.MAX_VALUE);
+            s.request(Long.MAX_VALUE);
         } else {
             requests.set(10);
-            subscription.request(10L);
+            s.request(10L);
         }
     }
 
@@ -98,7 +98,10 @@ public class InputStreamResponseTransformer extends InputStream implements Async
             if (newRequests < CHUNKS_REQUEST_LIMIT) {
                 if (newRequests * approximateChunkSize + currentSize < TARGET_BUFFER_SIZE) {
                     requests.addAndGet(10);
-                    subscription.request(10);
+                    Subscription s = subscription.get();
+                    if (s != null) {
+                        s.request(10L);
+                    }
                 }
             }
         }
@@ -106,18 +109,19 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void onError(Throwable t) {
-        exceptionOccurred(t);
+        error = t;
+        onComplete();
     }
 
     @Override
     public void onComplete() {
         chunks.offer(END_MARKER);
-        complete.set(true);
+        subscription.set(null);
     }
 
     @Override
     public int available() throws IOException {
-        if (error != null) {
+        if (error != null && readChunk == END_MARKER) {
             throw new IOException(error);
         }
         if (readChunk != null) {
@@ -127,17 +131,22 @@ public class InputStreamResponseTransformer extends InputStream implements Async
         }
     }
 
-    private boolean ensureChunk() throws IOException {
-        if (error != null) {
-            throw new IOException(error);
-        }
+    protected boolean ensureChunk() throws IOException {
         if (readChunk == END_MARKER) {
+            if (error != null) {
+                throw new IOException(error);
+            }
             return false;
         } else if (readChunk == null || !readChunk.hasRemaining()) {
             try {
-                readChunk = chunks.take();
+                readChunk = chunks.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 if (readChunk == END_MARKER) {
+                    if (error != null) {
+                        throw new IOException(error);
+                    }
                     return false;
+                } else if (readChunk == null) {
+                    throw new IOException("read timeout");
                 } else {
                     int size = approximateBufferSize.addAndGet(-readChunk.remaining());
                     maybeRequestMore(size);
@@ -172,11 +181,15 @@ public class InputStreamResponseTransformer extends InputStream implements Async
 
     @Override
     public void close() throws IOException {
-        if (!complete.get()) {
-            chunks.clear();
-            chunks.offer(END_MARKER);
-            subscription.cancel();
-            future.cancel(true);
+        chunks.clear();
+        Subscription s = subscription.get();
+        if (s != null) {
+            s.cancel();
+        }
+        onComplete();
+        readChunk = END_MARKER;
+        if (error == null) {
+            error = new IOException("closed");
         }
         super.close();
     }
