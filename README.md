@@ -72,7 +72,7 @@ Currently the `java.sql.Connection` returned by the driver is thread safe and do
 This is the least amount of code needed to obtain a connection, and you also get type safe configuration:
 
 ```java
-import io.burt.ahtena.AthenaDataSource;
+import io.burt.athena.AthenaDataSource;
 import java.sql.Connection;
 import javax.sql.DataSource;
 
