@@ -1,5 +1,9 @@
 # athena-jdbc
 
+If you are looking for the best JDBC driver for Amazon Athena, have a look at [Amazon Athena JDBC driver v3](https://docs.aws.amazon.com/athena/latest/ug/jdbc-v3-driver.html). The driver in this repo is no longer maintained, but one of the authors was the lead on the new official driver.
+
+---
+
 [![Build Status](https://travis-ci.org/burtcorp/athena-jdbc.png?branch=master)](https://travis-ci.org/burtcorp/athena-jdbc) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.burt/athena-jdbc/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.burt/athena-jdbc)
 
 
